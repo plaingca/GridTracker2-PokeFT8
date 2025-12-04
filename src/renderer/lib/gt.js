@@ -8503,13 +8503,13 @@ function renderStatsBox()
           long_distance.mode[mode].worked_hash = i;
         }
 
-        if (unit > long_distance.band[band].worked_unit)
+        if (unit >= long_distance.band[band].worked_unit)
         {
           long_distance.band[band].worked_unit = unit;
           long_distance.band[band].worked_hash = i;
         }
 
-        if (unit > long_distance.type[type].worked_unit)
+        if (unit >= long_distance.type[type].worked_unit)
         {
           long_distance.type[type].worked_unit = unit;
           long_distance.type[type].worked_hash = i;
@@ -8517,22 +8517,22 @@ function renderStatsBox()
 
         if (didConfirm)
         {
-          if (unit > long_distance.confirmed_unit)
+          if (unit >= long_distance.confirmed_unit)
           {
             long_distance.confirmed_unit = unit;
             long_distance.confirmed_hash = i;
           }
-          if (unit > long_distance.mode[mode].confirmed_unit)
+          if (unit >= long_distance.mode[mode].confirmed_unit)
           {
             long_distance.mode[mode].confirmed_unit = unit;
             long_distance.mode[mode].confirmed_hash = i;
           }
-          if (unit > long_distance.band[band].confirmed_unit)
+          if (unit >= long_distance.band[band].confirmed_unit)
           {
             long_distance.band[band].confirmed_unit = unit;
             long_distance.band[band].confirmed_hash = i;
           }
-          if (unit > long_distance.type[type].confirmed_unit)
+          if (unit >= long_distance.type[type].confirmed_unit)
           {
             long_distance.type[type].confirmed_unit = unit;
             long_distance.type[type].confirmed_hash = i;
@@ -8818,16 +8818,20 @@ function renderStatsBox()
       long_distance.worked_unit +
       " " +
       distanceUnit.value.toLowerCase();
-    worker +=
-      "<font style='color:yellow' > " +
-      GT.QSOhash[long_distance.worked_hash].DEcall +
-      "</font>";
-    worker +=
-      "<font style='color:orange' > " +
-      GT.QSOhash[long_distance.worked_hash].grid +
-      "</font></td>";
+    if (long_distance.worked_hash && long_distance.worked_hash.length > 0 && long_distance.worked_hash in GT.QSOhash)
+    {
+      worker +=
+        "<font style='color:yellow' > " +
+        GT.QSOhash[long_distance.worked_hash].DEcall +
+        "</font>";
+      worker +=
+        "<font style='color:orange' > " +
+        GT.QSOhash[long_distance.worked_hash].grid +
+        "</font>";
+    }
+    worker += "</td>";
 
-    if (long_distance.confirmed_hash && long_distance.confirmed_unit > 0)
+    if (long_distance.confirmed_hash && long_distance.confirmed_hash.length > 0 && long_distance.confirmed_unit > 0 && long_distance.confirmed_hash in GT.QSOhash)
     {
       worker +=
         "<td style='color:lightgreen'>" +
@@ -8853,16 +8857,20 @@ function renderStatsBox()
       short_distance.worked_unit +
       " " +
       distanceUnit.value.toLowerCase();
-    worker +=
-      "<font style='color:yellow' > " +
-      GT.QSOhash[short_distance.worked_hash].DEcall +
-      "</font>";
-    worker +=
-      "<font style='color:orange' > " +
-      GT.QSOhash[short_distance.worked_hash].grid +
-      "</font></td>";
+    if (short_distance.worked_hash && short_distance.worked_hash.length > 0 && short_distance.worked_hash in GT.QSOhash)
+    {
+      worker +=
+        "<font style='color:yellow' > " +
+        GT.QSOhash[short_distance.worked_hash].DEcall +
+        "</font>";
+      worker +=
+        "<font style='color:orange' > " +
+        GT.QSOhash[short_distance.worked_hash].grid +
+        "</font>";
+    }
+    worker += "</td>";
 
-    if (short_distance.confirmed_hash && short_distance.confirmed_unit > 0)
+    if (short_distance.confirmed_hash && short_distance.confirmed_hash.length > 0 && short_distance.confirmed_unit > 0 && short_distance.confirmed_hash in GT.QSOhash)
     {
       worker +=
         "<td style='color:lightblue'>" +
@@ -8950,32 +8958,36 @@ function createDistanceTable(obj, name)
   let keys = Object.keys(obj.band).sort(numberSort);
   for (let key in keys)
   {
-    let grid = GT.QSOhash[obj.band[keys[key]].worked_hash].grid;
-    let call = GT.QSOhash[obj.band[keys[key]].worked_hash].DEcall;
-    worker +=
-      "<tr><td align=right>" +
-      keys[key] +
-      "</td><td style='color:lightgreen' align=left>(" +
-      obj.band[keys[key]].worked_unit +
-      " " +
-      distanceUnit.value.toLowerCase() +
-      ")</td>";
-    worker +=
-      "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
-      call +
-      "\",\"" +
-      grid +
-      "\");' >" +
-      call +
-      "</td>";
-    worker += "<td style='color:orange' align=left>" + grid + "</td>";
-    worker += "</tr>";
+    let bandEntry = obj.band[keys[key]];
+    if (bandEntry.worked_hash && bandEntry.worked_hash.length > 0 && bandEntry.worked_hash in GT.QSOhash)
+    {
+      let grid = GT.QSOhash[bandEntry.worked_hash].grid;
+      let call = GT.QSOhash[bandEntry.worked_hash].DEcall;
+      worker +=
+        "<tr><td align=right>" +
+        keys[key] +
+        "</td><td style='color:lightgreen' align=left>(" +
+        bandEntry.worked_unit +
+        " " +
+        distanceUnit.value.toLowerCase() +
+        ")</td>";
+      worker +=
+        "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
+        call +
+        "\",\"" +
+        grid +
+        "\");' >" +
+        call +
+        "</td>";
+      worker += "<td style='color:orange' align=left>" + grid + "</td>";
+      worker += "</tr>";
+    }
   }
   worker += "</table></td>";
   worker += "<td align=left><table class='subtable'>";
   for (let key in keys)
   {
-    if (keys[key] in obj.band && obj.band[keys[key]].confirmed_hash)
+    if (keys[key] in obj.band && obj.band[keys[key]].confirmed_hash && obj.band[keys[key]].confirmed_hash.length > 0 && obj.band[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.band[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.band[keys[key]].confirmed_hash].DEcall;
@@ -9008,32 +9020,36 @@ function createDistanceTable(obj, name)
   keys = Object.keys(obj.mode).sort();
   for (let key in keys)
   {
-    let grid = GT.QSOhash[obj.mode[keys[key]].worked_hash].grid;
-    let call = GT.QSOhash[obj.mode[keys[key]].worked_hash].DEcall;
-    worker +=
-      "<tr><td align=right>" +
-      keys[key] +
-      "</td><td style='color:lightgreen' align=left>(" +
-      obj.mode[keys[key]].worked_unit +
-      " " +
-      distanceUnit.value.toLowerCase() +
-      ")</td>";
-    worker +=
-      "<td style='color:yellow;cursor:pointer' align=left  onclick='window.opener.startLookup(\"" +
-      call +
-      "\",\"" +
-      grid +
-      "\");' >" +
-      call +
-      "</td>";
-    worker += "<td style='color:orange' align=left>" + grid + "</td>";
-    worker += "</tr>";
+    let modeEntry = obj.mode[keys[key]];
+    if (modeEntry.worked_hash && modeEntry.worked_hash.length > 0 && modeEntry.worked_hash in GT.QSOhash)
+    {
+      let grid = GT.QSOhash[modeEntry.worked_hash].grid;
+      let call = GT.QSOhash[modeEntry.worked_hash].DEcall;
+      worker +=
+        "<tr><td align=right>" +
+        keys[key] +
+        "</td><td style='color:lightgreen' align=left>(" +
+        modeEntry.worked_unit +
+        " " +
+        distanceUnit.value.toLowerCase() +
+        ")</td>";
+      worker +=
+        "<td style='color:yellow;cursor:pointer' align=left  onclick='window.opener.startLookup(\"" +
+        call +
+        "\",\"" +
+        grid +
+        "\");' >" +
+        call +
+        "</td>";
+      worker += "<td style='color:orange' align=left>" + grid + "</td>";
+      worker += "</tr>";
+    }
   }
   worker += "</table></td>";
   worker += "<td align=left><table class='subtable'>";
   for (let key in keys)
   {
-    if (keys[key] in obj.mode && obj.mode[keys[key]].confirmed_hash)
+    if (keys[key] in obj.mode && obj.mode[keys[key]].confirmed_hash && obj.mode[keys[key]].confirmed_hash.length > 0 && obj.mode[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.mode[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.mode[keys[key]].confirmed_hash].DEcall;
@@ -9065,32 +9081,36 @@ function createDistanceTable(obj, name)
   keys = Object.keys(obj.type).sort();
   for (let key in keys)
   {
-    let grid = GT.QSOhash[obj.type[keys[key]].worked_hash].grid;
-    let call = GT.QSOhash[obj.type[keys[key]].worked_hash].DEcall;
-    worker +=
-      "<tr><td align=right>" +
-      keys[key] +
-      "</td><td style='color:lightgreen' align=left>(" +
-      obj.type[keys[key]].worked_unit +
-      " " +
-      distanceUnit.value.toLowerCase() +
-      ")</td>";
-    worker +=
-      "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
-      call +
-      "\",\"" +
-      grid +
-      "\");' >" +
-      call +
-      "</td>";
-    worker += "<td style='color:orange' align=left>" + grid + "</td>";
-    worker += "</tr>";
+    let typeEntry = obj.type[keys[key]];
+    if (typeEntry.worked_hash && typeEntry.worked_hash.length > 0 && typeEntry.worked_hash in GT.QSOhash)
+    {
+      let grid = GT.QSOhash[typeEntry.worked_hash].grid;
+      let call = GT.QSOhash[typeEntry.worked_hash].DEcall;
+      worker +=
+        "<tr><td align=right>" +
+        keys[key] +
+        "</td><td style='color:lightgreen' align=left>(" +
+        typeEntry.worked_unit +
+        " " +
+        distanceUnit.value.toLowerCase() +
+        ")</td>";
+      worker +=
+        "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
+        call +
+        "\",\"" +
+        grid +
+        "\");' >" +
+        call +
+        "</td>";
+      worker += "<td style='color:orange' align=left>" + grid + "</td>";
+      worker += "</tr>";
+    }
   }
   worker += "</table></td>";
   worker += "<td align=left><table class='subtable'>";
   for (let key in keys)
   {
-    if (keys[key] in obj.type && obj.type[keys[key]].confirmed_hash)
+    if (keys[key] in obj.type && obj.type[keys[key]].confirmed_hash && obj.type[keys[key]].confirmed_hash.length > 0 && obj.type[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.type[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.type[keys[key]].confirmed_hash].DEcall;
