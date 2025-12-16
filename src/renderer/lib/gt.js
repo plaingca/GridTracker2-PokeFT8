@@ -5739,6 +5739,104 @@ const kIsEven = {
   FT4: { "00": 1, "15": 1, "30": 1, "45": 1 }
 }
 
+/**
+ * Validates a 4-character Maidenhead grid square (e.g., "EM73")
+ */
+function isValidGrid(grid)
+{
+  if (!grid || typeof grid != "string" || grid.length != 4)
+  {
+    return false;
+  }
+  let letters = grid.substring(0, 2).toUpperCase();
+  let numbers = grid.substring(2, 4);
+  return /^[A-R]{2}$/.test(letters) && /^[0-9]{2}$/.test(numbers);
+}
+
+/**
+ * Parse JS8Call message format: "CALLSIGN: CONTENT"
+ *
+ * Examples:
+ * - Heartbeat: "K1ABC: @HB HEARTBEAT EM73" -> callsign + grid
+ * - CQ: "K1ABC: @ALLCALL CQ DX EM73" -> callsign + grid + cq flag
+ * - Directed: "K1ABC: N2DEF SNR -05" -> callsign + dxCall
+ */
+function parseJS8Message(message)
+{
+  if (!message || typeof message != "string")
+  {
+    return null;
+  }
+
+  let msg = message.trim();
+  let colonIndex = msg.indexOf(":");
+  if (colonIndex == -1)
+  {
+    return null;
+  }
+
+  let sender = msg.substring(0, colonIndex).trim();
+
+  // JS8Call prefixes compound callsigns with backtick
+  if (sender.charAt(0) == "`")
+  {
+    sender = sender.substring(1);
+  }
+
+  if (sender.length == 0)
+  {
+    return null;
+  }
+
+  let content = msg.substring(colonIndex + 1).trim();
+  if (content.length == 0)
+  {
+    return null;
+  }
+
+  let words = content.split(/\s+/);
+  let lastWord = words[words.length - 1];
+
+  let result = {
+    callsign: sender,
+    grid: "",
+    dxCall: "",
+    cq: false
+  };
+
+  if (words[0] == "@HB" || words[0] == "@hb")
+  {
+    if (isValidGrid(lastWord))
+    {
+      result.grid = lastWord.toUpperCase();
+    }
+    return result;
+  }
+
+  if (words[0] == "@ALLCALL" || words[0] == "@allcall")
+  {
+    result.cq = true;
+    if (isValidGrid(lastWord))
+    {
+      result.grid = lastWord.toUpperCase();
+    }
+    return result;
+  }
+
+  // Directed/free text: extract recipient if it looks like a callsign
+  // Don't extract grid - position is undefined, risk of false positives
+  if (words.length >= 1 && words[0].length > 0)
+  {
+    let firstWord = words[0];
+    if (/[A-Za-z]/.test(firstWord) && /[0-9]/.test(firstWord))
+    {
+      result.dxCall = firstWord;
+    }
+  }
+
+  return result;
+}
+
 function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 {
   let didCustomAlert = false;
@@ -5762,11 +5860,30 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
   let theMessage = (isFox == true ? foxMessage : newMessage.Msg);
 
-  // Break up the decoded message
-  let decodeWords = theMessage.split(" ").slice(0, 5);
-  while (decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
+  // JS8Call uses different message format than FT8
+  let isJS8Message = false;
+  if (newMessage.OM == "JS8" || newMessage.OM == "JS8CALL")
+  {
+    let js8Parsed = parseJS8Message(theMessage);
+    if (js8Parsed)
+    {
+      msgDEcallsign = js8Parsed.callsign;
+      theirQTH = js8Parsed.grid;
+      msgDXcallsign = js8Parsed.dxCall;
+      CQ = js8Parsed.cq;
+      validQTH = (theirQTH && theirQTH.length == 4);
+      isJS8Message = true;
+    }
+  }
 
-  if (decodeWords.length > 1)
+  let decodeWords = [];
+  if (!isJS8Message)
+  {
+    decodeWords = theMessage.split(" ").slice(0, 5);
+  }
+  while (decodeWords.length > 0 && decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
+
+  if (decodeWords.length > 1 || (msgDEcallsign && msgDEcallsign.length > 0))
   {
     if (theMessage.indexOf("<") != -1)
     {
@@ -5790,22 +5907,17 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
     // Grab the last word in the decoded message
     let qth = decodeWords[decodeWords.length - 1].trim();
-    if (qth.length == 4)
+    if (isValidGrid(qth))
     {
-      let LETTERS = qth.substr(0, 2);
-      let NUMBERS = qth.substr(2, 2);
-      if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
+      theirQTH = qth.toUpperCase();
+      if (theirQTH != "RR73")
       {
-        theirQTH = LETTERS + NUMBERS;
-        if (theirQTH != "RR73")
-        {
-          validQTH = true;
-        }
-        else
-        {
-          theirQTH = "";
-          validQTH = false;
-        }
+        validQTH = true;
+      }
+      else
+      {
+        theirQTH = "";
+        validQTH = false;
       }
     }
 
