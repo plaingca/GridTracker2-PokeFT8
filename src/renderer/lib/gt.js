@@ -5906,18 +5906,17 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
     }
 
     // Grab the last word in the decoded message
-    let qth = decodeWords[decodeWords.length - 1].trim();
-    if (isValidGrid(qth))
+    if (decodeWords.length > 0)
     {
-      theirQTH = qth.toUpperCase();
-      if (theirQTH != "RR73")
+      let qth = decodeWords[decodeWords.length - 1];
+      qth = (qth === undefined) ? "" : qth.trim();
+      if (isValidGrid(qth))
       {
-        validQTH = true;
-      }
-      else
-      {
-        theirQTH = "";
-        validQTH = false;
+        theirQTH = qth.toUpperCase();
+        if (theirQTH != "RR73")
+        {
+          validQTH = true;
+        }
       }
     }
 
