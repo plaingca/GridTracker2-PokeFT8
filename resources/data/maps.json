@@ -239,5 +239,37 @@
     "attributions": "<a href=\"https://www.gebco.net/about_us/overview/\" target=\"_blank\">GEBCO</a>",
     "crossOrigin": "Anonymous",
     "offline": false
+  },
+  "AutoNavi(st6) by BI4IRZ (Chinese)": {
+    "sourceType": "XYZ",
+    "url": "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
+    "attributions": "AutoNavi",
+    "minZoom": 3,
+    "maxZoom": 19,
+    "offline": false
+  },
+  "AutoNavi(st8) by BI4IRZ (Chinese)": {
+    "sourceType": "XYZ",
+    "url": "https://webst01.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}",
+    "attributions": "AutoNavi",
+    "minZoom": 3,
+    "maxZoom": 19,
+    "offline": false
+  },
+  "AutoNavi(rd7) by BI4IRZ (Chinese)": {
+    "sourceType": "XYZ",
+    "url": "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
+    "attributions": "AutoNavi",
+    "minZoom": 3,
+    "maxZoom": 19,
+    "offline": false
+  },
+  "AutoNavi(rd8) by BI4IRZ (Chinese)": {
+    "sourceType": "XYZ",
+    "url": "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+    "attributions": "AutoNavi",
+    "minZoom": 3,
+    "maxZoom": 19,
+    "offline": false
   }
 }
