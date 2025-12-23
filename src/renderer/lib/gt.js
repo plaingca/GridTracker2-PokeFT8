@@ -5727,9 +5727,14 @@ function handleWsjtxDecode(newMessage)
     // Send the RR73 last as it's more important to us
     finalWsjtxDecode(newMessage, true, first);
   }
+  else if (newMessage.OM == "JS8" || newMessage.OM == "JS8CALL")
+  {
+    // A JS8Call message
+    finalJs8Decode(newMessage);
+  }
   else
   {
-    // A classic mode 0 decoded messages
+    // A classic mode 0 decoded message
     finalWsjtxDecode(newMessage);
   }
 }
@@ -5763,11 +5768,6 @@ function isValidGrid(grid)
  */
 function parseJS8Message(message)
 {
-  if (!message || typeof message != "string")
-  {
-    return null;
-  }
-
   let msg = message.trim();
   let colonIndex = msg.indexOf(":");
   if (colonIndex == -1)
@@ -5783,16 +5783,7 @@ function parseJS8Message(message)
     sender = sender.substring(1);
   }
 
-  if (sender.length == 0)
-  {
-    return null;
-  }
-
   let content = msg.substring(colonIndex + 1).trim();
-  if (content.length == 0)
-  {
-    return null;
-  }
 
   let words = content.split(/\s+/);
   let lastWord = words[words.length - 1];
@@ -5804,7 +5795,7 @@ function parseJS8Message(message)
     cq: false
   };
 
-  if (words[0] == "@HB" || words[0] == "@hb")
+  if (words[0] == "@HB")
   {
     if (isValidGrid(lastWord))
     {
@@ -5813,7 +5804,7 @@ function parseJS8Message(message)
     return result;
   }
 
-  if (words[0] == "@ALLCALL" || words[0] == "@allcall")
+  if (words[0] == "@ALLCALL")
   {
     result.cq = true;
     if (isValidGrid(lastWord))
@@ -5860,30 +5851,13 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
   let theMessage = (isFox == true ? foxMessage : newMessage.Msg);
 
-  // JS8Call uses different message format than FT8
-  let isJS8Message = false;
-  if (newMessage.OM == "JS8" || newMessage.OM == "JS8CALL")
-  {
-    let js8Parsed = parseJS8Message(theMessage);
-    if (js8Parsed)
-    {
-      msgDEcallsign = js8Parsed.callsign;
-      theirQTH = js8Parsed.grid;
-      msgDXcallsign = js8Parsed.dxCall;
-      CQ = js8Parsed.cq;
-      validQTH = (theirQTH && theirQTH.length == 4);
-      isJS8Message = true;
-    }
-  }
+  // Break up the decoded message
+  let decodeWords = theMessage.split(" ").slice(0, 5);
+  while (decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
 
-  let decodeWords = [];
-  if (!isJS8Message)
-  {
-    decodeWords = theMessage.split(" ").slice(0, 5);
-  }
   while (decodeWords.length > 0 && decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
 
-  if (decodeWords.length > 1 || (msgDEcallsign && msgDEcallsign.length > 0))
+  if (decodeWords.length > 1)
   {
     if (theMessage.indexOf("<") != -1)
     {
@@ -5906,16 +5880,22 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
     }
 
     // Grab the last word in the decoded message
-    if (decodeWords.length > 0)
+    let qth = decodeWords[decodeWords.length - 1].trim();
+    if (qth.length == 4)
     {
-      let qth = decodeWords[decodeWords.length - 1];
-      qth = (qth === undefined) ? "" : qth.trim();
-      if (isValidGrid(qth))
+      let LETTERS = qth.substr(0, 2);
+      let NUMBERS = qth.substr(2, 2);
+      if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
       {
-        theirQTH = qth.toUpperCase();
+        theirQTH = LETTERS + NUMBERS;
         if (theirQTH != "RR73")
         {
           validQTH = true;
+        }
+        else
+        {
+          theirQTH = "";
+          validQTH = false;
         }
       }
     }
@@ -5971,7 +5951,8 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
       (GT.settings.app.gtModeFilter.length == 0 ||
         (GT.settings.app.gtModeFilter == "auto" && newMessage.OM == GT.settings.app.myMode) ||
         newMessage.OM == GT.settings.app.gtModeFilter ||
-        GT.settings.app.gtModeFilter == "Digital")
+        GT.settings.app.gtModeFilter == "Digital") &&
+      (msgDXcallsign != null)
     )
     {
       qthToBox(theirQTH, msgDEcallsign, CQ, false, msgDXcallsign, newMessage.OB, null, hash, true);
@@ -6419,6 +6400,584 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
   while (GT.lastMessages.length > 100) GT.lastMessages.pop();
 }
+
+function finalJs8Decode(newMessage, isFox = false, foxMessage)
+{
+  let didCustomAlert = false;
+  let validQTH = false;
+  let CQ = false;
+  let RR73 = false;
+  let msgDEcallsign = "";
+  let msgDXcallsign = "";
+  let theirQTH = "";
+  let countryName = "";
+  let newF;
+  if (newMessage.OF > 0)
+  {
+    newF = formatMhz(Number((newMessage.OF + newMessage.DF) / 1000), 3, 3);
+  }
+  else
+  {
+    newF = newMessage.DF;
+  }
+  let theTimeStamp = timeNowSec() - (timeNowSec() % 86400) + parseInt(newMessage.TM / 1000);
+
+  let theMessage = newMessage.Msg;
+  if (parseJS8Message(theMessage))
+  {
+    msgDEcallsign = js8Parsed.callsign;
+    theirQTH = js8Parsed.grid;
+    msgDXcallsign = js8Parsed.dxCall;
+    CQ = js8Parsed.cq;
+    validQTH = (theirQTH && theirQTH.length == 4);
+    isJS8Message = true;
+  }
+  else {
+    console.log("Failed to parse JS8 message: " + theMessage);
+  }
+
+  let decodeWords = [];
+  decodeWords = theMessage.split(" ").slice(0, 5);
+  while (decodeWords.length > 0 && decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
+
+  if (decodeWords.length > 1 || (msgDEcallsign && msgDEcallsign.length > 0))
+  {
+    if (theMessage.indexOf("<") != -1)
+    {
+      for (const i in decodeWords)
+      {
+        decodeWords[i] = decodeWords[i].replace("<", "").replace(">", "");
+        if (decodeWords[i].indexOf("...") != -1)
+        {
+          if (i != 0)
+          {
+            // simply ignore <...> , we don't know who they are and we aint talking to them.
+            return;
+          }
+          else
+          {
+            decodeWords[0] = "UNKNOWN";
+          }
+        }
+      }
+    }
+
+    // Grab the last word in the decoded message
+    if (decodeWords.length > 0)
+    {
+      let qth = decodeWords[decodeWords.length - 1];
+      qth = (qth === undefined) ? "" : qth.trim();
+      if (isValidGrid(qth))
+      {
+        theirQTH = qth.toUpperCase();
+        if (theirQTH != "RR73")
+        {
+          validQTH = true;
+        }
+      }
+    }
+
+    if (validQTH) msgDEcallsign = decodeWords[decodeWords.length - 2].trim();
+    if (validQTH == false && decodeWords.length == 3) { msgDEcallsign = decodeWords[decodeWords.length - 2].trim(); }
+    if (validQTH == false && decodeWords.length == 2) { msgDEcallsign = decodeWords[decodeWords.length - 1].trim(); }
+    if (decodeWords[0] == "CQ")
+    {
+      CQ = true;
+      msgDXcallsign = "CQ";
+    }
+
+    if (decodeWords.length == 4 && CQ == true)
+    {
+      msgDXcallsign += " " + decodeWords[1];
+    }
+    if (decodeWords.length == 3 && CQ == true && validQTH == false)
+    {
+      msgDXcallsign += " " + decodeWords[1];
+    }
+    if (decodeWords.length < 4 && CQ == false)
+    {
+      msgDXcallsign = decodeWords[0];
+    }
+    if (decodeWords.length >= 3 && CQ == true && validQTH == false)
+    {
+      if (validateNumAndLetter(decodeWords[decodeWords.length - 1].trim())) { msgDEcallsign = decodeWords[decodeWords.length - 1].trim(); }
+      else msgDEcallsign = decodeWords[decodeWords.length - 2].trim();
+    }
+
+    if (decodeWords.length >= 4 && CQ == false)
+    {
+      msgDXcallsign = decodeWords[0];
+      msgDEcallsign = decodeWords[1];
+    }
+
+    if (decodeWords[2] == "RR73")
+    {
+      RR73 = true;
+    }
+
+    let callsign = null;
+
+    let hash = msgDEcallsign + newMessage.OB + newMessage.OM;
+    if (hash in GT.liveCallsigns) callsign = GT.liveCallsigns[hash];
+
+    let canPath = false;
+    if (
+      (GT.settings.app.gtBandFilter.length == 0 ||
+        (GT.settings.app.gtBandFilter == "auto" && newMessage.OB == GT.settings.app.myBand) ||
+        newMessage.OB == GT.settings.app.gtBandFilter) &&
+      (GT.settings.app.gtModeFilter.length == 0 ||
+        (GT.settings.app.gtModeFilter == "auto" && newMessage.OM == GT.settings.app.myMode) ||
+        newMessage.OM == GT.settings.app.gtModeFilter ||
+        GT.settings.app.gtModeFilter == "Digital") &&
+      (msgDXcallsign != null)
+    )
+    {
+      qthToBox(theirQTH, msgDEcallsign, CQ, false, msgDXcallsign, newMessage.OB, null, hash, true);
+      canPath = true;
+    }
+
+    if (theirQTH in GT.liveGrids)
+    {
+      GT.liveGrids[theirQTH].age = GT.timeNow;
+    }
+
+    if (callsign == null)
+    {
+      let newCallsign = {};
+      newCallsign.DEcall = msgDEcallsign;
+      newCallsign.grid = theirQTH;
+      // newCallsign.field = theirQTH.substring(0, 2);
+      newCallsign.wspr = null;
+      newCallsign.msg = newMessage.Msg;
+      newCallsign.RSTsent = newMessage.SR;
+      newCallsign.RSTrecv = "-";
+      newCallsign.time = theTimeStamp;
+      newCallsign.life = newCallsign.age = timeNowSec();
+      newCallsign.delta = newMessage.DF;
+      newCallsign.dt = newMessage.DT.toFixed(2);
+      newCallsign.DXcall = msgDXcallsign.trim();
+      newCallsign.state = null;
+      newCallsign.zipcode = null;
+      newCallsign.worked = false;
+      newCallsign.confirmed = false;
+      newCallsign.qso = false;
+      newCallsign.dxcc = callsignToDxcc(newCallsign.DEcall);
+      newCallsign.px = null;
+      newCallsign.pota = null;
+      newCallsign.zone = null;
+      newCallsign.vucc_grids = [];
+      newCallsign.propMode = "";
+      newCallsign.digital = true;
+      newCallsign.phone = false;
+      newCallsign.even = false;
+      newCallsign.IOTA = "";
+      newCallsign.hash = hash;
+      if (newCallsign.dxcc != -1)
+      {
+        newCallsign.px = getWpx(newCallsign.DEcall);
+        if (newCallsign.px)
+        {
+          newCallsign.zone = Number(
+            newCallsign.px.charAt(newCallsign.px.length - 1)
+          );
+        }
+
+        newCallsign.cont = GT.dxccInfo[newCallsign.dxcc].continent;
+        if (newCallsign.dxcc == 390 && newCallsign.zone == 1) { newCallsign.cont = "EU"; }
+      }
+
+      newCallsign.ituz = ituZoneFromCallsign(newCallsign.DEcall, newCallsign.dxcc);
+      newCallsign.cqz = cqZoneFromCallsign(newCallsign.DEcall, newCallsign.dxcc);
+      newCallsign.distance = 0;
+      newCallsign.heading = 0;
+
+      newCallsign.cnty = null;
+      newCallsign.qual = false;
+
+      getLookupCachedObject(msgDEcallsign, null, null, null, newCallsign);
+
+      if (newCallsign.dxcc in GT.dxccCount) GT.dxccCount[newCallsign.dxcc]++;
+      else GT.dxccCount[newCallsign.dxcc] = 1;
+
+      newCallsign.rosterAlerted = false;
+      newCallsign.shouldRosterAlert = false;
+      newCallsign.audioAlerted = false;
+      newCallsign.shouldAudioAlert = false;
+      GT.liveCallsigns[hash] = newCallsign;
+      callsign = newCallsign;
+    }
+    else
+    {
+      if (validQTH)
+      {
+        callsign.grid = theirQTH;
+      }
+
+      callsign.time = theTimeStamp;
+      callsign.age = timeNowSec();
+
+      callsign.RSTsent = newMessage.SR;
+      callsign.delta = newMessage.DF;
+      callsign.DXcall = msgDXcallsign.trim();
+      callsign.msg = newMessage.Msg;
+      callsign.dt = newMessage.DT.toFixed(2);
+
+      if (callsign.ituz == null) callsign.ituz = ituZoneFromCallsign(callsign.DEcall, callsign.dxcc);
+      if (callsign.cqz == null ) callsign.cqz = cqZoneFromCallsign(callsign.DEcall, callsign.dxcc);
+    }
+
+    callsign.mode = newMessage.OM;
+    callsign.band = newMessage.OB;
+    callsign.instance = newMessage.instance;
+    callsign.grid = callsign.grid.substr(0, 4);
+    // callsign.field = callsign.grid.substring(0, 2);
+    callsign.CQ = CQ;
+    callsign.RR73 = RR73;
+    callsign.UTC = toColonHMS(parseInt(newMessage.TM / 1000));
+
+    if (callsign.mode in kIsEven)
+    {
+      callsign.even = (callsign.UTC.slice(-2) in kIsEven[callsign.mode]);
+    }
+
+    callsign.qrz = (msgDXcallsign == GT.settings.app.myCall);
+
+    if (callsign.grid.length > 0 && isKnownCallsignDXCC(callsign.dxcc))
+    {
+      if (callsign.grid in GT.gridToState && GT.gridToState[callsign.grid].length == 1)
+      {
+        callsign.state = GT.gridToState[callsign.grid][0];
+      }
+    }
+
+    if (GT.settings.callsignLookups.ulsUseEnable == true && isKnownCallsignUSplus(callsign.dxcc) && (callsign.state == null || callsign.cnty == null))
+    {
+      lookupKnownCallsign(callsign);
+    }
+
+    if (callsign.state == null)
+    {
+      if (callsign.dxcc == 1 && GT.settings.callsignLookups.cacUseEnable && callsign.DEcall in GT.cacCallsigns)
+      {
+        callsign.state = "CA-" + GT.cacCallsigns[callsign.DEcall];
+      }
+    }
+
+    if (callsign.distance == 0 && callsign.grid.length > 0)
+    {
+      let LL = squareToCenter(callsign.grid);
+      callsign.distance = MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o);
+      callsign.heading = MyCircle.bearing(GT.myLat, GT.myLon, LL.a, LL.o);
+    }
+
+    if (GT.settings.app.potaFeatureEnabled)
+    {
+      callsign.pota = null;
+      if (callsign.DEcall in GT.pota.callSpots || callsign.DEcall in GT.pota.callSchedule)
+      {
+        let now = Date.now();
+        if (callsign.DEcall in GT.pota.callSpots)
+        {
+          if (GT.pota.callSpots[callsign.DEcall] in GT.pota.parkSpots && GT.pota.parkSpots[GT.pota.callSpots[callsign.DEcall]][callsign.DEcall].expire > now)
+          {
+            callsign.pota = GT.pota.callSpots[callsign.DEcall];
+          }
+        }
+        else if (callsign.DEcall in GT.pota.callSchedule)
+        {
+          for (const i in GT.pota.callSchedule[callsign.DEcall])
+          {
+            if (now < GT.pota.callSchedule[callsign.DEcall][i].end && now >= GT.pota.callSchedule[callsign.DEcall][i].start)
+            {
+              callsign.pota = GT.pota.callSchedule[callsign.DEcall][i].id;
+              break;
+            }
+          }
+        }
+        if (callsign.pota)
+        {
+          potaSpotFromDecode(callsign);
+        }
+        else if (CQ == true && msgDXcallsign == "CQ POTA")
+        {
+          callsign.pota = "?-????";
+        }
+      }
+      else if (CQ == true && msgDXcallsign == "CQ POTA")
+      {
+        callsign.pota = "?-????";
+      }
+    }
+
+    if (newMessage.NW)
+    {
+      didCustomAlert = processCustomAlertMessage(decodeWords, theMessage.substr(0, 30).trim(), callsign.band, callsign.mode);
+
+      insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callsign, hash);
+
+      if (GT.settings.map.trafficDecode && didCustomAlert == true)
+      {
+        let traffic = htmlEntities(theMessage);
+
+        traffic = traffic + " 🚩";
+
+        GT.lastTraffic.unshift(traffic);
+        GT.lastTraffic.unshift(userTimeString(null));
+        GT.lastTraffic.unshift("<hr style='border-color:#333;margin-top:0px;margin-bottom:2px;width:80%'>");
+        drawTraffic();
+        lastMessageWasInfo = true;
+      }
+
+      if (GT.settings.app.spottingEnable == true && newMessage.OF > 0)
+      {
+        let freq = callsign.delta + newMessage.OF;
+        if (callsign.DEcall in GT.gtCallsigns)
+        {
+          for (const cid in GT.gtCallsigns[callsign.DEcall])
+          {
+            if (cid in GT.gtFlagPins && GT.gtFlagPins[cid].o == 1)
+            {
+              GT.spotCollector[cid] = callsign.RSTsent;
+              GT.spotDetailsCollector[cid] = [freq, callsign.mode];
+            }
+          }
+        }
+        freq = freq - (freq % k_frequencyBucket);
+        GT.decodeCollector[freq] ??= 0;
+        GT.decodeCollector[freq]++;
+      }
+    }
+
+    if (callsign.dxcc != -1) countryName = GT.dxccToAltName[callsign.dxcc];
+    if (canPath == true)
+    {
+      if (callsign.DXcall.indexOf("CQ") < 0 && GT.settings.app.gridViewMode != 2)
+      {
+        // Nothing special, we know the callers grid
+        if (callsign.grid != "")
+        {
+          // Our msgDEcallsign is not sending a CQ.
+          // Let's see if we can locate who he's talking to in our known list
+          let DEcallsign = null;
+          if (callsign.DXcall + newMessage.OB + newMessage.OM in GT.liveCallsigns)
+          {
+            DEcallsign = GT.liveCallsigns[callsign.DXcall + newMessage.OB + newMessage.OM];
+          }
+          else if (msgDXcallsign == GT.settings.app.myCall && GT.settings.app.myGrid in GT.liveCallsigns)
+          {
+            DEcallsign = GT.liveCallsigns[GT.settings.app.myGrid];
+          }
+
+          if (DEcallsign != null && DEcallsign.grid != "")
+          {
+            let strokeColor = getPathColor();
+            let strokeWeight = pathWidthValue.value;
+            let flightPath = null;
+            let isQRZ = false;
+            if (msgDXcallsign == GT.settings.app.myCall)
+            {
+              strokeColor = getQrzPathColor();
+              strokeWeight = qrzPathWidthValue.value;
+              isQRZ = true;
+            }
+
+            if (strokeWeight != 0)
+            {
+              try
+              {
+                flightPath = flightFeature(
+                  [getPoint(callsign.grid), getPoint(DEcallsign.grid)],
+                  {
+                    weight: strokeWeight,
+                    color: strokeColor,
+                    steps: 75,
+                    zIndex: 90
+                  },
+                  "flight",
+                  true
+                );
+
+                flightPath.age = GT.timeNow + GT.flightDuration;
+                flightPath.isShapeFlight = 0;
+                flightPath.isQRZ = isQRZ;
+
+                GT.flightPaths.push(flightPath);
+                setAnimate(true);
+              }
+              catch (err)
+              {
+               // console.error("Unexpected error inside handleWsjtxDecode 1", err)
+              }
+            }
+          }
+        }
+        else if (GT.settings.map.qrzDxccFallback && msgDXcallsign == GT.settings.app.myCall && callsign.dxcc > 0)
+        {
+          // the caller is calling us, but they don't have a grid, so lookup the DXCC and show it
+          let strokeColor = getQrzPathColor();
+          let strokeWeight = qrzPathWidthValue.value;
+          let flightPath = null;
+          let isQRZ = true;
+ 
+          if (strokeWeight != 0 && GT.settings.app.myGrid.length > 0)
+          {
+            try
+            {
+              flightPath = flightFeature(
+                [ol.proj.fromLonLat([ GT.dxccInfo[callsign.dxcc].lon, GT.dxccInfo[callsign.dxcc].lat]), getPoint(GT.settings.app.myGrid)],
+                {
+                  weight: strokeWeight,
+                  color: strokeColor,
+                  steps: 75,
+                  zIndex: 90
+                },
+                "flight",
+                true
+              );
+
+              flightPath.age = GT.timeNow + GT.flightDuration;
+              flightPath.isShapeFlight = 0;
+              flightPath.isQRZ = isQRZ;
+
+              GT.flightPaths.push(flightPath);
+              setAnimate(true);
+            }
+            catch (err)
+            {
+              console.error("Unexpected error inside handleWsjtxDecode 2", err)
+            }
+
+            let feature = shapeFeature(
+              "qrz",
+              GT.dxccInfo[callsign.dxcc].geo,
+              "qrz",
+              "#FFFF0010",
+              "#FF0000FF",
+              1.0
+            );
+            feature.age = GT.timeNow + GT.flightDuration;
+            feature.isShapeFlight = 1;
+            feature.isQRZ = isQRZ;
+            GT.layerSources.flight.addFeature(feature);
+            GT.flightPaths.push(feature);
+            setAnimate(true);
+          }
+        }
+      }
+      else if (GT.settings.map.CQhilite && msgDXcallsign.indexOf("CQ ") == 0 && callsign.grid != "" && GT.settings.app.gridViewMode != 2 && pathWidthValue.value != 0)
+      {
+        let CCd = msgDXcallsign.replace("CQ ", "").split(" ")[0];
+        if (CCd.length < 5 && !(CCd in GT.pathIgnore))
+        {
+          let locality = null;
+          // Direct lookup US states, Continents, possibly
+          if (CCd in GT.replaceCQ) CCd = GT.replaceCQ[CCd];
+
+          if (CCd.length == 2 && CCd in GT.shapeData)
+          {
+            locality = GT.shapeData[CCd];
+          }
+          else if (CCd.length == 3)
+          {
+            // maybe it's DEL, or WYO. check the first two letters
+            if (CCd.substr(0, 2) in GT.shapeData) { locality = GT.shapeData[CCd.substr(0, 2)]; }
+          }
+
+          if (locality == null)
+          {
+            // Check the prefix for dxcc direct
+            if (CCd in GT.prefixToMap)
+            {
+              locality = GT.dxccInfo[GT.prefixToMap[CCd]].geo;
+              if (locality == "deleted")
+              {
+                locality = null;
+              }
+            }
+          }
+
+          if (locality != null)
+          {
+            let strokeColor = getPathColor();
+            let strokeWeight = pathWidthValue.value;
+            let flightPath = null;
+
+            let feature = shapeFeature(
+              CCd,
+              locality,
+              CCd,
+              "#00000000",
+              "#FF0000C0",
+              strokeWeight
+            );
+
+            feature.age = GT.timeNow + GT.flightDuration;
+            feature.isShapeFlight = 1;
+            feature.isQRZ = false;
+            GT.layerSources.flight.addFeature(feature);
+            GT.flightPaths.push(feature);
+            setAnimate(true);
+            let fromPoint = getPoint(callsign.grid);
+            let toPoint = ol.proj.fromLonLat(locality.properties.center);
+
+            try
+            {
+              flightPath = flightFeature(
+                [fromPoint, toPoint],
+                {
+                  weight: strokeWeight,
+                  color: strokeColor,
+                  steps: 75,
+                  zIndex: 90
+                },
+                "flight",
+                true
+              );
+
+              flightPath.age = GT.timeNow + GT.flightDuration;
+              flightPath.isShapeFlight = 0;
+              flightPath.isQRZ = false;
+              GT.flightPaths.push(flightPath);
+              setAnimate(true);
+            }
+            catch (err)
+            {
+              console.error("Unexpected error inside handleWsjtxDecode 3", err)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let bgColor = "black";
+  if (newMessage.LC > 0) bgColor = "#880000";
+
+  GT.lastMessages.unshift(
+    "<tr style='background-color:" +
+    bgColor +
+    "'><td style='color:lightblue'>" +
+    userTimeString(theTimeStamp * 1000) +
+    "</td><td style='color:orange'>" +
+    newMessage.SR +
+    "</td><td style='color:gray'>" +
+    newMessage.DT.toFixed(1) +
+    "</td><td style='color:lightgreen'>" +
+    newF +
+    "</td><td>" +
+    newMessage.MO +
+    "</td><td style='color:" +
+    (CQ ? "cyan" : "white") +
+    "'>" +
+    htmlEntities(theMessage) +
+    "</td><td style='color:yellow'>" +
+    countryName +
+    "</td></tr>"
+  );
+
+  while (GT.lastMessages.length > 100) GT.lastMessages.pop();
+}
+
 
 function addLastTraffic(traffic)
 {
