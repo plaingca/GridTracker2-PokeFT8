@@ -5855,8 +5855,6 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
   let decodeWords = theMessage.split(" ").slice(0, 5);
   while (decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
 
-  while (decodeWords.length > 0 && decodeWords[decodeWords.length - 1] == "") decodeWords.pop();
-
   if (decodeWords.length > 1)
   {
     if (theMessage.indexOf("<") != -1)
@@ -5951,8 +5949,7 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
       (GT.settings.app.gtModeFilter.length == 0 ||
         (GT.settings.app.gtModeFilter == "auto" && newMessage.OM == GT.settings.app.myMode) ||
         newMessage.OM == GT.settings.app.gtModeFilter ||
-        GT.settings.app.gtModeFilter == "Digital") &&
-      (msgDXcallsign != null)
+        GT.settings.app.gtModeFilter == "Digital")
     )
     {
       qthToBox(theirQTH, msgDEcallsign, CQ, false, msgDXcallsign, newMessage.OB, null, hash, true);
