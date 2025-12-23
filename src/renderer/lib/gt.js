@@ -6460,16 +6460,22 @@ function finalJs8Decode(newMessage, isFox = false, foxMessage)
     }
 
     // Grab the last word in the decoded message
-    if (decodeWords.length > 0)
+    let qth = decodeWords[decodeWords.length - 1].trim();
+    if (qth.length == 4)
     {
-      let qth = decodeWords[decodeWords.length - 1];
-      qth = (qth === undefined) ? "" : qth.trim();
-      if (isValidGrid(qth))
+      let LETTERS = qth.substr(0, 2);
+      let NUMBERS = qth.substr(2, 2);
+      if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
       {
-        theirQTH = qth.toUpperCase();
+        theirQTH = LETTERS + NUMBERS;
         if (theirQTH != "RR73")
         {
           validQTH = true;
+        }
+        else
+        {
+          theirQTH = "";
+          validQTH = false;
         }
       }
     }
