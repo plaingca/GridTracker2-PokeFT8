@@ -5727,7 +5727,7 @@ function handleWsjtxDecode(newMessage)
     // Send the RR73 last as it's more important to us
     finalWsjtxDecode(newMessage, true, first);
   }
-  else if (newMessage.OM == "JS8" || newMessage.OM == "JS8CALL")
+  else if (newMessage.OM == "JS8")
   {
     // A JS8Call message
     finalJs8Decode(newMessage);
@@ -6420,14 +6420,13 @@ function finalJs8Decode(newMessage, isFox = false, foxMessage)
   let theTimeStamp = timeNowSec() - (timeNowSec() % 86400) + parseInt(newMessage.TM / 1000);
 
   let theMessage = newMessage.Msg;
-  if (parseJS8Message(theMessage))
-  {
-    msgDEcallsign = js8Parsed.callsign;
-    theirQTH = js8Parsed.grid;
-    msgDXcallsign = js8Parsed.dxCall;
-    CQ = js8Parsed.cq;
+  let result = parseJS8Message(theMessage);
+  if (result != null) {
+    msgDEcallsign = result.callsign;
+    theirQTH = result.grid;
+    msgDXcallsign = result.dxCall;
+    CQ = result.cq;
     validQTH = (theirQTH && theirQTH.length == 4);
-    isJS8Message = true;
   }
   else {
     console.log("Failed to parse JS8 message: " + theMessage);
@@ -6480,10 +6479,10 @@ function finalJs8Decode(newMessage, isFox = false, foxMessage)
       }
     }
 
-    if (validQTH) msgDEcallsign = decodeWords[decodeWords.length - 2].trim();
+    if (validQTH && (msgDEcallsign == null || msgDEcallsign == "")) msgDEcallsign = decodeWords[decodeWords.length - 2].trim();
     if (validQTH == false && decodeWords.length == 3) { msgDEcallsign = decodeWords[decodeWords.length - 2].trim(); }
     if (validQTH == false && decodeWords.length == 2) { msgDEcallsign = decodeWords[decodeWords.length - 1].trim(); }
-    if (decodeWords[0] == "CQ")
+    if (decodeWords[0] == "CQ" || decodeWords[2] == "CQ")
     {
       CQ = true;
       msgDXcallsign = "CQ";
@@ -6558,7 +6557,7 @@ function finalJs8Decode(newMessage, isFox = false, foxMessage)
       newCallsign.life = newCallsign.age = timeNowSec();
       newCallsign.delta = newMessage.DF;
       newCallsign.dt = newMessage.DT.toFixed(2);
-      newCallsign.DXcall = msgDXcallsign.trim();
+      newCallsign.DXcall = msgDXcallsign != null ? msgDXcallsign.trim() : "";
       newCallsign.state = null;
       newCallsign.zipcode = null;
       newCallsign.worked = false;
@@ -6632,8 +6631,8 @@ function finalJs8Decode(newMessage, isFox = false, foxMessage)
     callsign.mode = newMessage.OM;
     callsign.band = newMessage.OB;
     callsign.instance = newMessage.instance;
-    callsign.grid = callsign.grid.substr(0, 4);
-    // callsign.field = callsign.grid.substring(0, 2);
+    callsign.grid = callsign.grid != null ? callsign.grid.substr(0, 4) : "";
+    callsign.field = callsign.grid != null ? callsign.grid.substring(0, 2) : "";
     callsign.CQ = CQ;
     callsign.RR73 = RR73;
     callsign.UTC = toColonHMS(parseInt(newMessage.TM / 1000));
