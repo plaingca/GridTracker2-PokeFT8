@@ -15,11 +15,6 @@ win:
       arch:
         - x64
         - ia32
-  azureSignOptions:
-    publisherName: Beau Gunderson
-    codeSigningAccountName: personal-signer
-    certificateProfileName: personal-trust-profile
-    endpoint: https://eus.codesigning.azure.net/
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: GridTracker2
