@@ -33,7 +33,6 @@ nsis:
   deleteAppDataOnUninstall: false
   warningsAsErrors: false
   preCompressedFileExtensions: [".png", ".mp3"]
-  verifyUpdateCodeSignature: false
 npmRebuild: false
 publish:
   provider: generic

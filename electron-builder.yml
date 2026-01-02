@@ -32,7 +32,6 @@ nsis:
   deleteAppDataOnUninstall: false
   warningsAsErrors: false
   preCompressedFileExtensions: [".png", ".mp3"]
-  verifyUpdateCodeSignature: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
