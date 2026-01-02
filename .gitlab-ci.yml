@@ -25,6 +25,8 @@ stages:
 
 win:build:
   stage: build
+  variables:
+    CSC_LINK: null
   tags:
     - saas-windows-medium-amd64
   rules:
@@ -48,12 +50,13 @@ win:build:
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
     - echo "APPNAME=$env:APPNAME" >> build.env
     - echo "$env:APPNAME-$env:VERSION"
-    - set CSC_LINK=
     - npm run build:win
     - dir dist
 
 win7:build:
   stage: build
+  variables:
+    CSC_LINK: null
   tags:
     - saas-windows-medium-amd64
   rules:
@@ -79,7 +82,6 @@ win7:build:
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
     - echo "APPNAME=$env:APPNAME" >> build.env
     - echo "$env:APPNAME-$env:VERSION"
-    - set CSC_LINK=
     - npm run build:win
     - mkdir dist/win7
     - move dist/*.* dist/win7/.
