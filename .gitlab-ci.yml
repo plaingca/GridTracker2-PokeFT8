@@ -79,6 +79,7 @@ win7:build:
     - echo "APPNAME=$env:APPNAME" >> build.env
     - echo "$env:APPNAME-$env:VERSION"
     - npm run build:win
+    - build/AzureSignTool-x64 sign -fd sha384 -kvu $env:AZURE_URL -kvi $env:AZURE_CLIENT_ID -kvs $env:AZURE_CLIENT_SECRET -kvt $env:AZURE_TENANT_ID -kvc $env:AZURE_PROFILE_NAME -d GridTracker2 -du https://gridtracker.org -v dist/*.exe
     - mkdir dist/win7
     - move dist/*.* dist/win7/.
     - dir dist
