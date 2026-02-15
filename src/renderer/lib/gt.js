@@ -12346,6 +12346,12 @@ function postInit()
     nodeTimers.setTimeout(checkForNewVersion, 30000); // Informative check
 
     //nodeTimers.setTimeout(downloadWorldVhfActivity, 2000);
+
+    // We toggle the map projection, some systems come up blank so we kick the video card in the butt
+    section = "ToggleMapPhaseFrom" + GT.settings.map.projection;
+    changeMapProjection(true);
+    section = "ToggleMapPhaseTo" + GT.settings.map.projection;
+    changeMapProjection(true);
   }
   catch (e)
   {
