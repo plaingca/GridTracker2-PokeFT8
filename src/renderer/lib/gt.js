@@ -1251,7 +1251,7 @@ function addLiveCallsign(
     newCallsign.IOTA = "";
     newCallsign.hash = hash;
 
-    if (newCallsign.state == null && isKnownCallsignDXCC(newCallsign.dxcc))
+    if (newCallsign.state == null && isKnownCallsignUS(newCallsign.dxcc))
     {
       let fourGrid = finalGrid.substr(0, 4);
       if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length == 1)
@@ -5973,7 +5973,7 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
     callsign.qrz = (msgDXcallsign == GT.settings.app.myCall);
 
-    if (callsign.grid.length > 0 && isKnownCallsignDXCC(callsign.dxcc))
+    if (callsign.grid.length > 0 && isKnownCallsignUS(callsign.dxcc))
     {
       if (callsign.grid in GT.gridToState && GT.gridToState[callsign.grid].length == 1)
       {

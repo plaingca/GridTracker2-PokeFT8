@@ -336,6 +336,10 @@ function cacSettingsDisplay()
     if (GT.cacLoadTimer != null) nodeTimers.clearTimeout(GT.cacLoadTimer);
     GT.cacLoadTimer = null;
     GT.cacCallsigns = Object();
+    for (const key in GT.liveCallsigns)
+    {
+      if (GT.liveCallsigns[key].dxcc == 1) GT.liveCallsigns[key].state = null;
+    }
   }
   cacCountTd.innerHTML = Object.keys(GT.cacCallsigns).length;
 }

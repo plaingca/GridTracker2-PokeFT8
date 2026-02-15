@@ -467,7 +467,7 @@ function addQSO(qso)
   if (details.cnty && details.confirmed == true)  details.qual = true;
 
   let fourGrid = details.grid.substr(0, 4);
-  if (details.state == null && fourGrid.length > 0 && isKnownCallsignDXCC(details.dxcc))
+  if (details.state == null && fourGrid.length > 0 && isKnownCallsignUS(details.dxcc))
   {
     if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length == 1)
     {

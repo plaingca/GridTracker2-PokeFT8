@@ -399,7 +399,7 @@ function processRosterHunting(callRoster, rosterSettings)
         // Hunting for DX Marathon
         if (RW.huntDXM || AAW.huntDXM)
         {
-          let hash = `${callObj.dxcc}c${currentYear}`;
+          const hash = `${callObj.dxcc}c${currentYear}`;
           let count = 0;
           let what;
           if (callObj.dxcc > 0 && !(hash in GT.tracker.worked.dxm))
@@ -430,11 +430,11 @@ function processRosterHunting(callRoster, rosterSettings)
         // Hunting for Known States
         if (RW.huntState || AAW.huntState)
         {
-          let stateSearch = callObj.state;
+          const stateSearch = callObj.state;
           if (stateSearch in GT.StateData && isKnownCallsignDXCC(callObj.dxcc))
           {
-            let hash = stateSearch + workHashSuffix;
-            let layeredHash = rosterSettings.layeredMode && (stateSearch + layeredHashSuffix)
+            const hash = stateSearch + workHashSuffix;
+            const layeredHash = rosterSettings.layeredMode && (stateSearch + layeredHashSuffix)
 
             if (rosterSettings.huntIndex && !(hash in rosterSettings.huntIndex.state))
             {
@@ -488,7 +488,7 @@ function processRosterHunting(callRoster, rosterSettings)
         {
           if (callObj.cnty && callObj.cnty.length > 0 && isKnownCallsignUSplus(callObj.dxcc))
           {
-            let hash = callObj.cnty + (rosterSettings.layeredMode ? layeredHashSuffix : workHashSuffix);
+            const hash = callObj.cnty + (rosterSettings.layeredMode ? layeredHashSuffix : workHashSuffix);
 
             if ((rosterSettings.huntIndex && !(hash in rosterSettings.huntIndex.cnty)) || callObj.qual == false)
             {
