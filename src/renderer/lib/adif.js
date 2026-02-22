@@ -2882,15 +2882,6 @@ function parseADIFRecord(adif)
   return record;
 }
 
-let unicodeRegex = /[^\u0000-\u00ff]/; // Small performance gain from pre-compiling the regex
-
-function containsDoubleByte(str)
-{
-  if (!str.length) return false;
-  if (str.charCodeAt(0) > 255) return true;
-  return unicodeRegex.test(str);
-}
-
 function pskCallback(buffer, flag)
 {
   parsePSKadif(buffer);
