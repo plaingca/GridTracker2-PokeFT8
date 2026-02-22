@@ -1,4 +1,4 @@
-// GridTracker Copyright © 2025 GridTracker.org
+// GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
 const gtVersionStr = electron.ipcRenderer.sendSync("appVersion");

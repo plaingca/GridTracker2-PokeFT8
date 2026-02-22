@@ -37,7 +37,7 @@ mac:
   extendInfo:
     - NSDocumentsFolderUsageDescription: GridTracker requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: GridTracker requests access to the user's Downloads folder.
-    - NSHumanReadableCopyright: Copyright (c) 2025 GridTracker.org
+    - NSHumanReadableCopyright: Copyright (c) 2026 GridTracker.org
     - NSLocalNetworkUsageDescription: GridTracker needs access to the local network to talk to WSJT-X
     - NSMicrophoneUsageDescription: GridTracker requests access to the device's microphone.
   notarize: true

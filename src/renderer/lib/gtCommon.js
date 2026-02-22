@@ -1,4 +1,4 @@
-// GridTracker Copyright © 2025 GridTracker.org
+// GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
 // gtCommon.js is common functions used by gt.js , adifWorker.js, trackerWorker.js and others
