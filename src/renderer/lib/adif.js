@@ -1795,19 +1795,6 @@ function finishSendingReport(record)
       }
     }
 
-    if (GT.settings.HRDLogbookLog.enable == true && GT.settings.HRDLogbookLog.port > 0 && GT.settings.HRDLogbookLog.ip.length > 4)
-    {
-      try
-      {
-        sendHRDLogbookEntry(record, GT.settings.HRDLogbookLog.port, GT.settings.HRDLogbookLog.ip);
-        addLastTraffic("<font style='color:white'>Logged to HRD Logbook</font>");
-      }
-      catch (e)
-      {
-        addLastTraffic("<font style='color:red'>Exception HRD Log</font>");
-      }
-    }
-
     try
     {
       sendLotwLogEntry(report, callsignFile, gridFile);
@@ -2146,13 +2133,6 @@ function dxkLogLoggerChanged()
   GT.settings.dxkLog.enable = buttondxkLogCheckBox.checked;
   GT.settings.dxkLog.ip = dxkLogIpInput.value;
   GT.settings.dxkLog.port = dxkLogPortInput.value;
-}
-
-function hrdLogbookLoggerChanged()
-{
-  GT.settings.HRDLogbookLog.enable = buttonHrdLogbookCheckBox.checked;
-  GT.settings.HRDLogbookLog.ip = hrdLogbookIpInput.value;
-  GT.settings.HRDLogbookLog.port = hrdLogbookPortInput.value;
 }
 
 function CloudUrlErrorCallback(
@@ -2909,29 +2889,6 @@ function containsDoubleByte(str)
   if (!str.length) return false;
   if (str.charCodeAt(0) > 255) return true;
   return unicodeRegex.test(str);
-}
-
-function sendHRDLogbookEntry(report, port, address)
-{
-  let command = "ver\rdb add {";
-  let items = Object.assign({}, report);
-
-  items.FREQ = items.FREQ.split(".").join("");
-
-  // HRD Log doesn't accept unicode
-  if (items.NAME && containsDoubleByte(items.NAME))
-  {
-    delete items.NAME;
-  }
-
-  for (let item in items)
-  {
-    command += item + "=\"" + items[item] + "\" ";
-  }
-
-  command += "}\rexit\r";
-
-  sendTcpMessage(command, command.length, Number(port), address);
 }
 
 function pskCallback(buffer, flag)

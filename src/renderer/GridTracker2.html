@@ -2219,28 +2219,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <td></td>
             <td></td>
           </tr>
-          <tr>
-            <td data-i18n="settings.logging.HRDLogbook.source">HRD Logbook</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>
-              <input type="checkbox"   class="inputTextValue" id="buttonHrdLogbookCheckBox"
-                onclick=" ValidateIPaddress(hrdLogbookIpInput,this); ValidatePort(hrdLogbookPortInput,this, null ); hrdLogbookLoggerChanged(); " />
-            </td>
-            <td>
-              <label data-i18n="settings.logging.HRDLogbook.details.IP" for="hrdLogbookIpInput">IP</label>
-              <input id="hrdLogbookIpInput" type="text" class="inputTextValue" maxlength="15" size="11"
-                onkeypress='return validIpKeys(event.charCode);'
-                oninput="ValidateIPaddress(this,buttonHrdLogbookCheckBox); hrdLogbookLoggerChanged(); " />
-              <label data-i18n="settings.logging.HRDLogbook.details.Port" for="hrdLogbookPortInput">Port</label>
-              <input id="hrdLogbookPortInput" type="text" class="inputTextValue" maxlength="5" size="5" onkeypress='return
-                  validNumberKeys(event.charCode);' oninput="ValidatePort(this,buttonHrdLogbookCheckBox, null );
-                  hrdLogbookLoggerChanged(); " />
-            </td>
-            <td></td>
-            <td></td>
-          </tr>
         </table>
     </div>
     <div id="audioAlertsDiv" class="settingsTabcontent">
