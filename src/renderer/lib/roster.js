@@ -47,6 +47,7 @@ CR.callsignDatabaseDXCC = {};
 CR.callsignDatabaseUS = {};
 CR.callsignDatabaseUSplus = {};
 CR.modeColors = {};
+CR.modeColors.FT2 = "FF8811";
 CR.modeColors.FT4 = "1111FF";
 CR.modeColors.FT8 = "11FF11";
 CR.modeColors.JT4 = "EE1111";

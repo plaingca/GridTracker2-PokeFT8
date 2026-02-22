@@ -242,6 +242,11 @@ function onAdiLoadComplete(task)
 
           let finalMode = (object.MODE || "").toUpperCase();
           let subMode = (object.SUBMODE || "").toUpperCase();
+          if (subMode == "FT2" && (finalMode == "MFSK" || finalMode == "DATA"))
+          {
+            // Internal assigment only
+            finalMode = "FT2"
+          }
           if (subMode == "FT4" && (finalMode == "MFSK" || finalMode == "DATA"))
           {
             // Internal assigment only
