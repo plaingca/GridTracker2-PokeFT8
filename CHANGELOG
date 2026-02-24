@@ -182,7 +182,7 @@ Wavelog: Fixed '/' entry in URL
 App: Do not lookup Canadian grids to province if Canadian Callsign DB is disabled
 Stats: Scores: Fixed an error when the longest distance worked is in the same grid as the operator
 Map: Added 4 new autonavimaps for Chinese users
-App: Tenatively recognize FT2 as an MSFK submode
+App: Tenatively recognize FT2 as an MFSK submode
 
 ### Fixed
 
