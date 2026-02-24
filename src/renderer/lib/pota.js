@@ -534,6 +534,7 @@ function processPotaSpots(buffer)
     catch (e)
     {
       // can't write, somethings broke
+      logError("processPotaSpots");
       logError(e);
     }
   }

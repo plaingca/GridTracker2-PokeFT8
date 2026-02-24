@@ -708,6 +708,7 @@ function saveAllSettings()
   }
   catch (e)
   {
+    logError("saveAllSettings");
     logError(e);
   }
 }
@@ -6408,6 +6409,7 @@ function goProcessRoster()
     }
     catch (e)
     {
+      logError("processRoster");
       logError(e);
     }
   }

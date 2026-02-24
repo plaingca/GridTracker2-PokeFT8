@@ -114,6 +114,7 @@ function lotwLoadCallsigns()
   }
   catch (e)
   {
+    logError("lotwLoadCallsigns");
     logError(e);
     GT.settings.callsignLookups.lotwLastUpdate = 0;
     lotwDownload();
