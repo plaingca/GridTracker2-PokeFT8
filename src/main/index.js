@@ -351,7 +351,7 @@ ipcMain.on('spawnScript', (event, scriptPath) => {
   try {
     const cp = require("child_process");
     let dirPath = path.dirname(scriptPath);
-    let child = cp.spawn(scriptPath, [], {
+    let child = cp.spawn(`"${scriptPath}"`, [], {
       detached: true,
       cwd: dirPath,
       shell: true,

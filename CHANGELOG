@@ -184,6 +184,9 @@ Stats: Scores: Fixed an error when the longest distance worked is in the same gr
 Map: Added 4 new autonavimaps for Chinese users
 App: Tenatively recognize FT2 as an MFSK submode
 
+
+Call Roster: Fixed script start issue
+
 ### Fixed
 
 
