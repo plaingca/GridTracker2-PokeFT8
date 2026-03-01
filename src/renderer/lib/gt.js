@@ -5722,7 +5722,6 @@ function handleWsjtxDecode(newMessage)
     const message = parseJS8Message(newMessage.Msg);
     if (message)
     {
-      console.log(message);
       finalWsjtxDecode(newMessage, true, message);
     }
     return;
@@ -6356,8 +6355,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
  */
 function parseJS8Message(message)
 {
-  console.log(message);
-  
   let msg = message.trim();
   let colonIndex = msg.indexOf(":");
   if (colonIndex == -1)

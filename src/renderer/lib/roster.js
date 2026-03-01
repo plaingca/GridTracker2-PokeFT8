@@ -50,6 +50,7 @@ CR.modeColors = {};
 CR.modeColors.FT2 = "FF8811";
 CR.modeColors.FT4 = "1111FF";
 CR.modeColors.FT8 = "11FF11";
+CR.modeColors.JS8 = "11FFFF";
 CR.modeColors.JT4 = "EE1111";
 CR.modeColors.JT9 = "7CFC00";
 CR.modeColors.JT65 = "E550E5";
