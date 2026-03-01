@@ -185,6 +185,10 @@ Map: Added 4 new autonavimaps for Chinese users
 App: Tenatively recognize FT2 as an MFSK submode
 
 
+App: Initial support for JS8Call-Improved (Must enable WSJT-X Server)
+  Known JS8Call UDP Issues:
+    Does not send "Recieving"/"Decoding" Status updates
+    Reply (click callsign in Call Roster) not supported
 Call Roster: Fixed script start issue
 
 ### Fixed
