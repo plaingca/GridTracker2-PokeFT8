@@ -26,7 +26,7 @@ stages:
 win:build:
   stage: build
   tags:
-    - saas-windows-medium-amd64
+    - win
   rules:
     - if: $CI_COMMIT_TAG =~ '/(v|test_|win_).*/'
   artifacts:
@@ -49,12 +49,33 @@ win:build:
     - echo "APPNAME=$env:APPNAME" >> build.env
     - echo "$env:APPNAME-$env:VERSION"
     - npm run build:win
+    - |
+      $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | 
+              Sort-Object FullName -Descending | 
+              Select-Object -First 1 -ExpandProperty FullName
+      if (-not $signtool) {
+        Write-Error "SignTool.exe not found"
+        exit 1
+      }
+      Write-Host "Using SignTool: $signtool"
+      $dlibPath = "C:\GitLab-Runner\AzureDLL\Azure.CodeSigning.Dlib.dll"
+      $metadataPath = "C:\GitLab-Runner\metadata.json"
+      Write-Host "Signing executables with Azure Trusted Signing..."
+      Get-ChildItem dist\*.exe | ForEach-Object {
+        Write-Host "Signing: $($_.Name)"
+        & $signtool sign /v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib $dlibPath /dmdf $metadataPath /d "GridTracker2" /du "https://gridtracker.org" $_.FullName
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Failed to sign $($_.Name)"
+          exit 1
+        }
+      }
+      Write-Host "All files signed successfully"
     - dir dist
 
 win7:build:
   stage: build
   tags:
-    - saas-windows-medium-amd64
+    - win
   rules:
     - if: $CI_COMMIT_TAG =~ '/(v|test_|win_).*/'
   artifacts:
@@ -79,6 +100,27 @@ win7:build:
     - echo "APPNAME=$env:APPNAME" >> build.env
     - echo "$env:APPNAME-$env:VERSION"
     - npm run build:win
+    - |
+      $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | 
+              Sort-Object FullName -Descending | 
+              Select-Object -First 1 -ExpandProperty FullName
+      if (-not $signtool) {
+        Write-Error "SignTool.exe not found"
+        exit 1
+      }
+      Write-Host "Using SignTool: $signtool"
+      $dlibPath = "C:\GitLab-Runner\AzureDLL\Azure.CodeSigning.Dlib.dll"
+      $metadataPath = "C:\GitLab-Runner\metadata.json"
+      Write-Host "Signing executables with Azure Trusted Signing..."
+      Get-ChildItem dist\*.exe | ForEach-Object {
+        Write-Host "Signing: $($_.Name)"
+        & $signtool sign /v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib $dlibPath /dmdf $metadataPath /d "GridTracker2" /du "https://gridtracker.org" $_.FullName
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Failed to sign $($_.Name)"
+          exit 1
+        }
+      }
+      Write-Host "All files signed successfully"
     - mkdir dist/win7
     - move dist/*.* dist/win7/.
     - dir dist
@@ -87,6 +129,8 @@ mac:build:
   tags:
     - saas-macos-medium-m1
   stage: build
+  variables:
+    CSC_LINK: .secure_files/mac-signing-certificate.p12
   image: macos-14-xcode-15
   rules:
     - if: $CI_COMMIT_TAG =~ '/(v|test_|mac_).*/'
@@ -106,6 +150,7 @@ mac:build:
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
   script:
     - export VERSION=$(node -e "console.log(require('./package.json').version)")
+    - export CSC_LINK=.secure_files/mac-signing-certificate.p12
     - echo "VERSION=$VERSION" >> build.env
     - export APPNAME=$(node -e "console.log(require('./package.json').name)")
     - echo "APPNAME=$APPNAME" >> build.env

@@ -1,4 +1,4 @@
-// GridTracker Copyright © 2025 GridTracker.org
+// GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
 const gtVersionStr = electron.ipcRenderer.sendSync("appVersion");
@@ -708,6 +708,7 @@ function saveAllSettings()
   }
   catch (e)
   {
+    logError("saveAllSettings");
     logError(e);
   }
 }
@@ -1251,7 +1252,7 @@ function addLiveCallsign(
     newCallsign.IOTA = "";
     newCallsign.hash = hash;
 
-    if (newCallsign.state == null && isKnownCallsignDXCC(newCallsign.dxcc))
+    if (newCallsign.state == null && isKnownCallsignUS(newCallsign.dxcc))
     {
       let fourGrid = finalGrid.substr(0, 4);
       if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length == 1)
@@ -6062,7 +6063,7 @@ function finalWsjtxDecode(newMessage, isFox = false, foxMessage)
 
     callsign.qrz = (msgDXcallsign == GT.settings.app.myCall);
 
-    if (callsign.grid.length > 0 && isKnownCallsignDXCC(callsign.dxcc))
+    if (callsign.grid.length > 0 && isKnownCallsignUS(callsign.dxcc))
     {
       if (callsign.grid in GT.gridToState && GT.gridToState[callsign.grid].length == 1)
       {
@@ -7080,6 +7081,7 @@ function goProcessRoster()
     }
     catch (e)
     {
+      logError("processRoster");
       logError(e);
     }
   }
@@ -12643,12 +12645,6 @@ function loadViewSettings()
   ValidatePort(dxkLogPortInput, buttondxkLogCheckBox, null);
   ValidateIPaddress(dxkLogIpInput, buttondxkLogCheckBox, null);
 
-  hrdLogbookIpInput.value = GT.settings.HRDLogbookLog.ip;
-  hrdLogbookPortInput.value = GT.settings.HRDLogbookLog.port;
-  buttonHrdLogbookCheckBox.checked = GT.settings.HRDLogbookLog.enable;
-  ValidatePort(hrdLogbookPortInput, buttonHrdLogbookCheckBox, null);
-  ValidateIPaddress(hrdLogbookIpInput, buttonHrdLogbookCheckBox, null);
-
   pstrotatorIpInput.value = GT.settings.pstrotator.ip;
   pstrotatorPortInput.value = GT.settings.pstrotator.port;
   pstrotatorCheckBox.checked = GT.settings.pstrotator.enable;
@@ -13018,6 +13014,12 @@ function postInit()
     nodeTimers.setTimeout(checkForNewVersion, 30000); // Informative check
 
     //nodeTimers.setTimeout(downloadWorldVhfActivity, 2000);
+
+    // We toggle the map projection, some systems come up blank so we kick the video card in the butt
+    section = "ToggleMapPhaseFrom" + GT.settings.map.projection;
+    changeMapProjection(true);
+    section = "ToggleMapPhaseTo" + GT.settings.map.projection;
+    changeMapProjection(true);
   }
   catch (e)
   {

@@ -106,7 +106,6 @@ if (document.title.substring(0, 12).trim() == "GridTracker2")
   {
     GT.settings = { };
     logError("Could not load: " + filename);
-    logError(e);
     logError("Defaults will be applied");
   }
 }

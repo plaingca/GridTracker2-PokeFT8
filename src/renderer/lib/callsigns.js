@@ -1,4 +1,4 @@
-// GridTracker Copyright © 2025 GridTracker.org
+// GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
 
@@ -114,6 +114,7 @@ function lotwLoadCallsigns()
   }
   catch (e)
   {
+    logError("lotwLoadCallsigns");
     logError(e);
     GT.settings.callsignLookups.lotwLastUpdate = 0;
     lotwDownload();
@@ -336,6 +337,10 @@ function cacSettingsDisplay()
     if (GT.cacLoadTimer != null) nodeTimers.clearTimeout(GT.cacLoadTimer);
     GT.cacLoadTimer = null;
     GT.cacCallsigns = Object();
+    for (const key in GT.liveCallsigns)
+    {
+      if (GT.liveCallsigns[key].dxcc == 1) GT.liveCallsigns[key].state = null;
+    }
   }
   cacCountTd.innerHTML = Object.keys(GT.cacCallsigns).length;
 }

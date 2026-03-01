@@ -1,5 +1,4 @@
 const validSettings = [
-  "HRDLogbookLog",
   "N1MM",
   "acLog",
   "adifLog",
@@ -290,11 +289,6 @@ const def_settings = {
   dxkLog: {
     enable: false,
     port: 52000,
-    ip: "127.0.0.1"
-  },
-  HRDLogbookLog: {
-    enable: false,
-    port: 7826,
     ip: "127.0.0.1"
   },
   acLog: {

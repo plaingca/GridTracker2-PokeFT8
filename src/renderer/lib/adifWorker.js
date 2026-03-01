@@ -242,6 +242,11 @@ function onAdiLoadComplete(task)
 
           let finalMode = (object.MODE || "").toUpperCase();
           let subMode = (object.SUBMODE || "").toUpperCase();
+          if (subMode == "FT2" && (finalMode == "MFSK" || finalMode == "DATA"))
+          {
+            // Internal assigment only
+            finalMode = "FT2"
+          }
           if (subMode == "FT4" && (finalMode == "MFSK" || finalMode == "DATA"))
           {
             // Internal assigment only
@@ -467,7 +472,7 @@ function addQSO(qso)
   if (details.cnty && details.confirmed == true)  details.qual = true;
 
   let fourGrid = details.grid.substr(0, 4);
-  if (details.state == null && fourGrid.length > 0 && isKnownCallsignDXCC(details.dxcc))
+  if (details.state == null && fourGrid.length > 0 && isKnownCallsignUS(details.dxcc))
   {
     if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length == 1)
     {
