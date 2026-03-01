@@ -1194,7 +1194,7 @@ function addLiveCallsign(
     let newCallsign = {};
     newCallsign.DEcall = finalDXcall;
     newCallsign.grid = finalGrid;
-    // newCallsign.field = finalGrid.substring(0, 2);
+
     newCallsign.mode = mode;
     newCallsign.band = band;
     newCallsign.msg = finalMsg;
@@ -5720,7 +5720,7 @@ function handleWsjtxDecode(newMessage)
   {
     // A JS8Call message
     const message = parseJS8Message(newMessage.Msg);
-    if (message.length)
+    if (message)
     {
       console.log(message);
       finalWsjtxDecode(newMessage, true, message);
@@ -5866,7 +5866,26 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     let callsign = null;
 
     let hash = msgDEcallsign + newMessage.OB + newMessage.OM;
-    if (hash in GT.liveCallsigns) callsign = GT.liveCallsigns[hash];
+    if (hash in GT.liveCallsigns)
+    {
+      callsign = GT.liveCallsigns[hash];
+      if (theirQTH == "" && callsign.grid.length)
+      {
+        theirQTH = callsign.grid;
+        validQTH = true;
+      }
+    }
+ 
+
+    if (theirQTH == "")
+    {
+      let spotHash = msgDEcallsign + newMessage.OM + newMessage.OB;
+      if (spotHash in GT.receptionReports.spots)
+      {
+        theirQTH = GT.receptionReports.spots[spotHash].grid;
+        validQTH = true;
+      }
+    }
 
     let canPath = false;
     if (
@@ -5893,7 +5912,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       let newCallsign = {};
       newCallsign.DEcall = msgDEcallsign;
       newCallsign.grid = theirQTH;
-      // newCallsign.field = theirQTH.substring(0, 2);
       newCallsign.wspr = null;
       newCallsign.msg = newMessage.Msg;
       newCallsign.RSTsent = newMessage.SR;
@@ -5977,7 +5995,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     callsign.band = newMessage.OB;
     callsign.instance = newMessage.instance;
     callsign.grid = callsign.grid.substr(0, 4);
-    // callsign.field = callsign.grid.substring(0, 2);
     callsign.CQ = CQ;
     callsign.RR73 = RR73;
     callsign.UTC = toColonHMS(parseInt(newMessage.TM / 1000));
@@ -6345,7 +6362,7 @@ function parseJS8Message(message)
   let colonIndex = msg.indexOf(":");
   if (colonIndex == -1)
   {
-    return "";
+    return null;
   }
 
   let DEcallsign = msg.substring(0, colonIndex).trim();
@@ -6357,7 +6374,7 @@ function parseJS8Message(message)
   }
 
   // Is it valid?
-  if (!DEcallsign.match(CALLSIGN_REGEXP)) return "";
+  if (!DEcallsign.match(CALLSIGN_REGEXP)) return null;
 
   let words = msg.substring(colonIndex + 1).trim().split(/\s+/);
 
@@ -6375,7 +6392,7 @@ function parseJS8Message(message)
   }
   else
   {
-    return "";
+    return null;
   }
 }
 
