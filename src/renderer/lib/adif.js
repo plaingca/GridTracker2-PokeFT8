@@ -1620,15 +1620,15 @@ function finishSendingReport(record)
   }
   report += "<EOR>";
 
-  let reportNoPotaNoStateNoCnty = "";
+  let reportNoStateNoCnty = "";
   for (const key in record)
   {
-    if (key != "POTA_REF" && key != "STATE" && key != "CNTY")
+    if (key != "STATE" && key != "CNTY")
     {
-      reportNoPotaNoStateNoCnty += "<" + key + ":" + record[key].length + ">" + record[key] + " ";
+      reportNoStateNoCnty += "<" + key + ":" + record[key].length + ">" + record[key] + " ";
     }
   }
-  reportNoPotaNoStateNoCnty += "<EOR>";
+  reportNoStateNoCnty += "<EOR>";
   
   let callsignFile = "";
   if ("STATION_CALLSIGN" in record)
@@ -1719,7 +1719,7 @@ function finishSendingReport(record)
 
     try
     {
-      sendQrzLogEntry(reportNoPotaNoStateNoCnty);
+      sendQrzLogEntry(reportNoStateNoCnty);
     }
     catch (e)
     {

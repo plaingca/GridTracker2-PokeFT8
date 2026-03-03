@@ -6383,7 +6383,17 @@ function parseJS8Message(message)
     }
     if (words[0] == "@ALLCALL")
     {
-      return `${words[1]} ${DEcallsign} ${words[words.length - 1]}`;
+      if (words[1] == "CQ")
+      {
+        let decode = `CQ ${DEcallsign}`;
+        if (words.length > 2)
+        {
+          decode += ` ${words[words.length - 1]}`;
+        }
+        return decode;
+      }
+      else return null;
+
     }
     return `${words[0]} ${DEcallsign} ${words[words.length - 1]}`;
   }
