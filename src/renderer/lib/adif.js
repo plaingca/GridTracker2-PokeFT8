@@ -1795,6 +1795,19 @@ function finishSendingReport(record)
       }
     }
 
+    if (GT.settings.HRDLogbookLog.enable == true && GT.settings.HRDLogbookLog.port > 0 && GT.settings.HRDLogbookLog.ip.length > 4)
+    {
+      try
+      {
+        sendHRDLogbookEntry(record, GT.settings.HRDLogbookLog.port, GT.settings.HRDLogbookLog.ip);
+        addLastTraffic("<font style='color:white'>Logged to HRD Logbook</font>");
+      }
+      catch (e)
+      {
+        addLastTraffic("<font style='color:red'>Exception HRD Log</font>");
+      }
+    }
+
     try
     {
       sendLotwLogEntry(report, callsignFile, gridFile);
@@ -3211,4 +3224,34 @@ function updateAdifBroadcast(port)
   GT.adifBroadcastServer.bind(port);
   GT.adifBroadcastCurrentPort = port;
   GT.adifBroadcastCurrentIP = GT.settings.app.adifBroadcastIP;
+}
+
+function hrdLogbookLoggerChanged()
+{
+  GT.settings.HRDLogbookLog.enable = buttonHrdLogbookCheckBox.checked;
+  GT.settings.HRDLogbookLog.ip = hrdLogbookIpInput.value;
+  GT.settings.HRDLogbookLog.port = hrdLogbookPortInput.value;
+}
+
+function sendHRDLogbookEntry(report, port, address)
+{
+  let command = "ver\rdb add {";
+  let items = Object.assign({}, report);
+
+  items.FREQ = items.FREQ.split(".").join("");
+
+  // HRD Log doesn't accept unicode
+  if (items.NAME && containsDoubleByte(items.NAME))
+  {
+    delete items.NAME;
+  }
+
+  for (let item in items)
+  {
+    command += item + "=\"" + items[item] + "\" ";
+  }
+
+  command += "}\rexit\r";
+
+  sendTcpMessage(command, command.length, Number(port), address);
 }

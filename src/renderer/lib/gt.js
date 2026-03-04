@@ -12066,6 +12066,12 @@ function loadViewSettings()
   ValidatePort(dxkLogPortInput, buttondxkLogCheckBox, null);
   ValidateIPaddress(dxkLogIpInput, buttondxkLogCheckBox, null);
 
+  hrdLogbookIpInput.value = GT.settings.HRDLogbookLog.ip;
+  hrdLogbookPortInput.value = GT.settings.HRDLogbookLog.port;
+  buttonHrdLogbookCheckBox.checked = GT.settings.HRDLogbookLog.enable;
+  ValidatePort(hrdLogbookPortInput, buttonHrdLogbookCheckBox, null);
+  ValidateIPaddress(hrdLogbookIpInput, buttonHrdLogbookCheckBox, null);
+
   pstrotatorIpInput.value = GT.settings.pstrotator.ip;
   pstrotatorPortInput.value = GT.settings.pstrotator.port;
   pstrotatorCheckBox.checked = GT.settings.pstrotator.enable;
