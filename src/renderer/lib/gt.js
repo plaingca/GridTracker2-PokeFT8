@@ -334,7 +334,7 @@ GT.pskBandActivityTimerHandle = null;
 GT.dxccInfo = {};
 GT.dxccVersion = 0;
 GT.newDxccVersion = 0;
-GT.prefixToMap = {};
+GT.prefixToDXCC = {};
 GT.directCallToDXCC = {};
 GT.directCallToCQzone = {};
 GT.directCallToITUzone = {};
@@ -6249,9 +6249,9 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
           if (locality == null)
           {
             // Check the prefix for dxcc direct
-            if (CCd in GT.prefixToMap)
+            if (CCd in GT.prefixToDXCC)
             {
-              locality = GT.dxccInfo[GT.prefixToMap[CCd]].geo;
+              locality = GT.dxccInfo[GT.prefixToDXCC[CCd]].geo;
               if (locality == "deleted")
               {
                 locality = null;
@@ -10926,7 +10926,7 @@ function loadMaidenHeadData()
 
     for (let x = 0; x < GT.dxccInfo[key].prefix.length; x++)
     {
-      GT.prefixToMap[GT.dxccInfo[key].prefix[x]] = key;
+      GT.prefixToDXCC[GT.dxccInfo[key].prefix[x]] = key;
     }
     delete GT.dxccInfo[key].prefix;
 

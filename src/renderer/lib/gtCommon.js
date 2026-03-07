@@ -148,7 +148,7 @@ function ituZoneFromCallsign(insign, dxcc)
 
 function getWpx(callsign)
 {
-  var prefix = null;
+  let prefix = null;
 
   if (callsign.includes("/"))
   // Handle in the future?
@@ -157,9 +157,9 @@ function getWpx(callsign)
   // Insert 0, never seen this
   { return null; }
 
-  var end = callsign.length;
-  var foundPrefix = false;
-  var prefixEnd = 1;
+  let end = callsign.length;
+  let foundPrefix = false;
+  let prefixEnd = 1;
   while (prefixEnd != end)
   {
     if (/\d/.test(callsign.charAt(prefixEnd)))
@@ -180,7 +180,7 @@ GT.ancPrefixes = ["P", "M", "MM", "AM", "A", "NWS"];
 
 function callsignToDxcc(insign)
 {
-  var callsign = insign;
+  let callsign = insign;
 
   if (!/\d/.test(callsign) || !/[a-zA-Z]/.test(callsign))
   {
@@ -191,43 +191,29 @@ function callsignToDxcc(insign)
 
   if (callsign.includes("/"))
   {
-    var parts = callsign.split("/");
-    var end = parts.length - 1;
-    if (GT.ancPrefixes.includes(parts[end]))
+    let parts = callsign.split("/");
+    if (GT.ancPrefixes.includes(parts[parts.length - 1]))
     {
-      if (parts[end].toUpperCase() == "MM")
-      {
-        return 0;
-      }
+      if (parts[parts.length - 1] == "MM")  return 0;
       parts.pop();
-      end = parts.length - 1;
     }
-    if (end)
+
+    callsign = parts[0];
+
+    if (parts.length == 2)
     {
-      if (isNaN(parts[end]))
-      {
-        if (parts[1].length > parts[0].length)
-        {
-          callsign = parts[0];
-        }
-        else
-        {
-          if (callsignToDxcc(parts[1]) != -1) callsign = parts[1];
-          else callsign = parts[0];
-        }
-      }
-      else callsign = parts[0];
+        if (parts[0] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[0]]].dxcc);
+        if (parts[1] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[1]]].dxcc);
     }
-    else callsign = parts[0];
 
     if (callsign in GT.directCallToDXCC) { return Number(GT.directCallToDXCC[callsign]); }
   }
 
-  for (var x = callsign.length; x > 0; x--)
+  for (let x = callsign.length; x > 0; x--)
   {
-    if (callsign.substr(0, x) in GT.prefixToMap)
+    if (callsign.substr(0, x) in GT.prefixToDXCC)
     {
-      return Number(GT.dxccInfo[GT.prefixToMap[callsign.substr(0, x)]].dxcc);
+      return Number(GT.dxccInfo[GT.prefixToDXCC[callsign.substr(0, x)]].dxcc);
     }
   }
   return -1;

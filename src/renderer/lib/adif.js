@@ -49,7 +49,7 @@ function initAdifWorker()
   task.directCallToCQzone = GT.directCallToCQzone;
   task.prefixToITUzone = GT.prefixToITUzone;
   task.prefixToCQzone = GT.prefixToCQzone;
-  task.prefixToMap = GT.prefixToMap;
+  task.prefixToDXCC = GT.prefixToDXCC;
   task.gridToState = GT.gridToState;
   task.cqZones = GT.cqZones;
   task.ituZones = GT.ituZones;

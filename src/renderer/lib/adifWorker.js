@@ -37,7 +37,7 @@ function initGlobals(task)
   GT.directCallToCQzone = task.directCallToCQzone;
   GT.prefixToITUzone = task.prefixToITUzone;
   GT.prefixToCQzone = task.prefixToCQzone;
-  GT.prefixToMap = task.prefixToMap;
+  GT.prefixToDXCC = task.prefixToDXCC;
   GT.gridToState = task.gridToState;
   GT.cqZones = task.cqZones;
   for (const key in GT.cqZones)

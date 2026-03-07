@@ -187,9 +187,18 @@ App: Tenatively recognize FT2 as an MFSK submode
 
 App: Initial support for JS8Call-Improved (Must enable WSJT-X Server)
   Known JS8Call UDP Issues:
-    Does not send "Recieving"/"Decoding" Status updates
+    It does not send "Recieving"/"Decoding" Status changes
     Reply (click callsign in Call Roster) not supported
-Call Roster: Fixed script start issue
+App:    
+  Improved Slashed Callsign DXCC resolution
+Call Roster: 
+  Fixed script start issue
+Logging: 
+  HRD Logbook:
+    Re-enabled support for HRD Logbook for versions older then v6.9
+    v6.9.x and above use "ADIF UDP / N1MM"
+
+
 
 ### Fixed
 
