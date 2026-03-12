@@ -1985,7 +1985,7 @@ function tempGridToBox(iQTH, borderColor, boxColor, layer)
 {
   let borderWeight = 2;
   let newGridBox = null;
-  let LL = squareToLatLong(iQTH.substr(0, 4));
+  let LL = maidenheadToBounds(iQTH.substr(0, 4));
 
   let bounds = [
     [LL.lo1, LL.la1],
@@ -2399,7 +2399,7 @@ function setTrophyOverlay(which)
       }
       else
       {
-        let LL = squareToLatLong(key);
+        let LL = maidenheadToBounds(key);
         let bounds = [[LL.lo1, LL.la1], [LL.lo2, LL.la2]];
 
         GT.layerSources.award.addFeature(gridFeature(
@@ -2947,127 +2947,52 @@ function reloadInfo()
   }
 }
 
-function twoWideToLatLong(qth)
-{
-  qth = qth.toUpperCase();
-  let a = qth.charCodeAt(0) - 65;
-  let b = qth.charCodeAt(1) - 65;
+function maidenheadFieldToBounds(qth) {
+  const grid = qth.toUpperCase();
 
-  let la1 = b * 10;
-  let lo1 = a * 20;
-  let la2 = la1 + 10;
-  let lo2 = lo1 + 20;
-  let LatLong = [];
+  const lo1 = (grid.charCodeAt(0) - 65) * 20 - 180;
+  const la1 = (grid.charCodeAt(1) - 65) * 10 - 90;
 
-  la1 -= 90;
-  lo1 -= 180;
-  la2 -= 90;
-  lo2 -= 180;
-  LatLong.la1 = la1;
-  LatLong.lo1 = lo1;
-  LatLong.la2 = la2;
-  LatLong.lo2 = lo2;
-  return LatLong;
+  return {
+    la1,
+    lo1,
+    la2: la1 + 10,
+    lo2: lo1 + 20
+  };
 }
 
 function squareToCenter(qth)
 {
-  let LL = squareToLatLongAll(qth);
+  let LL = maidenheadToBounds(qth, true);
   let obj = {};
   obj.a = LL.la2 - (LL.la2 - LL.la1) / 2;
   obj.o = LL.lo2 - (LL.lo2 - LL.lo1) / 2;
   return obj;
 }
 
-function squareToLatLongAll(qth)
-{
-  qth = qth.toUpperCase();
-  let a = qth.charCodeAt(0) - 65;
-  let b = qth.charCodeAt(1) - 65;
-  let c = qth.charCodeAt(2) - 48;
-  let d = qth.charCodeAt(3) - 48;
-  let la1 = b * 10 + d;
-  let lo1 = a * 20 + c * 2;
-  let la2;
-  let lo2;
-  let LatLong = [];
-  if (qth.length == 4)
-  {
-    la2 = la1 + 1;
-    lo2 = lo1 + 2;
-    LatLong.size = 4;
-  }
-  else
-  {
-    let lo3;
-    let la3;
-    let e = qth.charCodeAt(4) - 65;
-    let f = qth.charCodeAt(5) - 65;
-    let R = 5 / 60;
-    let T = 2.5 / 60;
-    lo3 = (e * 5) / 60;
-    la3 = (f * 2.5) / 60;
-    la1 += la3;
-    lo1 += lo3;
-    la2 = la1 + T;
-    lo2 = lo1 + R;
-    LatLong.size = 6;
+function maidenheadToBounds(qth, allChars = false) {
+  const grid = qth.toUpperCase();
+  const c = (i) => grid.charCodeAt(i);
+
+  let lo1 = (c(0) - 65) * 20 + (c(2) - 48) * 2;
+  let la1 = (c(1) - 65) * 10 + (c(3) - 48);
+
+  const six = grid.length === 6 && ((GT.pushPinMode && GT.settings.app.sixWideMode !== 0) || allChars);
+  const loStep = six ? 5 / 60 : 2;
+  const laStep = six ? 2.5 / 60 : 1;
+
+  if (six) {
+    lo1 += (c(4) - 65) * loStep;
+    la1 += (c(5) - 65) * laStep;
   }
 
-  la1 -= 90;
-  lo1 -= 180;
-  la2 -= 90;
-  lo2 -= 180;
-  LatLong.la1 = la1;
-  LatLong.lo1 = lo1;
-  LatLong.la2 = la2;
-  LatLong.lo2 = lo2;
-  return LatLong;
-}
-
-function squareToLatLong(qth)
-{
-  qth = qth.toUpperCase();
-  let a = qth.charCodeAt(0) - 65;
-  let b = qth.charCodeAt(1) - 65;
-  let c = qth.charCodeAt(2) - 48;
-  let d = qth.charCodeAt(3) - 48;
-  let la1 = b * 10 + d;
-  let lo1 = a * 20 + c * 2;
-  let la2;
-  let lo2;
-  let LatLong = [];
-  if (qth.length == 4 || GT.pushPinMode == false || GT.settings.app.sixWideMode == 0)
-  {
-    la2 = la1 + 1;
-    lo2 = lo1 + 2;
-    LatLong.size = 4;
-  }
-  else
-  {
-    let lo3;
-    let la3;
-    let e = qth.charCodeAt(4) - 65;
-    let f = qth.charCodeAt(5) - 65;
-    let R = 5 / 60;
-    let T = 2.5 / 60;
-    lo3 = (e * 5) / 60;
-    la3 = (f * 2.5) / 60;
-    la1 += la3;
-    lo1 += lo3;
-    la2 = la1 + T;
-    lo2 = lo1 + R;
-    LatLong.size = 6;
-  }
-  la1 -= 90;
-  lo1 -= 180;
-  la2 -= 90;
-  lo2 -= 180;
-  LatLong.la1 = la1;
-  LatLong.lo1 = lo1;
-  LatLong.la2 = la2;
-  LatLong.lo2 = lo2;
-  return LatLong;
+  return {
+    la1: la1 - 90,
+    lo1: lo1 - 180,
+    la2: la1 + laStep - 90,
+    lo2: lo1 + loStep - 180,
+    size: six ? 6 : 4
+  };
 }
 
 function iconFeature(center, iconObj, zIndex, propName)
@@ -3097,7 +3022,7 @@ function qthToQsoBox(iQTH, iHash, locked, DE, worked, confirmed, band)
 
   if (GT.useTransform)
   {
-    let LL = squareToLatLong(iQTH.substr(0, 4));
+    let LL = maidenheadToBounds(iQTH.substr(0, 4));
     if (MyCircle.distance(GT.myLat, GT.myLon, LL.la1, LL.lo1) * 3958.761 > k_max_aeqd_grid_in_miles)
     {
       return null;
@@ -3143,7 +3068,7 @@ function qthToQsoBox(iQTH, iHash, locked, DE, worked, confirmed, band)
         triangleView = true;
       }
     }
-    LL = squareToLatLong(iQTH);
+    LL = maidenheadToBounds(iQTH);
     if (LL.size == 6)
     {
       borderColor = "#000000FF";
@@ -3251,7 +3176,7 @@ function qthToBox(iQTH, iDEcallsign, iCQ, locked, DE, band, wspr, hash, fromLive
 
   if (GT.useTransform)
   {
-    let LL = squareToLatLong(iQTH.substr(0, 4));
+    let LL = maidenheadToBounds(iQTH.substr(0, 4));
     if (MyCircle.distance(GT.myLat, GT.myLon, LL.la1, LL.lo1) * 3958.761 > k_max_aeqd_grid_in_miles)
     {
       return null;
@@ -3333,7 +3258,7 @@ function qthToBox(iQTH, iDEcallsign, iCQ, locked, DE, band, wspr, hash, fromLive
         }
         else entityVisibility = false;
       }
-      let LL = squareToLatLong(iQTH);
+      let LL = maidenheadToBounds(iQTH);
       if (LL.size == 6)
       {
         borderColor = "#000000FF";
@@ -4902,7 +4827,7 @@ function triangle(bounds, topLeft)
 
 function triangleToGrid(iQTH, feature)
 {
-  let LL = squareToLatLong(iQTH);
+  let LL = maidenheadToBounds(iQTH);
   let bounds = [
     [LL.lo1, LL.la1],
     [LL.lo2, LL.la2]
@@ -4927,7 +4852,7 @@ function triangleToGrid(iQTH, feature)
 
 function gridToTriangle(iQTH, feature, topLeft)
 {
-  let LL = squareToLatLong(iQTH);
+  let LL = maidenheadToBounds(iQTH);
   let bounds = [
     [LL.lo1, LL.la1],
     [LL.lo2, LL.la2]
@@ -6630,7 +6555,7 @@ function showDxccGrids(grid)
 
     for (let y = 0; y < dxcc.mh.length; y++ )
     {
-      let LL = squareToLatLong(dxcc.mh[y]);
+      let LL = maidenheadToBounds(dxcc.mh[y]);
       let bounds = [
         [LL.lo1, LL.la1],
         [LL.lo2, LL.la2]
@@ -6652,7 +6577,7 @@ function centerOn(grid, dazzle = true)
 {
   if (grid.length >= 4)
   {
-    let LL = squareToLatLong(grid);
+    let LL = maidenheadToBounds(grid);
 
     if (dazzle) dazzleGrid(LL);
 
@@ -6672,7 +6597,7 @@ function setCenterQTH()
   if (GT.settings.app.myGrid.length >= 4)
   {
     // Grab home QTH Gridsquare from Center QTH
-    let LL = squareToLatLong(GT.settings.app.myGrid);
+    let LL = maidenheadToBounds(GT.settings.app.myGrid);
 
     GT.mapView
       .setCenter(
@@ -11285,7 +11210,7 @@ function drawAllGrids()
       {
         for (let b = 0; b < 10; b++)
         {
-          let LL = squareToLatLong(
+          let LL = maidenheadToBounds(
             String.fromCharCode(x) +
             String.fromCharCode(y) +
             String(a) +
@@ -11323,7 +11248,7 @@ function drawAllGrids()
         }
       }
 
-      let LL = twoWideToLatLong(String.fromCharCode(x) + String.fromCharCode(y));
+      let LL = maidenheadFieldToBounds(String.fromCharCode(x) + String.fromCharCode(y));
       let Lat = LL.la2 - (LL.la2 - LL.la1) / 2;
       let Lon = LL.lo2 - (LL.lo2 - LL.lo1) / 2;
       let point = ol.proj.fromLonLat([Lon, Lat]);

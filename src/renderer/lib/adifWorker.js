@@ -242,26 +242,12 @@ function onAdiLoadComplete(task)
 
           let finalMode = (object.MODE || "").toUpperCase();
           let subMode = (object.SUBMODE || "").toUpperCase();
-          if (subMode == "FT2" && (finalMode == "MFSK" || finalMode == "DATA"))
+          if ((finalMode == "MFSK" || finalMode == "DATA") && subMode.length)
           {
             // Internal assigment only
-            finalMode = "FT2"
+            finalMode = subMode;
           }
-          if (subMode == "FT4" && (finalMode == "MFSK" || finalMode == "DATA"))
-          {
-            // Internal assigment only
-            finalMode = "FT4"
-          }
-          if (subMode == "Q65" && (finalMode == "MFSK" || finalMode == "DATA"))
-          {
-            // Internal assigment only
-            finalMode = "Q65"
-          }
-          if (subMode == "JS8" && finalMode == "MFSK")
-          {
-            // Internal assigment only
-            finalMode = "JS8";
-          }
+
           qso.mode = finalMode;
 
           let finalMsg = (object.COMMENT || null);
