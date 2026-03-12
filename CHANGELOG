@@ -197,9 +197,11 @@ Logging:
   HRD Logbook:
     Re-enabled support for HRD Logbook for versions older then v6.9
     v6.9.x and above use "ADIF UDP / N1MM"
-
-App: Recognize FST4 and FST4W MFSK submodes
-Map: Pin Mode: Fixed missing 630m pins
+App: 
+  Recognize FST4 and FST4W MFSK submodes
+Map:
+  Pin Mode: 
+  Fixed missing 630m pins
 
 ### Fixed
 
