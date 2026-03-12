@@ -643,7 +643,6 @@ GT.wsjtCurrentIP = "";
 GT.wsjtUdpServer = null;
 GT.wsjtUdpSocketReady = false;
 GT.wsjtUdpSocketError = false;
-GT.qtToSplice = 0;
 GT.forwardUdpServer = null;
 GT.instances = {};
 GT.instanceCount = 0;
@@ -12636,21 +12635,9 @@ function loadPortSettings()
   setAdifBroadcastEnable(adifBroadcastEnable);
 }
 
-function decodeQUINT8(byteArray)
-{
-  GT.qtToSplice = 1;
-  return byteArray[0];
-}
-
 function encodeQBOOL(byteArray, offset, value)
 {
   return byteArray.writeUInt8(value, offset);
-}
-
-function decodeQUINT32(byteArray)
-{
-  GT.qtToSplice = 4;
-  return byteArray.readUInt32BE(0);
 }
 
 function encodeQUINT32(byteArray, offset, value)
@@ -12659,52 +12646,9 @@ function encodeQUINT32(byteArray, offset, value)
   return byteArray.writeUInt32BE(value, offset);
 }
 
-function decodeQINT32(byteArray)
-{
-  GT.qtToSplice = 4;
-  return byteArray.readInt32BE(0);
-}
-
 function encodeQINT32(byteArray, offset, value)
 {
   return byteArray.writeInt32BE(value, offset);
-}
-
-function decodeQUINT64(byteArray)
-{
-  let value = 0;
-  for (let i = 0; i < 8; i++)
-  {
-    value = value * 256 + byteArray[i];
-  }
-  GT.qtToSplice = 8;
-  return value;
-}
-
-function encodeQUINT64(byteArray, offset, value)
-{
-  let breakOut = Array();
-  for (let i = 0; i < 8; i++)
-  {
-    breakOut[i] = value & 0xff;
-    value >>= 8;
-  }
-  for (let i = 0; i < 8; i++)
-  {
-    offset = encodeQBOOL(byteArray, offset, breakOut[7 - i]);
-  }
-  return offset;
-}
-
-function decodeQUTF8(byteArray)
-{
-  let utf8_len = decodeQUINT32(byteArray);
-  let result = "";
-  byteArray = byteArray.slice(GT.qtToSplice);
-  if (utf8_len == 0xffffffff) utf8_len = 0;
-  else result = byteArray.slice(0, utf8_len);
-  GT.qtToSplice = utf8_len + 4;
-  return result.toString();
 }
 
 function encodeQUTF8(byteArray, offset, value)
@@ -12712,12 +12656,6 @@ function encodeQUTF8(byteArray, offset, value)
   offset = encodeQUINT32(byteArray, offset, value.length);
   let wrote = byteArray.write(value, offset, value.length);
   return wrote + offset;
-}
-
-function decodeQDOUBLE(byteArray)
-{
-  GT.qtToSplice = 8;
-  return byteArray.readDoubleBE(0);
 }
 
 function encodeQDOUBLE(byteArray, offset, value)
@@ -12747,23 +12685,29 @@ function startForwardListener()
   });
   GT.forwardUdpServer.on("message", function (originalMessage, remote)
   {
-    // Decode enough to get the rig-name, so we know who to send to
-    let message = originalMessage.slice();
-    let newMessage = {};
-    newMessage.magic_key = decodeQUINT32(message);
-    message = message.slice(GT.qtToSplice);
-    if (newMessage.magic_key == 0xadbccbda)
-    {
-      newMessage.schema_number = decodeQUINT32(message);
-      message = message.slice(GT.qtToSplice);
-      newMessage.type = decodeQUINT32(message);
-      message = message.slice(GT.qtToSplice);
-      newMessage.Id = decodeQUTF8(message);
+    let offset = 0;
+    const magicKey = originalMessage.readUInt32BE(offset);
+    offset += 4;
 
-      if (newMessage.Id in GT.instances)
-      {
-        wsjtUdpMessage(originalMessage, originalMessage.length, GT.instances[newMessage.Id].remote.port, GT.instances[newMessage.Id].remote.address);
-      }
+    if (magicKey !== 0xadbccbda) {
+      return;
+    }
+
+    offset += 4; // schema_number
+    offset += 4; // type
+
+    const idLen = originalMessage.readUInt32BE(offset);
+    offset += 4;
+
+    const id = idLen === 0xffffffff ? "" : originalMessage.toString("utf8", offset, offset + idLen);
+
+    if (id in GT.instances) {
+      wsjtUdpMessage(
+        originalMessage,
+        originalMessage.length,
+        GT.instances[id].remote.port,
+        GT.instances[id].remote.address
+      );
     }
   });
   GT.forwardUdpServer.bind(0);
@@ -12796,6 +12740,68 @@ function checkWsjtxListener()
     GT.wsjtCurrentIP = "none";
   }
   updateWsjtxListener(GT.settings.app.wsjtUdpPort);
+}
+
+
+function createQtReader(buffer) {
+  let offset = 0;
+
+  return {
+    remaining() {
+      return buffer.length - offset;
+    },
+
+    u8() {
+      const value = buffer.readUInt8(offset);
+      offset += 1;
+      return value;
+    },
+
+    u32() {
+      const value = buffer.readUInt32BE(offset);
+      offset += 4;
+      return value;
+    },
+
+    i32() {
+      const value = buffer.readInt32BE(offset);
+      offset += 4;
+      return value;
+    },
+
+    u64() {
+      let value = 0;
+      for (let i = 0; i < 8; i++)
+      {
+        value = value * 256 + buffer[offset+i];
+      }
+      offset += 8;
+      return value;
+    },
+
+    f64() {
+      const value = buffer.readDoubleBE(offset);
+      offset += 8;
+      return value;
+    },
+
+    utf8() {
+      const len = buffer.readUInt32BE(offset);
+      offset += 4;
+
+      if (len === 0xffffffff) {
+        return "";
+      }
+
+      const value = buffer.toString("utf8", offset, offset + len);
+      offset += len;
+      return value;
+    },
+
+    offset() {
+      return offset;
+    }
+  };
 }
 
 function addNewInstance(instanceId)
@@ -12901,280 +12907,183 @@ function updateWsjtxListener(port)
       sendForwardUdpMessage(message, message.length);
     }
 
-    let newMessage = {};
-    newMessage.magic_key = decodeQUINT32(message);
-    message = message.slice(GT.qtToSplice);
-    if (newMessage.magic_key == 0xadbccbda)
-    {
-      newMessage.schema_number = decodeQUINT32(message);
-      message = message.slice(GT.qtToSplice);
-      newMessage.type = decodeQUINT32(message);
-      message = message.slice(GT.qtToSplice);
-      newMessage.Id = decodeQUTF8(message);
-      message = message.slice(GT.qtToSplice);
+    const r = createQtReader(message);
+    const newMessage = {};
 
-      let instanceId = newMessage.Id;
-      if (!(instanceId in GT.instances))
-      {
-        addNewInstance(instanceId);
-        GT.instanceCount++;
-      }
-      let notify = false;
-      if (GT.instances[instanceId].open == false) notify = true;
-      GT.instances[instanceId].open = true;
-      GT.instances[instanceId].remote = remote;
+    newMessage.magic_key = r.u32();
+    if (newMessage.magic_key !== 0xadbccbda) {
+      return;
+    }
 
-      if (notify) updateRosterInstances();
+    newMessage.schema_number = r.u32();
+    newMessage.type = r.u32();
+    newMessage.Id = r.utf8();
 
-      if (newMessage.type == 1)
-      {
+    const instanceId = newMessage.Id;
+
+    if (!(instanceId in GT.instances)) {
+      addNewInstance(instanceId);
+      GT.instanceCount++;
+    }
+
+    const instance = GT.instances[instanceId];
+    const wasClosed = instance.open === false;
+
+    instance.open = true;
+    instance.remote = remote;
+
+    if (wasClosed) {
+      updateRosterInstances();
+    }
+
+    switch (newMessage.type) {
+      case 1: {
         newMessage.event = "Status";
-        newMessage.Frequency = decodeQUINT64(message);
-        newMessage.Band = formatBand(Number(newMessage.Frequency / 1000000));
-        message = message.slice(GT.qtToSplice);
-        newMessage.MO = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.DXcall = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.Report = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.TxMode = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.TxEnabled = decodeQUINT8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.Transmitting = decodeQUINT8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.Decoding = decodeQUINT8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.RxDF = decodeQINT32(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.TxDF = decodeQINT32(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.DEcall = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.DEgrid = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.DXgrid = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.TxWatchdog = decodeQUINT8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.Submode = decodeQUTF8(message);
-        message = message.slice(GT.qtToSplice);
-        newMessage.Fastmode = decodeQUINT8(message);
-        message = message.slice(GT.qtToSplice);
+        newMessage.Frequency = r.u64();
+        newMessage.Band = formatBand(Number(newMessage.Frequency) / 1000000);
+        newMessage.MO = r.utf8();
+        newMessage.DXcall = r.utf8();
+        newMessage.Report = r.utf8();
+        newMessage.TxMode = r.utf8();
+        newMessage.TxEnabled = r.u8();
+        newMessage.Transmitting = r.u8();
+        newMessage.Decoding = r.u8();
+        newMessage.RxDF = r.i32();
+        newMessage.TxDF = r.i32();
+        newMessage.DEcall = r.utf8();
+        newMessage.DEgrid = r.utf8();
+        newMessage.DXgrid = r.utf8();
+        newMessage.TxWatchdog = r.u8();
+        newMessage.Submode = r.utf8();
+        newMessage.Fastmode = r.u8();
 
-        if (message.length > 0)
-        {
-          newMessage.SopMode = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-        }
-        else
-        {
-          newMessage.SopMode = -1;
-        }
-        if (message.length > 0)
-        {
-          newMessage.FreqTol = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-        }
-        else
-        {
-          newMessage.FreqTol = -1;
-        }
-        if (message.length > 0)
-        {
-          newMessage.TRP = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-        }
-        else
-        {
-          newMessage.TRP = -1;
-        }
-        if (message.length > 0)
-        {
-          newMessage.ConfName = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-        }
-        else
-        {
-          newMessage.ConfName = null;
-        }
-        if (message.length > 0)
-        {
-          newMessage.TxMessage = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-        }
-        else
-        {
-          newMessage.TxMessage = null;
-        }
-        GT.instances[instanceId].oldStatus = GT.instances[instanceId].status;
-        GT.instances[instanceId].status = newMessage;
-        GT.instances[instanceId].valid = true;
+        newMessage.SopMode = r.remaining() > 0 ? r.u8() : -1;
+        newMessage.FreqTol = r.remaining() > 0 ? r.i32() : -1;
+        newMessage.TRP = r.remaining() > 0 ? r.i32() : -1;
+        newMessage.ConfName = r.remaining() > 0 ? r.utf8() : null;
+        newMessage.TxMessage = r.remaining() > 0 ? r.utf8() : null;
+
+        instance.oldStatus = instance.status;
+        instance.status = newMessage;
+        instance.valid = true;
+        break;
       }
-      if (GT.instances[instanceId].valid == true)
-      {
-        if (newMessage.type == 2)
-        {
-          newMessage.event = "Decode";
-          newMessage.NW = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.TM = decodeQUINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.SR = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.DT = decodeQDOUBLE(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.DF = decodeQUINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.MO = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Msg = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.LC = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.OA = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.OF = GT.instances[instanceId].status.Frequency;
-          newMessage.OC = GT.instances[instanceId].status.DEcall;
-          newMessage.OG = GT.instances[instanceId].status.DEgrid;
-          newMessage.OM = GT.instances[instanceId].status.MO;
-          newMessage.OB = GT.instances[instanceId].status.Band;
-          newMessage.SP = GT.instances[instanceId].status.SopMode;
-        }
-        if (newMessage.type == 3)
-        {
-          newMessage.event = "Clear";
-        }
-        if (newMessage.type == 5)
-        {
-          newMessage.event = "QSO Logged";
-          newMessage.DateOff = decodeQUINT64(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.TimeOff = decodeQUINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.timespecOff = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          if (newMessage.timespecOff == 2)
-          {
-            newMessage.offsetOff = decodeQINT32(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          newMessage.DXCall = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.DXGrid = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Frequency = decodeQUINT64(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.MO = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.ReportSend = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.ReportRecieved = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.TXPower = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Comments = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Name = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.DateOn = decodeQUINT64(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.TimeOn = decodeQUINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.timespecOn = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          if (newMessage.timespecOn == 2)
-          {
-            newMessage.offsetOn = decodeQINT32(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          if (message.length > 0)
-          {
-            newMessage.Operatorcall = decodeQUTF8(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          else newMessage.Operatorcall = "";
 
-          if (message.length > 0)
-          {
-            newMessage.Mycall = decodeQUTF8(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          else newMessage.Mycall = "";
+      case 2: {
+        if (!instance.valid) break;
 
-          if (message.length > 0)
-          {
-            newMessage.Mygrid = decodeQUTF8(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          else newMessage.Mygrid = "";
+        const status = instance.status;
 
-          if (message.length > 0)
-          {
-            newMessage.ExchangeSent = decodeQUTF8(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          else newMessage.ExchangeSent = "";
-
-          if (message.length > 0)
-          {
-            newMessage.ExchangeReceived = decodeQUTF8(message);
-            message = message.slice(GT.qtToSplice);
-          }
-          else newMessage.ExchangeReceived = "";
-        }
-        if (newMessage.type == 6)
-        {
-          newMessage.event = "Close";
-        }
-        if (newMessage.type == 10)
-        {
-          newMessage.event = "WSPRDecode";
-          newMessage.NW = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.TM = decodeQUINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.SR = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.DT = decodeQDOUBLE(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Frequency = decodeQUINT64(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Drift = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Callsign = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Grid = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.Power = decodeQINT32(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.OA = decodeQUINT8(message);
-          message = message.slice(GT.qtToSplice);
-          newMessage.OF = GT.instances[instanceId].status.Frequency;
-          newMessage.OC = GT.instances[instanceId].status.DEcall;
-          newMessage.OG = GT.instances[instanceId].status.DEgrid;
-          newMessage.OM = GT.instances[instanceId].status.MO;
-          newMessage.OB = GT.instances[instanceId].status.Band;
-        }
-        if (newMessage.type == 12)
-        {
-          newMessage.event = "ADIF";
-          newMessage.ADIF = decodeQUTF8(message);
-          message = message.slice(GT.qtToSplice);
-        }
-
-        if (newMessage.type in GT.wsjtHandlers)
-        {
-          newMessage.remote = remote;
-          newMessage.instance = instanceId;
-
-          lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + newMessage.Id;
-
-          GT.wsjtHandlers[newMessage.type](newMessage);
-          GT.lastTimeSinceMessageInSeconds = parseInt(Date.now() / 1000);
-        }
+        newMessage.event = "Decode";
+        newMessage.NW = r.u8();
+        newMessage.TM = r.u32();
+        newMessage.SR = r.i32();
+        newMessage.DT = r.f64();
+        newMessage.DF = r.u32();
+        newMessage.MO = r.utf8();
+        newMessage.Msg = r.utf8();
+        newMessage.LC = r.u8();
+        newMessage.OA = r.u8();
+        newMessage.OF = status.Frequency;
+        newMessage.OC = status.DEcall;
+        newMessage.OG = status.DEgrid;
+        newMessage.OM = status.MO;
+        newMessage.OB = status.Band;
+        newMessage.SP = status.SopMode;
+        break;
       }
+
+      case 3: {
+        if (!instance.valid) break;
+        newMessage.event = "Clear";
+        break;
+      }
+
+      case 5: {
+        if (!instance.valid) break;
+
+        newMessage.event = "QSO Logged";
+        newMessage.DateOff = r.u64();
+        newMessage.TimeOff = r.u32();
+        newMessage.timespecOff = r.u8();
+
+        if (newMessage.timespecOff === 2) {
+          newMessage.offsetOff = r.i32();
+        }
+
+        newMessage.DXCall = r.utf8();
+        newMessage.DXGrid = r.utf8();
+        newMessage.Frequency = r.u64();
+        newMessage.MO = r.utf8();
+        newMessage.ReportSend = r.utf8();
+        newMessage.ReportRecieved = r.utf8();
+        newMessage.TXPower = r.utf8();
+        newMessage.Comments = r.utf8();
+        newMessage.Name = r.utf8();
+        newMessage.DateOn = r.u64();
+        newMessage.TimeOn = r.u32();
+        newMessage.timespecOn = r.u8();
+
+        if (newMessage.timespecOn === 2) {
+          newMessage.offsetOn = r.i32();
+        }
+
+        newMessage.Operatorcall = r.remaining() > 0 ? r.utf8() : "";
+        newMessage.Mycall = r.remaining() > 0 ? r.utf8() : "";
+        newMessage.Mygrid = r.remaining() > 0 ? r.utf8() : "";
+        newMessage.ExchangeSent = r.remaining() > 0 ? r.utf8() : "";
+        newMessage.ExchangeReceived = r.remaining() > 0 ? r.utf8() : "";
+        break;
+      }
+
+      case 6: {
+        if (!instance.valid) break;
+        newMessage.event = "Close";
+        break;
+      }
+
+      case 10: {
+        if (!instance.valid ) break;
+
+        const status = instance.status;
+
+        newMessage.event = "WSPRDecode";
+        newMessage.NW = r.u8();
+        newMessage.TM = r.u32();
+        newMessage.SR = r.i32();
+        newMessage.DT = r.f64();
+        newMessage.Frequency = r.u64();
+        newMessage.Drift = r.i32();
+        newMessage.Callsign = r.utf8();
+        newMessage.Grid = r.utf8();
+        newMessage.Power = r.i32();
+        newMessage.OA = r.u8();
+        newMessage.OF = status.Frequency;
+        newMessage.OC = status.DEcall;
+        newMessage.OG = status.DEgrid;
+        newMessage.OM = status.MO;
+        newMessage.OB = status.Band;
+        break;
+      }
+
+      case 12: {
+        if (!instance.valid) break;
+        newMessage.event = "ADIF";
+        newMessage.ADIF = r.utf8();
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    if (instance.valid && newMessage.type in GT.wsjtHandlers) {
+      newMessage.remote = remote;
+      newMessage.instance = instanceId;
+
+      lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + newMessage.Id;
+      GT.wsjtHandlers[newMessage.type](newMessage);
+      GT.lastTimeSinceMessageInSeconds = (Date.now() / 1000) | 0;
     }
   });
   GT.wsjtUdpServer.bind(port);
