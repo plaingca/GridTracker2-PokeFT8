@@ -12637,7 +12637,7 @@ function loadPortSettings()
 
 function encodeQBOOL(byteArray, offset, value)
 {
-  return byteArray.writeUInt8(value, offset);
+  return byteArray.writeUInt8(value ? 1 : 0, offset);
 }
 
 function encodeQUINT32(byteArray, offset, value)
