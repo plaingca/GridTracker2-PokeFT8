@@ -12938,7 +12938,6 @@ function updateWsjtxListener(port)
 
     switch (newMessage.type) {
       case 1: {
-        newMessage.event = "Status";
         newMessage.Frequency = r.u64();
         newMessage.Band = formatBand(Number(newMessage.Frequency) / 1000000);
         newMessage.MO = r.utf8();
@@ -12970,11 +12969,9 @@ function updateWsjtxListener(port)
       }
 
       case 2: {
-        if (!instance.valid) break;
-
+        if (!instance.valid) return;
+        
         const status = instance.status;
-
-        newMessage.event = "Decode";
         newMessage.NW = r.u8();
         newMessage.TM = r.u32();
         newMessage.SR = r.i32();
@@ -12994,15 +12991,13 @@ function updateWsjtxListener(port)
       }
 
       case 3: {
-        if (!instance.valid) break;
-        newMessage.event = "Clear";
+        if (!instance.valid) return;
         break;
       }
 
       case 5: {
-        if (!instance.valid) break;
+        if (!instance.valid) return;
 
-        newMessage.event = "QSO Logged";
         newMessage.DateOff = r.u64();
         newMessage.TimeOff = r.u32();
         newMessage.timespecOff = r.u8();
@@ -13037,17 +13032,15 @@ function updateWsjtxListener(port)
       }
 
       case 6: {
-        if (!instance.valid) break;
-        newMessage.event = "Close";
+        if (!instance.valid) return;
         break;
       }
 
       case 10: {
-        if (!instance.valid ) break;
+        if (!instance.valid ) return;
 
         const status = instance.status;
 
-        newMessage.event = "WSPRDecode";
         newMessage.NW = r.u8();
         newMessage.TM = r.u32();
         newMessage.SR = r.i32();
@@ -13067,14 +13060,13 @@ function updateWsjtxListener(port)
       }
 
       case 12: {
-        if (!instance.valid) break;
-        newMessage.event = "ADIF";
+        if (!instance.valid) return;
         newMessage.ADIF = r.utf8();
         break;
       }
 
       default:
-        break;
+        return;
     }
 
     if (instance.valid && newMessage.type in GT.wsjtHandlers) {
