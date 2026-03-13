@@ -178,6 +178,7 @@ GT.alertWindowInitialized = false;
 
 GT.callRoster = {};
 GT.rosterUpdateTimer = null;
+GT.updateLastMsgTimer = null;
 GT.myDXGrid = "";
 GT.speechAvailable = false;
 GT.receptionReports = { spots: {} };
@@ -13073,14 +13074,26 @@ function updateWsjtxListener(port)
       newMessage.remote = remote;
       newMessage.instance = instanceId;
 
-      lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + newMessage.Id;
       GT.wsjtHandlers[newMessage.type](newMessage);
-      GT.lastTimeSinceMessageInSeconds = GT.timeNow;
+      if (GT.updateLastMsgTimer != null)
+      {
+        nodeTimers.clearTimeout(GT.updateLastMsgTimer);
+      }
+      GT.updateLastMsgTimer = nodeTimers.setTimeout(updateLastMsgTimeDiv, 500, newMessage.Id);
     }
   });
   GT.wsjtUdpServer.bind(port);
   GT.wsjtCurrentPort = port;
   GT.wsjtCurrentIP = GT.settings.app.wsjtIP;
+}
+
+
+
+function updateLastMsgTimeDiv(id)
+{
+  lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + id;
+  GT.lastTimeSinceMessageInSeconds = GT.timeNow;
+  updateLastMsgTimer = null;
 }
 
 function loadLookupDetails()
