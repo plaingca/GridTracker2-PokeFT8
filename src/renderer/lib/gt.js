@@ -2976,7 +2976,7 @@ function maidenheadToBounds(qth, allChars = false) {
   let lo1 = (c(0) - 65) * 20 + (c(2) - 48) * 2;
   let la1 = (c(1) - 65) * 10 + (c(3) - 48);
 
-  const six = grid.length === 6 && ((GT.pushPinMode && GT.settings.app.sixWideMode !== 0) || allChars);
+  const six = grid.length === 6 && ((GT.pushPinMode && GT.settings.app.sixWideMode != 0) || allChars);
   const loStep = six ? 5 / 60 : 2;
   const laStep = six ? 2.5 / 60 : 1;
 
@@ -6861,7 +6861,7 @@ function getStatsWindowHeight()
 
 function setLookupDiv(div, worker)
 {
-  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].innerHTML !== "undefined")
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].innerHTML != "undefined")
   {
     GT.lookupWindowHandle.window[div].innerHTML = worker;
   }
@@ -6869,7 +6869,7 @@ function setLookupDiv(div, worker)
 
 function setLookupDivHeight(div, heightWithPx)
 {
-  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].style !== "undefined")
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].style != "undefined")
   {
     GT.lookupWindowHandle.window[div].style.height = heightWithPx;
   }
@@ -6877,7 +6877,7 @@ function setLookupDivHeight(div, heightWithPx)
 
 function getLookupWindowHeight()
 {
-  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.window !== "undefined")
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.window != "undefined")
   {
     return GT.lookupWindowHandle.window.window.innerHeight;
   }
@@ -7611,7 +7611,7 @@ function statsFocus(selection)
 
 function lookupValidateCallByElement(elementString)
 {
-  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.validateCallByElement !== "undefined")
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.validateCallByElement != "undefined")
   {
     GT.lookupWindowHandle.window.validateCallByElement(elementString);
   }
@@ -7925,7 +7925,7 @@ function displayItemList(table, color)
     {
       let style;
       let name;
-      if (typeof table[key].name !== "undefined" && table[key].name != key)
+      if (typeof table[key].name != "undefined" && table[key].name != key)
       {
         name = key + " / " + table[key].name;
       }
@@ -11818,7 +11818,7 @@ function gotAudioDevices(deviceInfos)
   newSelect.title = "Select Sound Card";
 
   let foundCards = {};
-  for (let i = 0; i !== deviceInfos.length; ++i)
+  for (let i = 0; i != deviceInfos.length; ++i)
   {
     let deviceInfo = deviceInfos[i];
     if (deviceInfo.kind == "audiooutput")
@@ -12689,7 +12689,7 @@ function startForwardListener()
     const magicKey = originalMessage.readUInt32BE(offset);
     offset += 4;
 
-    if (magicKey !== 0xadbccbda) {
+    if (magicKey != 0xadbccbda) {
       return;
     }
 
@@ -12911,7 +12911,7 @@ function updateWsjtxListener(port)
     const newMessage = {};
 
     newMessage.magic_key = r.u32();
-    if (newMessage.magic_key !== 0xadbccbda) {
+    if (newMessage.magic_key != 0xadbccbda) {
       return;
     }
 
@@ -14294,7 +14294,7 @@ function loadReceptionReports()
 
 function addNewOAMSSpot(cid, db, frequency, band, mode)
 {
-  if (GT.redrawSpotsTimeout !== null)
+  if (GT.redrawSpotsTimeout != null)
   {
     nodeTimers.clearTimeout(GT.redrawSpotsTimeout);
     GT.redrawSpotsTimeout = null;
@@ -14332,7 +14332,7 @@ function addNewMqttPskSpot(json)
   if (json.rl == null || json.rl.length < 4) return;
   // json.rc, json.rl, json.ra, json.rp, json.f, json.b, json.md, json.t
   // call, grid, dxcc, snr, frequency, band, mode, when
-  if (GT.redrawSpotsTimeout !== null)
+  if (GT.redrawSpotsTimeout != null)
   {
     nodeTimers.clearTimeout(GT.redrawSpotsTimeout);
     GT.redrawSpotsTimeout = null;
