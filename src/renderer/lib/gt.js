@@ -13075,7 +13075,7 @@ function updateWsjtxListener(port)
 
       lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + newMessage.Id;
       GT.wsjtHandlers[newMessage.type](newMessage);
-      GT.lastTimeSinceMessageInSeconds = (Date.now() / 1000) | 0;
+      GT.lastTimeSinceMessageInSeconds = GT.timeNow;
     }
   });
   GT.wsjtUdpServer.bind(port);
