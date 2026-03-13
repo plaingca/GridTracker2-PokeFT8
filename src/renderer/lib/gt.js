@@ -5347,7 +5347,18 @@ function handleInstanceStatus(newMessage)
     GT.settings.app.myRawFreq = newMessage.Frequency;
     frequency.innerHTML = "<font color='lightgreen'>" + formatMhz(Number(newMessage.Frequency / 1000), 3, 3) + " Hz </font><font color='yellow'>(" + GT.settings.app.myBand + ")</font>";
     GT.settings.app.myRawCall = newMessage.DEcall.trim();
-    GT.settings.app.myRawGrid = newMessage.DEgrid.trim().substr(0, 6);
+
+    let testGrid = newMessage.DEgrid.trim().substr(0, 6);
+
+    if (/^[A-R]+$/.test(testGrid.substr(0, 2)) && /^[0-9]+$/.test(testGrid.substr(2, 2)) && ( testGrid.length == 4 || testGrid.length == 6))
+    {
+    }
+    else
+    {
+      testGrid = "II99";
+    }
+
+    GT.settings.app.myRawGrid = testGrid;
 
     if (GT.settings.app.myRawGrid != GT.settings.app.myGrid)
     {
