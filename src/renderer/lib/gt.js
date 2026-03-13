@@ -33,10 +33,10 @@ function loadAllSettings()
   GT.tempDxccInfoPath = path.join(GT.appData, "dxcc-info-update.json");
   GT.spotsPath = path.join(GT.appData, "spots.json");
   GT.tempPath = electron.ipcRenderer.sendSync("getPath","temp");
-
+  
+  let tryDirectory = "";
   try
   {
-    let tryDirectory = "";
     let userdirs = [
       GT.appData,
       GT.scriptPath,
@@ -7368,14 +7368,14 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       {
         worker += "<img title='Clear Park' onclick='searchState.value=\"\";window.opener.showWorkedSearchState(searchState);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
       }
-      worker += "</th>";""
+      worker += "</th>";
 
       worker += "<th><input type='text' id='searchCnty' style='margin:0px'  oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.cntySearch + "' size='4' oninput='window.opener.showWorkedSearchCnty(this);' / >";
       if (GT.cntySearch.length > 0)
       {
         worker += "<img title='Clear County' onclick='searchCnty.value=\"\";window.opener.showWorkedSearchCnty(searchCnty);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
       }
-      worker += "</th>";""
+      worker += "</th>";
 
       if (GT.settings.app.potaFeatureEnabled) 
       {
@@ -7384,7 +7384,7 @@ function showWorkedBox(sortIndex, nextPage, redraw)
         {
           worker += "<img title='Clear Park' onclick='searchPOTA.value=\"\";window.opener.showWorkedSearchPOTA(searchPOTA);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
         }
-        worker += "</th>";""
+        worker += "</th>";
       }
 
       worker += "<th><label>" + I18N("gt.Zday") + "</label>&nbsp;<input type='checkbox' id='Zday' " + (GT.Zday ? "checked" : "") + " onclick='window.opener.changeZday(Zday)'/></th>";
