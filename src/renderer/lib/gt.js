@@ -2971,7 +2971,7 @@ function squareToCenter(qth)
 }
 
 function maidenheadToBounds(qth, allChars = false) {
-  const grid = qth.toUpperCase();
+  const grid = qth.trim().toUpperCase();
   const c = (i) => grid.charCodeAt(i);
 
   let lo1 = (c(0) - 65) * 20 + (c(2) - 48) * 2;
@@ -2987,10 +2987,10 @@ function maidenheadToBounds(qth, allChars = false) {
   }
 
   return {
-    la1: la1 - 90,
-    lo1: lo1 - 180,
-    la2: la1 + laStep - 90,
-    lo2: lo1 + loStep - 180,
+    la1: clamp(la1 - 90, -90, 90),
+    lo1: clamp(lo1 - 180, -180, 180),
+    la2: clamp(la1 + laStep - 90, -90, 90),
+    lo2: clamp(lo1 + loStep - 180, -180, 180),
     size: six ? 6 : 4
   };
 }
@@ -4191,7 +4191,35 @@ function changeMapProjection(honorMemory = true)
     projectionImg.style.filter = "";
   }
 
-  delete GT.map;
+  if (GT.map != null) 
+  {
+    const map = GT.map;
+
+    const layers = map.getLayers().getArray();
+    layers.forEach((layer) => {
+        const source = layer.getSource();
+        if (source && typeof source.dispose === 'function') {
+            source.dispose();
+        }
+        if (typeof layer.dispose === 'function') {
+            layer.dispose();
+        }
+    });
+    map.getLayers().clear(); 
+
+    const olCanvas = map.getViewport().querySelector("canvas");
+    if (olCanvas) {
+        const gl = olCanvas.getContext("webgl") || olCanvas.getContext("webgl2");
+        if (gl) {
+            const loseContext = gl.getExtension("WEBGL_lose_context");
+            if (loseContext) {
+                loseContext.loseContext();
+            }
+        }
+    }
+    GT.map.setTarget(null);
+    GT.map = null;
+  }
   renderMap();
 
   if (honorMemory)
@@ -12366,16 +12394,11 @@ function postInit()
     nodeTimers.setTimeout(checkForNewVersion, 30000); // Informative check
 
     //nodeTimers.setTimeout(downloadWorldVhfActivity, 2000);
-
-    // We toggle the map projection, some systems come up blank so we kick the video card in the butt
-    section = "ToggleMapPhaseFrom" + GT.settings.map.projection;
-    changeMapProjection(true);
-    section = "ToggleMapPhaseTo" + GT.settings.map.projection;
-    changeMapProjection(true);
   }
   catch (e)
   {
-    alert("!Init Failed Section!: " + section + "\nPlease report failed section");
+    console.log("!Init Failed Section!: " + section + "\nPlease report failed section");
+    console.log(JSON.stringify(e));
   }
 }
 
@@ -15077,119 +15100,4 @@ function updateByBandMode()
   }
 
   setVisualHunting();
-}
-
-function downloadWorldVhfActivity()
-{
-  if (GT.settings.map.offlineMode == false)
-  {
-    getBuffer(
-      "https://tagloomis.com/oams_muf/vhf.json",
-      processWorldVhfActivity,
-      null,
-      "https",
-      443
-    );
-  }
-
-  nodeTimers.setTimeout(downloadWorldVhfActivity, 60000);
-}
-
-function processWorldVhfActivity(buffer, flag)
-{
-  let valid = false;
-  try
-  {
-    GT.worldVhfActivity = JSON.parse(buffer);
-
-    if (GT.worldVhfActivityTimestamp != GT.worldVhfActivity.t)
-    {
-      GT.worldVhfActivityTimestamp = GT.worldVhfActivity.t;
-      valid = true;
-    }
-  }
-  catch (e)
-  {
-
-  }
-
-  if (valid)
-  {
-    nodeTimers.setTimeout(renderWorldBandActivity, 1000);
-  }
-}
-
-function renderWorldBandActivity()
-{
-  let paths = {};
-  let points = {};
-  GT.layerSources.baHeat.clear();
-  GT.layerSources.baFlight.clear();
-
-  for (const band in GT.worldVhfActivity.p)
-  {
-    for (const pipe in GT.worldVhfActivity.p[band])
-    {
-      const grids = GT.worldVhfActivity.p[band][pipe].split("-");
-      // occasionally, we see invalid grids, so rather than test each and every one
-      // we'll try/catch
-      try
-      {
-        (grids.length == 1) ? circleFeatureFromPoint(getPoint(grids[0]),
-              {
-                weight: 1,
-                color: "green",
-                zIndex: 90
-              },
-              "baFlight",
-              false
-            )
-            :  flightFeaturePointToPoint([getPoint(grids[0]), getPoint(grids[1])],
-              {
-                weight: 0.5,
-                color: "purple",
-                steps: 22,
-                zIndex: 90
-              },
-              "baFlight",
-              true
-            );
-      }
-      catch (e)
-      {
-
-      }
-    }
-  }
-
-  for (const band in GT.worldVhfActivity.h)
-  {
-    for (const grid in GT.worldVhfActivity.h[band])
-    {
-      // occasionally, we see invalid grids, so rather than test each and every one
-      // we'll try/catch
-      try
-      {
-        let toPoint = getPoint(grid);
-
-        let lonLat = new ol.geom.Point(toPoint);
-
-        let pointFeature = new ol.Feature({
-          geometry: lonLat,
-          weight: GT.worldVhfActivity.h[band][grid] * 0.01
-        });
-
-        if (GT.useTransform)
-        {
-          pointFeature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
-        }
-
-        GT.layerSources.baHeat.addFeature(pointFeature);
-      }
-      catch (e)
-      {
-
-      }
-    }
-  }
 }
