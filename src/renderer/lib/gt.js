@@ -1554,196 +1554,278 @@ function createTooltTipTable(toolElement)
   {
     return createSpotTipTable(toolElement);
   }
-  let colspan = 10;
-  if (GT.settings.callsignLookups.lotwUseEnable == true) colspan++;
-  if (GT.settings.callsignLookups.eqslUseEnable == true) colspan++;
-  if (GT.settings.callsignLookups.oqrsUseEnable == true) colspan++;
-  if (toolElement.qso == true) colspan += 2;
 
-  let worker = "<table id='tooltipTable' class='darkTable' ><tr><th colspan=" +
-    colspan + " style='color:cyan'>" +
-    toolElement.qth + " (<font color='white'>" + I18N((toolElement.qso ? "gt.gridView.logbook" : "gt.gridView.live")) + "</font>)</th></tr>";
-  if (toolElement.qth in GT.gridToDXCC)
+  const isQso = toolElement.qso === true;
+  const qth = toolElement.qth;
+
+  const showLoTW = GT.settings.callsignLookups.lotwUseEnable === true;
+  const showEQSL = GT.settings.callsignLookups.eqslUseEnable === true;
+  const showOQRS = GT.settings.callsignLookups.oqrsUseEnable === true;
+
+  const lookupColumnCount =
+    (showLoTW ? 1 : 0) +
+    (showEQSL ? 1 : 0) +
+    (showOQRS ? 1 : 0);
+
+  const colspan = 10 + (isQso ? 1 : 0) + lookupColumnCount;
+  const newCallList = [];
+
+  function addQsoCalls()
   {
-    worker += "<tr><th colspan=" + colspan + " style='color:yellow'><small>";
-    for (let x = 0; x < GT.gridToDXCC[toolElement.qth].length; x++)
+    const hashes = toolElement.hashes || {};
+
+    for (const hash in hashes)
     {
-      worker += GT.dxccToAltName[GT.gridToDXCC[toolElement.qth][x]];
-      if (toolElement.qth in GT.gridToState)
+      if (hash in GT.QSOhash)
       {
-        worker += " (<font color='orange'>";
-        let added = false;
-        for (let y = 0; y < GT.gridToState[toolElement.qth].length; y++)
+        newCallList.push(GT.QSOhash[hash]);
+      }
+    }
+
+    if (
+      qth in GT.liveGrids &&
+      GT.liveGrids[qth].rectangle != null &&
+      GT.liveGrids[qth].isTriangle === false &&
+      GT.settings.app.gridViewMode == 3
+    )
+    {
+      const liveHash = GT.liveGrids[qth].rectangle.liveHash || {};
+      for (const call in liveHash)
+      {
+        if (call in GT.liveCallsigns)
         {
-          if (GT.gridToDXCC[toolElement.qth][x] == GT.StateData[GT.gridToState[toolElement.qth][y]].dxcc)
+          newCallList.push(GT.liveCallsigns[call]);
+        }
+      }
+    }
+  }
+
+  function addLiveCalls()
+  {
+    const liveHash = toolElement.liveHash || {};
+    for (const call in liveHash)
+    {
+      if (call in GT.liveCallsigns)
+      {
+        newCallList.push(GT.liveCallsigns[call]);
+      }
+    }
+  }
+
+  function buildGridInfo()
+  {
+    if (!(qth in GT.gridToDXCC))
+    {
+      return "";
+    }
+
+    const parts = [];
+    const dxccList = GT.gridToDXCC[qth];
+    const stateList = qth in GT.gridToState ? GT.gridToState[qth] : null;
+
+    for (let x = 0; x < dxccList.length; x++)
+    {
+      const dxcc = dxccList[x];
+      let text = GT.dxccToAltName[dxcc];
+
+      if (stateList)
+      {
+        const stateNames = [];
+
+        for (let y = 0; y < stateList.length; y++)
+        {
+          const stateKey = stateList[y];
+          if (GT.StateData[stateKey].dxcc == dxcc)
           {
-            worker += GT.StateData[GT.gridToState[toolElement.qth][y]].name + " / ";
-            added = true;
+            stateNames.push(GT.StateData[stateKey].name);
           }
         }
-        if (added == true) { worker = worker.substr(0, worker.length - " / ".length); }
-        worker += "</font>)";
-      }
-      if (x + 1 < GT.gridToDXCC[toolElement.qth].length) worker += ", ";
-    }
-    worker += "</small></th></tr>";
-  }
-  let newCallList = Array();
-  if (toolElement.qso == true)
-  {
-    if (Object.keys(toolElement.hashes).length > 0)
-    {
-      worker += "<tr align='center'>" +
-          "<td>" + I18N("gt.newCallList.Call") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Freq") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Sent") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Rcvd") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Station") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Mode") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Band") + "</td>" +
-          "<td>" + I18N("gt.newCallList.QSL") + "</td>" +
-          "<td>" + I18N("gt.newCallList.LastMsg") + "</td>" +
-          "<td>" + I18N("gt.newCallList.DXCC") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Time") + "</td>";
 
-      if (GT.settings.callsignLookups.lotwUseEnable == true) worker += "<td>" + I18N("gt.qsoPage.LoTW") + "</td>";
-      if (GT.settings.callsignLookups.eqslUseEnable == true) worker += "<td>" + I18N("gt.qsoPage.eQSL") + "</td>";
-      if (GT.settings.callsignLookups.oqrsUseEnable == true) worker += "<td>" + I18N("gt.qsoPage.OQRS") + "</td>";
-      worker += "</tr>";
-    }
-    for (let KeyIsHash in toolElement.hashes)
-    {
-      if (KeyIsHash in GT.QSOhash)
-      {
-        newCallList.push(GT.QSOhash[KeyIsHash]);
+        if (stateNames.length > 0)
+        {
+          text += " (<font color='orange'>" + stateNames.join(" / ") + "</font>)";
+        }
       }
+
+      parts.push(text);
     }
-    if (toolElement.qth in GT.liveGrids && GT.liveGrids[toolElement.qth].rectangle != null && GT.liveGrids[toolElement.qth].isTriangle == false)
+
+    return (
+      "<tr><th colspan='" +
+      colspan +
+      "' style='color:yellow'><small>" +
+      parts.join(", ") +
+      "</small></th></tr>"
+    );
+  }
+
+  function buildHeaderRow()
+  {
+    const cells = [
+      I18N("gt.newCallList.Call"),
+      I18N("gt.newCallList.Freq"),
+      I18N("gt.newCallList.Sent"),
+      I18N("gt.newCallList.Rcvd"),
+      I18N("gt.newCallList.Station"),
+      I18N("gt.newCallList.Mode"),
+      I18N("gt.newCallList.Band")
+    ];
+
+    if (isQso)
     {
-      for (let KeyIsCall in GT.liveGrids[toolElement.qth].rectangle.liveHash)
-      {
-        if (KeyIsCall in GT.liveCallsigns && GT.settings.app.gridViewMode == 3) { newCallList.push(GT.liveCallsigns[KeyIsCall]); }
-      }
+      cells.push(I18N("gt.newCallList.QSL"));
     }
+
+    cells.push(
+      I18N("gt.newCallList.LastMsg"),
+      I18N("gt.newCallList.DXCC"),
+      I18N("gt.newCallList.Time")
+    );
+
+    if (showLoTW) cells.push(I18N(isQso ? "gt.qsoPage.LoTW" : "gt.newCallList.LoTW"));
+    if (showEQSL) cells.push(I18N(isQso ? "gt.qsoPage.eQSL" : "gt.newCallList.eQSL"));
+    if (showOQRS) cells.push(I18N(isQso ? "gt.qsoPage.OQRS" : "gt.newCallList.OQRS"));
+
+    return "<tr align='center'><td>" + cells.join("</td><td>") + "</td></tr>";
+  }
+
+  function getAgeString(call)
+  {
+    const age = timeNowSec() - call.time;
+    return age < 3601 ? toDHMS(age) : userTimeString(call.time * 1000);
+  }
+
+  function getDxccText(call)
+  {
+    const info = GT.dxccInfo[call.dxcc];
+    const name = GT.dxccToAltName[call.dxcc] || "";
+    const pp = info ? info.pp : "?";
+
+    return (
+      "<td style='color:yellow'>" +
+      name +
+      " <font color='lightgreen'>(" +
+      pp +
+      ")</font></td>"
+    );
+  }
+
+  function getLookupCell(enabledSet, call)
+  {
+    return "<td align='center'>" + (call.DEcall in enabledSet ? "&#10004;" : "") + "</td>";
+  }
+
+  function buildCallRow(call)
+  {
+    const bgDX =
+      call.DXcall == GT.settings.app.myCall
+        ? " style='background-color:cyan;color:#000;font-weight:bold' "
+        : " style='font-weight:bold;color:cyan;' ";
+
+    const bgDE =
+      call.DEcall == GT.settings.app.myCall
+        ? " style='background-color:#FFFF00;color:#000;font-weight:bold' "
+        : " style='font-weight:bold;color:yellow;' ";
+
+    const msg = (typeof call.msg == "undefined" || call.msg == "") ? "-" : call.msg;
+
+    let row = "<tr>";
+
+    row += "<td" + bgDE + ">";
+    row +=
+      "<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
+      call.DEcall +
+      "\",\"" +
+      qth +
+      "\");'>" +
+      formatCallsign(call.DEcall) +
+      "</div>";
+    row += "</td>";
+
+    row += "<td>" + (call.delta > -1 ? call.delta : "-") + "</td>";
+    row += "<td>" + call.RSTsent + "</td>";
+    row += "<td>" + call.RSTrecv + "</td>";
+    row += "<td" + bgDX + ">";
+
+    if (call.DXcall.indexOf("CQ") == 0 || call.DXcall == "-")
+    {
+      row += formatCallsign(call.DXcall);
+    }
+    else
+    {
+      row +=
+        "<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
+        call.DXcall +
+        "\",null);'>" +
+        formatCallsign(call.DXcall) +
+        "</div>";
+    }
+
+    row += "</td>";
+    row += "<td style='color:lightblue'>" + call.mode + "</td>";
+    row += "<td style='color:lightgreen'>" + call.band + "</td>";
+
+    if (isQso)
+    {
+      row += "<td align='center'>" + (call.confirmed ? "&#10004;" : "") + "</td>";
+    }
+
+    row += "<td>" + msg + "</td>";
+    row += getDxccText(call);
+    row += "<td align='center' style='color:lightblue'>" + getAgeString(call) + "</td>";
+
+    if (showLoTW) row += getLookupCell(GT.lotwCallsigns, call);
+    if (showEQSL) row += getLookupCell(GT.eqslCallsigns, call);
+    if (showOQRS) row += getLookupCell(GT.oqrsCallsigns, call);
+
+    row += "</tr>";
+
+    return row;
+  }
+
+  if (isQso)
+  {
+    addQsoCalls();
   }
   else
   {
-    if (toolElement.liveHash != null && Object.keys(toolElement.liveHash).length > 0)
-    {
-      worker +=
-        "<tr align='center'>" +
-          "<td>" + I18N("gt.newCallList.Call") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Freq") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Sent") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Rcvd") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Station") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Mode") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Band") + "</td>" +
-          "<td>" + I18N("gt.newCallList.LastMsg") + "</td>" +
-          "<td>" + I18N("gt.newCallList.DXCC") + "</td>" +
-          "<td>" + I18N("gt.newCallList.Time") + "</td>";
-
-      if (GT.settings.callsignLookups.lotwUseEnable == true) worker += "<td>" + I18N("gt.newCallList.LoTW") + "</td>";
-      if (GT.settings.callsignLookups.eqslUseEnable == true) worker += "<td>" + I18N("gt.newCallList.eQSL") + "</td>";
-      if (GT.settings.callsignLookups.oqrsUseEnable == true) worker += "<td>" + I18N("gt.newCallList.OQRS") + "</td>";
-      worker += "</tr>";
-    }
-    for (let KeyIsCall in toolElement.liveHash)
-    {
-      if (KeyIsCall in GT.liveCallsigns) { newCallList.push(GT.liveCallsigns[KeyIsCall]); }
-    }
+    addLiveCalls();
   }
-  newCallList.sort(compareCallsignTime).reverse();
-  for (let x = 0; x < newCallList.length; x++)
+
+  newCallList.sort(function (a, b)
   {
-    let callsign = newCallList[x];
-    let bgDX = " style='font-weight:bold;color:cyan;' ";
-    let bgDE = " style='font-weight:bold;color:yellow;' ";
-    if (callsign.DXcall == GT.settings.app.myCall) { bgDX = " style='background-color:cyan;color:#000;font-weight:bold' "; }
-    if (callsign.DEcall == GT.settings.app.myCall) { bgDE = " style='background-color:#FFFF00;color:#000;font-weight:bold' "; }
-    if (typeof callsign.msg == "undefined" || callsign.msg == "") { callsign.msg = "-"; }
-    let ageString = "";
-    if (timeNowSec() - callsign.time < 3601) { ageString = toDHMS(timeNowSec() - callsign.time); }
-    else
-    {
-      ageString = userTimeString(callsign.time * 1000);
-    }
-    worker += "<tr><td" + bgDE + ">";
-    worker +=
-      "<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
-      callsign.DEcall +
-      "\",\"" +
-      toolElement.qth +
-      "\");' >" +
-      formatCallsign(callsign.DEcall) +
-      "</div>";
-    worker += "</td>";
-    worker += "<td>" + (callsign.delta > -1 ? callsign.delta : "-") + "</td>";
-    worker += "<td>" + callsign.RSTsent + "</td>";
-    worker += "<td>" + callsign.RSTrecv + "</td>" + "<td" + bgDX + ">";
-    if (callsign.DXcall.indexOf("CQ") == 0 || callsign.DXcall == "-") { worker += formatCallsign(callsign.DXcall); }
-    else
-    {
-      worker +=
-        "<div  style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
-        callsign.DXcall +
-        "\",null);' >" +
-        formatCallsign(callsign.DXcall) +
-        "</div>";
-    }
-    worker +=
-      "</td>" +
-      "<td style='color:lightblue'>" +
-      callsign.mode +
-      "</td>" +
-      "<td style='color:lightgreen'>" +
-      callsign.band +
-      "</td>";
-    if (toolElement.qso == true)
-    {
-      worker +=
-        "<td align='center'>" +
-        (callsign.confirmed ? "&#10004;" : "") +
-        "</td>";
-    }
-    worker +=
-      "<td>" +
-      callsign.msg +
-      "</td><td style='color:yellow'>" +
-      GT.dxccToAltName[callsign.dxcc] +
-      " <font color='lightgreen'>(" +
-      GT.dxccInfo[callsign.dxcc].pp +
-      ")</font></td>" +
-      "<td align='center' style='color:lightblue' >" +
-      ageString +
-      "</td>";
+    return compareCallsignTime(b, a);
+  });
 
-    if (GT.settings.callsignLookups.lotwUseEnable == true)
-    {
-      worker +=
-        "<td align='center'>" +
-        (callsign.DEcall in GT.lotwCallsigns ? "&#10004;" : "") +
-        "</td>";
-    }
-    if (GT.settings.callsignLookups.eqslUseEnable == true)
-    {
-      worker +=
-        "<td align='center'>" +
-        (callsign.DEcall in GT.eqslCallsigns ? "&#10004;" : "") +
-        "</td>";
-    }
-    if (GT.settings.callsignLookups.oqrsUseEnable == true)
-    {
-      worker +=
-        "<td align='center'>" +
-        (callsign.DEcall in GT.oqrsCallsigns ? "&#10004;" : "") +
-        "</td>";
-    }
+  const rows = [];
 
-    worker += "</tr>";
+  rows.push(
+    "<table id='tooltipTable' class='darkTable'>" +
+    "<tr><th colspan='" +
+    colspan +
+    "' style='color:cyan'>" +
+    qth +
+    " (<font color='white'>" +
+    I18N(isQso ? "gt.gridView.logbook" : "gt.gridView.live") +
+    "</font>)</th></tr>"
+  );
+
+  rows.push(buildGridInfo());
+
+  if (newCallList.length > 0)
+  {
+    rows.push(buildHeaderRow());
+
+    for (let i = 0; i < newCallList.length; i++)
+    {
+      rows.push(buildCallRow(newCallList[i]));
+    }
   }
-  worker += "</table>";
-  myTooltip.innerHTML = worker;
+
+  rows.push("</table>");
+
+  myTooltip.innerHTML = rows.join("");
+
   return newCallList.length;
 }
 
