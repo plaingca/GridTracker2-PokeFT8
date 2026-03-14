@@ -5278,6 +5278,7 @@ function handleInstanceStatus(newMessage)
   }
 
   let DXcall = newMessage.DXcall.trim();
+  let DXcallDXCC = -1;
 
   if (DXcall.length > 1)
   {
@@ -5296,6 +5297,8 @@ function handleInstanceStatus(newMessage)
       GT.lastStatusCallsign[newMessage.instance] = DXcall;
       lookupCallsign(DXcall, newMessage.DXgrid.trim());
     }
+
+    DXcallDXCC = callsignToDxcc(DXcall);
   }
 
   if (GT.callRosterWindowInitialized && GT.settings.roster.clearRosterOnBandChange && GT.instances[newMessage.instance].oldStatus)
@@ -5419,6 +5422,7 @@ function handleInstanceStatus(newMessage)
         setCallAndGrid("", "", newMessage.instance, false);
         DXcall = "";
         newMessage.DXgrid = "";
+        hash = "";
       }
     }
 
@@ -5459,7 +5463,7 @@ function handleInstanceStatus(newMessage)
       localDXReport.innerHTML = formatSignalReport(newMessage.Report.trim());
       if (DXcall.length > 0)
       {
-        localDXCountry.innerHTML = GT.dxccToAltName[callsignToDxcc(DXcall)];
+        localDXCountry.innerHTML = GT.dxccToAltName[DXcallDXCC];
       }
       else
       {
@@ -5536,11 +5540,10 @@ function handleInstanceStatus(newMessage)
         {
           fitViewBetweenPoints([getPoint(GT.settings.app.myRawGrid), getPoint(GT.myDXGrid)]);
         }
-        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 && callsignToDxcc(DXcall) > 0)
+        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 && DXcallDXCC > 0)
         {
-          let dxcc = callsignToDxcc(DXcall);
-          let Lat = GT.dxccInfo[dxcc].lat;
-          let Lon = GT.dxccInfo[dxcc].lon;
+          let Lat = GT.dxccInfo[DXcallDXCC].lat;
+          let Lon = GT.dxccInfo[DXcallDXCC].lon;
           fitViewBetweenPoints([getPoint(GT.settings.app.myRawGrid), ol.proj.fromLonLat([Lon, Lat])], 15);
         }
       }
@@ -5583,12 +5586,11 @@ function handleInstanceStatus(newMessage)
           LL = squareToCenter(GT.myDXGrid);
           toPoint = ol.proj.fromLonLat([LL.o, LL.a]);
         }
-        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 && callsignToDxcc(DXcall) > 0)
+        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 &&cDXcallDXCC > 0)
         {
-          let dxcc = callsignToDxcc(DXcall);
-          toPoint = ol.proj.fromLonLat([GT.dxccInfo[dxcc].lon, GT.dxccInfo[dxcc].lat]);
+          toPoint = ol.proj.fromLonLat([GT.dxccInfo[DXcallDXCC].lon, GT.dxccInfo[DXcallDXCC].lat]);
 
-          let locality = GT.dxccInfo[dxcc].geo;
+          let locality = GT.dxccInfo[DXcallDXCC].geo;
           if (locality == "deleted") locality = null;
 
           if (locality != null)
@@ -11980,8 +11982,7 @@ function setPins()
 
 function changeClearOnCQ()
 {
-  GT.settings.app.clearOnCQ = clearOnCQ.checked;
-  
+  GT.settings.app.clearOnCQ = clearOnCQ.checked; 
 }
 
 function loadViewSettings()
