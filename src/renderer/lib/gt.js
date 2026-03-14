@@ -3899,11 +3899,11 @@ function getCurrentBandModeHTML()
   let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand + " (Auto)" : GT.settings.app.gtBandFilter.length == 0 ? "Mixed Bands" : GT.settings.app.gtBandFilter;
   let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode + " (Auto)" : GT.settings.app.gtModeFilter.length == 0 ? "Mixed Modes" : GT.settings.app.gtModeFilter;
   return (
-    "<div style='vertical-align:top;display:inline-block;margin-bottom:3px;color:lightgreen;font-weight:bold;font-size:larger'>" + I18N("stats.viewing") + ": <text style='color:yellow'>" +
+    "<div style='vertical-align:top;display:inline-block;margin-bottom:3px;color:lightgreen;font-weight:bold;font-size:larger'>" + I18N("stats.viewing") + ": <span style='color:yellow'>" +
     band +
-    "</text> / <text style='color:orange'>" +
+    "</span> / <span style='color:orange'>" +
     mode +
-    "</text></b></div><br>"
+    "</span></b></div><br>"
   );
 }
 
@@ -4274,105 +4274,130 @@ function initMap()
 {
   initHoverFunctors();
 
-  mapSelect.value = def_maps.mapIndex;
-  offlineMapSelect.value = def_maps.mapIndex;
-  mapNightSelect.value = def_maps.mapIndex;
-  offlineMapNightSelect.value = def_maps.mapIndex;
-
-  GT.maps = requireJson("data/maps.json");
-  if (GT.maps)
-  {
-    GT.maps = Object.keys(GT.maps).sort().reduce((obj, key) => { obj[key] = GT.maps[key]; return obj; }, {});
-
-    if (!(GT.settings.map.mapIndex in GT.maps))
-    {
-      GT.settings.map.mapIndex = def_maps.mapIndex;
-    }
-    if (!(GT.settings.map.nightMapIndex in GT.maps))
-    {
-      GT.settings.map.nightMapIndex = def_maps.nightMapIndex;
-    }
-    if (!(GT.settings.map.offlineMapIndex in GT.maps))
-    {
-      GT.settings.map.offlineMapIndex = def_maps.offlineMapIndex;
-    }
-    if (!(GT.settings.map.offlineNightMapIndex in GT.maps))
-    {
-      GT.settings.map.offlineNightMapIndex = def_maps.offlineNightMapIndex;
-    }
-
-    for (const key in GT.maps)
-    {
-      GT.maps[key].attributions = "&copy; " + GT.maps[key].attributions + " <a href='https://gridtracker.org' target='_blank'>GridTracker.org</a>";
-      if (GT.maps[key].sourceType == "Group")
-      {
-        ProcessGroupMapSource(key);
-      }
-      else
-      {
-        GT.mapsLayer[key] = new GT.mapSourceTypes[GT.maps[key].sourceType](GT.maps[key]);
-      }
-
-      let option = document.createElement("option");
-      option.value = key;
-      option.text = key;
-      mapSelect.appendChild(option);
-
-      option = document.createElement("option");
-      option.value = key;
-      option.text = key;
-      mapNightSelect.appendChild(option);
-      if (GT.maps[key].offline == true)
-      {
-        GT.offlineMapsLayer[key] = new ol.source.XYZ(GT.maps[key]);
-
-        option = document.createElement("option");
-        option.value = key;
-        option.text = key;
-        offlineMapSelect.appendChild(option);
-
-        option = document.createElement("option");
-        option.value = key;
-        option.text = key;
-        offlineMapNightSelect.appendChild(option);
-      }
-    }
-    mapSelect.value = GT.settings.map.mapIndex;
-    offlineMapSelect.value = GT.settings.map.offlineMapIndex;
-
-    mapNightSelect.value = GT.settings.map.nightMapIndex;
-    offlineMapNightSelect.value = GT.settings.map.offlineNightMapIndex;
-  }
-  else 
+  const mapsData = requireJson("data/maps.json");
+  if (!mapsData)
   {
     alert("Internal Map Data file Corrupt, GridTracker2 will now crash");
+    return;
   }
 
+  const sortedKeys = Object.keys(mapsData).sort();
+  GT.maps = Object.fromEntries(sortedKeys.map(key => [key, mapsData[key]]));
 
-  if (GT.settings.map.offlineMode)
+  GT.mapsLayer = {};
+  GT.offlineMapsLayer = {};
+
+  const offlineKeys = sortedKeys.filter(key => GT.maps[key].offline === true);
+
+  function normalizeMapSetting(settingName, defaultValue, validKeys)
   {
-    GT.tileLayer = new ol.layer.Tile({
-      source: GT.offlineMapsLayer[offlineMapSelect.value]
+    const fallback =
+      validKeys.includes(defaultValue) ? defaultValue : validKeys[0];
+
+    if (!validKeys.includes(GT.settings.map[settingName]))
+    {
+      GT.settings.map[settingName] = fallback;
+    }
+  }
+
+  function appendOptions(select, keys)
+  {
+    select.length = 0;
+
+    const fragment = document.createDocumentFragment();
+    for (const key of keys)
+    {
+      const option = document.createElement("option");
+      option.value = key;
+      option.text = key;
+      fragment.appendChild(option);
+    }
+
+    select.appendChild(fragment);
+  }
+
+  function getAttributionText(attributions)
+  {
+    if (String(attributions).includes("GridTracker.org"))
+    {
+      return attributions;
+    }
+
+    const gtCredit = "<a href='https://gridtracker.org' target='_blank'>GridTracker.org</a>";
+
+    return "&copy; " + attributions + " " + gtCredit;
+  }
+
+  function buildTileLayer()
+  {
+    if (GT.settings.map.offlineMode)
+    {
+      return new ol.layer.Tile({
+        source: GT.offlineMapsLayer[offlineMapSelect.value]
+      });
+    }
+
+    const selectedMap = GT.maps[mapSelect.value];
+    if (selectedMap.sourceType === "Group")
+    {
+      return new ol.layer.Group({
+        layers: GT.mapsLayer[mapSelect.value]
+      });
+    }
+
+    return new ol.layer.Tile({
+      source: GT.mapsLayer[mapSelect.value]
     });
   }
-  else
+
+  normalizeMapSetting("mapIndex", def_maps.mapIndex, sortedKeys);
+  normalizeMapSetting("nightMapIndex", def_maps.nightMapIndex, sortedKeys);
+  normalizeMapSetting("offlineMapIndex", def_maps.offlineMapIndex, offlineKeys);
+  normalizeMapSetting("offlineNightMapIndex", def_maps.offlineNightMapIndex, offlineKeys);
+
+  for (const key of sortedKeys)
   {
-    if (GT.maps[mapSelect.value].sourceType == "Group")
+    const mapConfig = GT.maps[key];
+    mapConfig.attributions = getAttributionText(mapConfig.attributions);
+
+    if (mapConfig.sourceType === "Group")
     {
-      GT.tileLayer = new ol.layer.Group({ layers: GT.mapsLayer[mapSelect.value] });
+      ProcessGroupMapSource(key);
     }
     else
     {
-      GT.tileLayer = new ol.layer.Tile({ source: GT.mapsLayer[mapSelect.value] });
+      GT.mapsLayer[key] = new GT.mapSourceTypes[mapConfig.sourceType](mapConfig);
+    }
+
+    if (mapConfig.offline === true)
+    {
+      GT.offlineMapsLayer[key] = new ol.source.XYZ(mapConfig);
     }
   }
 
-  mapDiv.addEventListener("pointermove", mapMoveEvent);
-  mapDiv.addEventListener("mouseleave", mapLoseFocus, false);
-  mapDiv.addEventListener("contextmenu", function (event)
+  appendOptions(mapSelect, sortedKeys);
+  appendOptions(mapNightSelect, sortedKeys);
+  appendOptions(offlineMapSelect, offlineKeys);
+  appendOptions(offlineMapNightSelect, offlineKeys);
+
+  mapSelect.value = GT.settings.map.mapIndex;
+  mapNightSelect.value = GT.settings.map.nightMapIndex;
+  offlineMapSelect.value = GT.settings.map.offlineMapIndex;
+  offlineMapNightSelect.value = GT.settings.map.offlineNightMapIndex;
+
+  GT.tileLayer = buildTileLayer();
+
+  if (!GT.mapEventsBound)
   {
-    event.preventDefault();
-  });
+    mapDiv.addEventListener("pointermove", mapMoveEvent);
+    mapDiv.addEventListener("mouseleave", mapLoseFocus, false);
+    mapDiv.addEventListener("contextmenu", function (event)
+    {
+      event.preventDefault();
+    });
+
+    GT.mapEventsBound = true;
+  }
 
   renderMap();
 }
@@ -7119,148 +7144,120 @@ function showWorkedBox(sortIndex, nextPage, redraw)
 {
   try
   {
-    let myObjects = null;
-    let mySort = sortIndex;
-    let bands = {};
-    let modes = {};
-    let dxccs = {};
-    let confSrcs = {};
-    let ObjectCount = 0;
+    const myObjects = GT.QSOhash;
+    const bands = {};
+    const modes = {};
+    const dxccs = {};
+    const confSrcs = {};
 
-    myObjects = GT.QSOhash;
+    const perPage = GT.settings.app.qsoItemsPerPage;
 
-    if (sortIndex == null || typeof sortIndex == "undefined")
+    function startsWithCI(value, search)
     {
-      mySort = 4;
-      GT.lastSortIndex = 4;
-      GT.lastSortType = 2;
+      return String(value).toLowerCase().startsWith(String(search).toLowerCase());
     }
 
-    let list = Object.values(myObjects);
-
-    if (GT.Zday)
+    function includesCI(value, search)
     {
-      list = list.filter(function (value)
-      {
-        return parseInt(value.time / 86400) == GT.currentDay;
-      });
+      return String(value).toLowerCase().includes(String(search).toLowerCase());
     }
 
-    if (GT.searchWB.length > 0)
+    function matchesModeFilter(value)
     {
-      let regExTest = new RegExp(GT.searchWB, "gi")
-      list = list.filter(function (value)
-      {
-        return value.DEcall.match(regExTest);
-      });
+      if (GT.filterMode == "Mixed") return true;
+
+      if (
+        GT.filterMode == "Phone" &&
+        value.mode in GT.modes_phone &&
+        GT.modes_phone[value.mode]
+      ) return true;
+
+      if (
+        GT.filterMode == "Digital" &&
+        value.mode in GT.modes &&
+        GT.modes[value.mode]
+      ) return true;
+
+      return value.mode == GT.filterMode;
     }
 
-    if (GT.gridSearch.length > 0)
+    function matchesQslFilter(value)
     {
-      list = list.filter(function (value)
+      if (GT.filterQSL == "All") return true;
+
+      if (GT.filterQSL == "false" || GT.filterQSL == "true")
       {
-        let x = value.grid.indexOf(GT.gridSearch);
-        let y = value.vucc_grids.indexOf(GT.gridSearch);
-        return x == 0 || y == 0;
-      });
-    }
-
-    if (GT.stateSearch.length > 0)
-    {
-      let regExTest = new RegExp(GT.stateSearch, "gi")
-      list = list.filter(function (value)
-      {
-        if (!value.state) return false;
-        return value.state.match(regExTest);
-      });
-    }
-
-    if (GT.cntySearch.length > 0)
-    {
-      let regExTest = new RegExp(GT.cntySearch, "gi")
-      list = list.filter(function (value)
-      {
-        if (!value.cnty) return false;
-        if (!(value.cnty in GT.countyData)) return false;
-        return GT.countyData[value.cnty].geo.properties.n.match(regExTest);
-      });
-    }
-
-    if (GT.potaSearch.length > 0)
-    {
-      let regExTest = new RegExp(GT.potaSearch, "gi")
-      list = list.filter(function (value)
-      {
-        if (!value.pota) return false;
-        return value.pota.match(regExTest);
-      });
-    }
-
-    for (let key in list)
-    {
-      bands[list[key].band] = list[key].band;
-      modes[list[key].mode] = list[key].mode;
-
-      let pp = list[key].dxcc in GT.dxccInfo ? GT.dxccInfo[list[key].dxcc].pp : "?";
-
-      dxccs[GT.dxccToAltName[list[key].dxcc] + " (" + pp + ")"] = list[key].dxcc;
-      if (list[key].confirmed)
-      {
-        confSrcs = Object.assign(confSrcs, list[key].confSrcs);
+        return value.confirmed == (GT.filterQSL == "true");
       }
+
+      return !!(value.confirmed && value.confSrcs && GT.filterQSL in value.confSrcs);
     }
 
-    if (GT.filterBand != "Mixed")
+    let mySort = sortIndex;
+
+    if (mySort == null)
     {
-      list = list.filter(function (value)
+      if (typeof GT.lastSortIndex == "undefined" || GT.lastSortIndex == null)
       {
-        return value.band == GT.filterBand;
-      });
+        GT.lastSortIndex = 4;
+        GT.lastSortType = 2;
+      }
+      mySort = GT.lastSortIndex;
     }
 
-    if (GT.filterMode != "Mixed")
-    {
-      list = list.filter(function (value)
-      {
-        if (
-          GT.filterMode == "Phone" &&
-          value.mode in GT.modes_phone &&
-          GT.modes_phone[value.mode]
-        ) { return true; }
-        if (
-          GT.filterMode == "Digital" &&
-          value.mode in GT.modes &&
-          GT.modes[value.mode]
-        ) { return true; }
-        return value.mode == GT.filterMode;
-      });
-    }
+    const allList = Object.values(myObjects || {});
+    const filtered = [];
 
-    if (GT.filterDxcc != 0)
+    for (const value of allList)
     {
-      list = list.filter(function (value)
-      {
-        return value.dxcc == GT.filterDxcc;
-      });
-    }
+      if (GT.Zday && Math.floor(value.time / 86400) != GT.currentDay) continue;
 
-    if (GT.filterQSL != "All")
-    {
-      list = list.filter(function (value)
+      if (GT.searchWB.length > 0 && !includesCI(value.DEcall, GT.searchWB)) continue;
+
+      if (GT.gridSearch.length > 0)
       {
-        if (GT.filterQSL == "false" || GT.filterQSL == "true")
-        {
-          return value.confirmed == (GT.filterQSL == "true");
-        }
-        else
-        {
-          if (value.confirmed && GT.filterQSL in value.confSrcs)
-          {
-            return true;
-          }
-          return false;
-        }
-      });
+        const x = startsWithCI(value.grid, GT.gridSearch);
+        const y = Array.isArray(value.vucc_grids) &&
+          value.vucc_grids.some(grid => startsWithCI(grid, GT.gridSearch));
+
+        if (!x && !y) continue;
+      }
+
+      if (GT.stateSearch.length > 0)
+      {
+        if (!value.state || !includesCI(value.state, GT.stateSearch)) continue;
+      }
+
+      if (GT.cntySearch.length > 0)
+      {
+        if (!value.cnty) continue;
+        if (!(value.cnty in GT.countyData)) continue;
+
+        const countyName = GT.countyData[value.cnty].geo.properties.n;
+        if (!includesCI(countyName, GT.cntySearch)) continue;
+      }
+
+      if (GT.potaSearch.length > 0)
+      {
+        if (!value.pota || !includesCI(value.pota, GT.potaSearch)) continue;
+      }
+
+      const pp = value.dxcc in GT.dxccInfo ? GT.dxccInfo[value.dxcc].pp : "?";
+      bands[value.band] = value.band;
+      modes[value.mode] = value.mode;
+      dxccs[GT.dxccToAltName[value.dxcc] + " (" + pp + ")"] = value.dxcc;
+
+      if (value.confirmed && value.confSrcs)
+      {
+        Object.assign(confSrcs, value.confSrcs);
+      }
+
+      if (GT.filterBand != "Mixed" && value.band != GT.filterBand) continue;
+      if (!matchesModeFilter(value)) continue;
+      if (GT.filterDxcc != 0 && value.dxcc != GT.filterDxcc) continue;
+      if (!matchesQslFilter(value)) continue;
+
+      filtered.push(value);
     }
 
     if (typeof redraw == "undefined")
@@ -7268,128 +7265,122 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       if (typeof nextPage == "undefined")
       {
         nextPage = 0;
+
         if (GT.lastSortIndex != mySort)
         {
-          list = list.sort(GT.sortFunction[mySort]);
           GT.lastSortIndex = mySort;
           GT.lastSortType = 1;
-          GT.qsoPage = 0;
         }
         else
         {
-          list = list.sort(GT.sortFunction[mySort]).reverse();
-          GT.lastSortIndex = -1;
-          GT.lastSortType = 2;
-          GT.qsoPage = 0;
+          GT.lastSortType = (GT.lastSortType == 1) ? 2 : 1;
         }
-      }
-      else
-      {
-        if (GT.lastSortType == 1)
-        {
-          list = list.sort(GT.sortFunction[mySort]);
-        }
-        else
-        {
-          list = list.sort(GT.sortFunction[mySort]).reverse();
-        }
+
+        GT.qsoPage = 0;
       }
     }
     else
     {
       mySort = GT.lastSortIndex;
-      if (mySort == -1) mySort = 4;
-
-      if (GT.lastSortType == 1)
-      {
-        list = list.sort(GT.sortFunction[mySort]);
-      }
-      else
-      {
-        list = list.sort(GT.sortFunction[mySort]).reverse();
-      }
+      if (mySort == null || typeof mySort == "undefined") mySort = 4;
     }
 
-    ObjectCount = list.length;
+    const sortFn = GT.sortFunction[GT.lastSortIndex != null ? GT.lastSortIndex : mySort];
+    filtered.sort(function (a, b)
+    {
+      return (GT.lastSortType == 1) ? sortFn(a, b) : sortFn(b, a);
+    });
 
-    GT.qsoPages = parseInt(ObjectCount / GT.settings.app.qsoItemsPerPage) + 1;
+    const ObjectCount = filtered.length;
 
-    GT.qsoPage += nextPage;
-    GT.qsoPage %= GT.qsoPages;
-    if (GT.qsoPage < 0) GT.qsoPage = GT.qsoPages - 1;
+    GT.qsoPages = Math.max(1, Math.ceil(ObjectCount / perPage));
 
-    let startIndex = GT.qsoPage * GT.settings.app.qsoItemsPerPage;
-    let endIndex = startIndex + GT.settings.app.qsoItemsPerPage;
-    if (endIndex > ObjectCount) endIndex = ObjectCount;
+    GT.qsoPage += (nextPage || 0);
+    GT.qsoPage = ((GT.qsoPage % GT.qsoPages) + GT.qsoPages) % GT.qsoPages;
+
+    const startIndex = GT.qsoPage * perPage;
+    const endIndex = Math.min(startIndex + perPage, ObjectCount);
 
     let workHead = "<b> Entries (" + ObjectCount + ")</b>";
 
     if (GT.qsoPages > 1)
     {
-      workHead += "<br><font  style='font-size:15px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", -1);'>&#8678;&nbsp;</font>";
+      workHead += "<br><font style='font-size:15px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", -1);'>&#8678;&nbsp;</font>";
       workHead += " Page " + (GT.qsoPage + 1) + " of " + GT.qsoPages + " (" + (endIndex - startIndex) + ") ";
-      workHead += "<font  style='font-size:16px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", 1);'>&nbsp;&#8680;</font>";
+      workHead += "<font style='font-size:16px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", 1);'>&nbsp;&#8680;</font>";
     }
+
     setStatsDiv("workedHeadDiv", workHead);
 
     if (myObjects != null)
     {
       let worker = "";
-      worker += "<table  id='logTable' style='white-space:nowrap;overflow:auto;overflow-x;hidden;' class='darkTable' align=center>";
-      worker += "<tr><th><input type='text' id='searchWB' style='margin:0px'  oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.searchWB + "' size='8' oninput='window.opener.showWorkedSearchChanged(this);' / >";
+      worker += "<table id='logTable' style='white-space:nowrap;overflow:auto;overflow-x:hidden;' class='darkTable' align=center>";
+      worker += "<tr><th><input type='text' id='searchWB' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.searchWB + "' size='8' oninput='window.opener.showWorkedSearchChanged(this);' / >";
+
       if (GT.searchWB.length > 0)
       {
-        worker += "<img title='Clear Callsign' onclick='searchWB.value=\"\";window.opener.showWorkedSearchChanged(searchWB);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
+        worker += "<img title='Clear Callsign' onclick='searchWB.value=\"\";window.opener.showWorkedSearchChanged(searchWB);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
       }
+
       worker += "</th>";
       worker += "<th><input type='text' id='searchGrid' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.gridSearch + "' size='6' oninput='window.opener.showWorkedSearchGrid(this);' / >";
+
       if (GT.gridSearch.length > 0)
       {
-        worker += "<img title='Clear Grid' onclick='searchGrid.value=\"\";window.opener.showWorkedSearchGrid(searchGrid);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
+        worker += "<img title='Clear Grid' onclick='searchGrid.value=\"\";window.opener.showWorkedSearchGrid(searchGrid);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
       }
+
       worker += "</th>";
       worker += "<th><div id='bandFilterDiv'></div></th>";
       worker += "<th><div id='modeFilterDiv'></div></th>";
       worker += "<th><div id='qslFilterDiv'></div></th>";
       worker += "<th></th>";
       worker += "<th></th>";
+
       if (GT.filterDxcc != 0)
       {
         worker += "<th style='border-right:none;'><div id='dxccFilterDiv'></div></th>";
-        worker += "<th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc = 0; window.opener.showWorkedBox();' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer'/></th>";
+        worker += "<th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc = 0; window.opener.showWorkedBox();' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer' /></th>";
       }
       else
       {
-        worker += "<th colspan='1'><div id='dxccFilterDiv'></div><th>";
+        worker += "<th colspan='1'><div id='dxccFilterDiv'></div></th>";
       }
 
-      worker += "<th><input type='text' id='searchState' style='margin:0px'  oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.stateSearch + "' size='3' oninput='window.opener.showWorkedSearchState(this);' / >";
+      worker += "<th><input type='text' id='searchState' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.stateSearch + "' size='3' oninput='window.opener.showWorkedSearchState(this);' / >";
+
       if (GT.stateSearch.length > 0)
       {
-        worker += "<img title='Clear Park' onclick='searchState.value=\"\";window.opener.showWorkedSearchState(searchState);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
+        worker += "<img title='Clear Park' onclick='searchState.value=\"\";window.opener.showWorkedSearchState(searchState);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
       }
+
       worker += "</th>";
 
-      worker += "<th><input type='text' id='searchCnty' style='margin:0px'  oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.cntySearch + "' size='4' oninput='window.opener.showWorkedSearchCnty(this);' / >";
+      worker += "<th><input type='text' id='searchCnty' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.cntySearch + "' size='4' oninput='window.opener.showWorkedSearchCnty(this);' / >";
+
       if (GT.cntySearch.length > 0)
       {
-        worker += "<img title='Clear County' onclick='searchCnty.value=\"\";window.opener.showWorkedSearchCnty(searchCnty);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
+        worker += "<img title='Clear County' onclick='searchCnty.value=\"\";window.opener.showWorkedSearchCnty(searchCnty);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
       }
+
       worker += "</th>";
 
-      if (GT.settings.app.potaFeatureEnabled) 
+      if (GT.settings.app.potaFeatureEnabled)
       {
-        worker += "<th><input type='text' id='searchPOTA' style='margin:0px'  oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.potaSearch + "' size='4' oninput='window.opener.showWorkedSearchPOTA(this);' / >";
+        worker += "<th><input type='text' id='searchPOTA' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.potaSearch + "' size='4' oninput='window.opener.showWorkedSearchPOTA(this);' / >";
+
         if (GT.potaSearch.length > 0)
         {
-          worker += "<img title='Clear Park' onclick='searchPOTA.value=\"\";window.opener.showWorkedSearchPOTA(searchPOTA);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;'/>";
+          worker += "<img title='Clear Park' onclick='searchPOTA.value=\"\";window.opener.showWorkedSearchPOTA(searchPOTA);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
         }
+
         worker += "</th>";
       }
 
       worker += "<th><label>" + I18N("gt.Zday") + "</label>&nbsp;<input type='checkbox' id='Zday' " + (GT.Zday ? "checked" : "") + " onclick='window.opener.changeZday(Zday)'/></th>";
+      worker += "</tr>";
 
-      worker += "</tr> ";
       worker += "<tr><th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(0);'>" + I18N("gt.qsoPage.Station") + "</th>";
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(1);'>" + I18N("gt.qsoPage.Grid") + "</th>";
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(5);'>" + I18N("gt.qsoPage.Band") + "</th>";
@@ -7401,27 +7392,40 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>" + I18N("gt.qsoPage.Flag") + "</th>";
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(8);'>" + I18N("roster.secondary.wanted.state") + "</th>";
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(9);'>" + I18N("roster.secondary.wanted.county") + "</th>";
-      if (GT.settings.app.potaFeatureEnabled) worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(7);'>POTA</th>";
+
+      if (GT.settings.app.potaFeatureEnabled)
+      {
+        worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(7);'>POTA</th>";
+      }
+
       worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(4);'>" + I18N("gt.qsoPage.When") + "</th>";
 
       if (GT.settings.callsignLookups.lotwUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.LoTW") + "</th>";
       if (GT.settings.callsignLookups.eqslUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.eQSL") + "</th>";
       if (GT.settings.callsignLookups.oqrsUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.OQRS") + "</th>";
+
       worker += "</tr>";
 
       for (let i = startIndex; i < endIndex; i++)
       {
+        const key = filtered[i];
         let confTitle = "";
         let confTd = "";
-        let key = list[i];
-        if (key.confirmed)
+
+        if (key.confirmed && key.confSrcs)
         {
-          let srcs = {};
-          Object.keys(key.confSrcs).forEach(src => { srcs[GT.confSrcNames[src]] = true; });
+          const srcs = {};
+          Object.keys(key.confSrcs).forEach(function (src)
+          {
+            srcs[GT.confSrcNames[src]] = true;
+          });
+
           confTd = Object.keys(key.confSrcs).join("");
           confTitle = "title='" + Object.keys(srcs).join(", ") + "'";
         }
-        worker += "<tr align=left><td style='color:#ff0;cursor:pointer' onclick='window.opener.startLookup(\"" + key.DEcall + "\",\"" + key.grid + "\");' >" + formatCallsign(key.DEcall) + "</td>";
+
+        worker += "<tr align=left>";
+        worker += "<td style='color:#ff0;cursor:pointer' onclick='window.opener.startLookup(\"" + key.DEcall + "\",\"" + key.grid + "\");'>" + formatCallsign(key.DEcall) + "</td>";
         worker += "<td style='color:cyan;'>" + key.grid + (key.vucc_grids.length ? ", " + key.vucc_grids.join(", ") : "") + "</td>";
         worker += "<td style='color:lightgreen'>" + key.band + "</td>";
         worker += "<td style='color:lightblue'>" + key.mode + "</td>";
@@ -7429,48 +7433,52 @@ function showWorkedBox(sortIndex, nextPage, redraw)
         worker += "<td>" + key.RSTsent + "</td>";
         worker += "<td>" + key.RSTrecv + "</td>";
         worker += "<td style='color:orange'>" + GT.dxccToAltName[key.dxcc] + " <font color='lightgreen'>(" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].pp : "?") + ")</font></td>";
-        worker += "<td align=center style='margin:0;padding:0' ><img style='padding-top:4px' src='img/flags/16/" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].flag : "_United Nations.png") + "'></td>";
+        worker += "<td align=center style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].flag : "_United Nations.png") + "'></td>";
+
         if (key.state)
         {
-          let title = (key.state in GT.StateData) ? "title='" + GT.StateData[key.state].name + "'" : "";
+          const title = (key.state in GT.StateData) ? "title='" + GT.StateData[key.state].name + "'" : "";
           worker += "<td align=center style='color:lightgreen' " + title + ">" + key.state.substr(3) + "</td>";
         }
         else
         {
           worker += "<td></td>";
         }
+
         if (key.cnty && key.cnty in GT.countyData)
         {
-          worker += "<td align=center style='color:cyran'>" + GT.countyData[key.cnty].geo.properties.n + "</td>";
+          worker += "<td align=center style='color:cyan'>" + GT.countyData[key.cnty].geo.properties.n + "</td>";
         }
         else
         {
           worker += "<td></td>";
         }
+
         if (GT.settings.app.potaFeatureEnabled)
         {
-          worker += key.pota ? "<td align=center style='color:#fbb6fc'>" + key.pota + "</td>" :  "<td></td>";
+          worker += key.pota ? "<td align=center style='color:#fbb6fc'>" + key.pota + "</td>" : "<td></td>";
         }
+
         worker += "<td style='color:lightblue'>" + userTimeString(key.time * 1000) + "</td>";
+
         if (GT.settings.callsignLookups.lotwUseEnable == true)
         {
           worker += "<td align=center>" + (key.DEcall in GT.lotwCallsigns ? "&#10004;" : "") + "</td>";
         }
+
         if (GT.settings.callsignLookups.eqslUseEnable == true)
         {
           worker += "<td align=center>" + (key.DEcall in GT.eqslCallsigns ? "&#10004;" : "") + "</td>";
         }
+
         if (GT.settings.callsignLookups.oqrsUseEnable == true)
         {
           if (key.DEcall in GT.oqrsCallsigns)
           {
             if (key.confirmed == false)
             {
-              worker +=
-                "<td style='cursor:pointer;' align='left' " +
-                "onClick='window.opener.openSite(\"https://clublog.org/logsearch/logsearch.php?log=" +
-                key.DEcall + "&call=" + key.DXcall + "&SubmitLogSearch=Show+contacts\");'>" +
-                "&#10004; &#128236;</td>";
+              worker += "<td style='cursor:pointer;' align='left' onClick='window.opener.openSite(\"https://clublog.org/logsearch/logsearch.php?log=" +
+                key.DEcall + "&call=" + key.DXcall + "&SubmitLogSearch=Show+contacts\");'>&#10004; &#128236;</td>";
             }
             else
             {
@@ -7482,6 +7490,7 @@ function showWorkedBox(sortIndex, nextPage, redraw)
             worker += "<td></td>";
           }
         }
+
         worker += "</tr>";
       }
 
@@ -7493,16 +7502,17 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       statsValidateCallByElement("searchGrid");
       statsValidateCallByElement("searchState");
       statsValidateCallByElement("searchCnty");
-
       if (GT.settings.app.potaFeatureEnabled) statsValidateCallByElement("searchPOTA");
 
       let newSelect = document.createElement("select");
       newSelect.id = "bandFilter";
       newSelect.title = "Band Filter";
+
       let option = document.createElement("option");
       option.value = "Mixed";
       option.text = "Mixed";
       newSelect.appendChild(option);
+
       Object.keys(bands)
         .sort(function (a, b)
         {
@@ -7510,22 +7520,18 @@ function showWorkedBox(sortIndex, nextPage, redraw)
         })
         .forEach(function (key)
         {
-          let option = document.createElement("option");
+          const option = document.createElement("option");
           option.value = key;
           option.text = key;
           newSelect.appendChild(option);
         });
-      statsAppendChild(
-        "bandFilterDiv",
-        newSelect,
-        "filterBandFunction",
-        GT.filterBand,
-        true
-      );
+
+      statsAppendChild("bandFilterDiv", newSelect, "filterBandFunction", GT.filterBand, true);
 
       newSelect = document.createElement("select");
       newSelect.id = "modeFilter";
       newSelect.title = "Mode Filter";
+
       option = document.createElement("option");
       option.value = "Mixed";
       option.text = "Mixed";
@@ -7545,23 +7551,18 @@ function showWorkedBox(sortIndex, nextPage, redraw)
         .sort()
         .forEach(function (key)
         {
-          let option = document.createElement("option");
+          const option = document.createElement("option");
           option.value = key;
           option.text = key;
           newSelect.appendChild(option);
         });
 
-      statsAppendChild(
-        "modeFilterDiv",
-        newSelect,
-        "filterModeFunction",
-        GT.filterMode,
-        true
-      );
+      statsAppendChild("modeFilterDiv", newSelect, "filterModeFunction", GT.filterMode, true);
 
       newSelect = document.createElement("select");
       newSelect.id = "dxccFilter";
       newSelect.title = "DXCC Filter";
+
       option = document.createElement("option");
       option.value = 0;
       option.text = "All";
@@ -7571,23 +7572,18 @@ function showWorkedBox(sortIndex, nextPage, redraw)
         .sort()
         .forEach(function (key)
         {
-          let option = document.createElement("option");
+          const option = document.createElement("option");
           option.value = dxccs[key];
           option.text = key;
           newSelect.appendChild(option);
         });
 
-      statsAppendChild(
-        "dxccFilterDiv",
-        newSelect,
-        "filterDxccFunction",
-        GT.filterDxcc,
-        true
-      );
+      statsAppendChild("dxccFilterDiv", newSelect, "filterDxccFunction", GT.filterDxcc, true);
 
       newSelect = document.createElement("select");
       newSelect.id = "qslFilter";
       newSelect.title = "QSL Filter";
+
       option = document.createElement("option");
       option.value = "All";
       option.text = "All";
@@ -7603,37 +7599,30 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       option.text = "No";
       newSelect.appendChild(option);
 
-      Object.keys(confSrcs)
-        .forEach(function (key)
-        {
-          let option = document.createElement("option");
-          option.value = key
-          option.text = GT.confSrcNames[key];
-          newSelect.appendChild(option);
-        });
+      Object.keys(confSrcs).forEach(function (key)
+      {
+        const option = document.createElement("option");
+        option.value = key;
+        option.text = GT.confSrcNames[key];
+        newSelect.appendChild(option);
+      });
 
-      statsAppendChild(
-        "qslFilterDiv",
-        newSelect,
-        "filterQSLFunction",
-        GT.filterQSL,
-        true
-      );
+      statsAppendChild("qslFilterDiv", newSelect, "filterQSLFunction", GT.filterQSL, true);
 
       statsFocus(GT.lastSearchSelection);
-
       setStatsDivHeight("workedListDiv", getStatsWindowHeight() - 6 + "px");
     }
-    else setStatsDiv("workedListDiv", "None");
-
-    myObjects = null;
+    else
+    {
+      setStatsDiv("workedListDiv", "None");
+    }
   }
   catch (e)
   {
     console.error(e);
   }
 }
-
+''
 function statsValidateCallByElement(elementString)
 {
   if (GT.statsWindowInitialized)
@@ -7641,6 +7630,7 @@ function statsValidateCallByElement(elementString)
     GT.statsWindowHandle.window.validateCallByElement(elementString);
   }
 }
+
 function statsFocus(selection)
 {
   if (GT.statsWindowInitialized)
@@ -7924,72 +7914,74 @@ function showWASPlusBox()
 
 function displayItemList(table, color)
 {
+  const entries = Object.entries(table);
+  const itemCount = entries.length;
+
   let worked = 0;
-  let needed = 0;
   let confirmed = 0;
-  for (let key in table)
+  let needed = 0;
+
+  for (const [, item] of entries)
   {
-    if (table[key].worked == true)
-    {
-      worked++;
-    }
-    if (table[key].confirmed == true)
-    {
-      confirmed++;
-    }
-    if (table[key].confirmed == false && table[key].worked == false)
-    {
-      needed++;
-    }
+    if (item.worked === true) worked++;
+    if (item.confirmed === true) confirmed++;
+    if (item.confirmed === false && item.worked === false) needed++;
   }
-  let worker =
-    "<div style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:" +
-    Math.min(
-      Object.keys(table).length * 23 + (23 + 45),
-      getStatsWindowHeight() - 12
-    ) +
-    "px;'>";
-  worker += "<table class='darkTable' align=center>";
-  worker += "<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Worked") + " (" + worked + ")</th></tr>";
-  worker += "<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Confirmed") + " (" + confirmed + ")</th></tr>";
-  worker += "<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Needed") + " (" + needed + ")</th></tr>";
-  worker += "<tr><th align=left>Name</th></tr>";
 
-  confirmed = "";
-  let bold = "text-shadow: 0px 0px 1px black;";
-  let unconf = "background-clip:content-box;box-shadow: 0 0 8px 3px inset ";
+  const maxHeight = Math.min(
+    itemCount * 23 + 68,
+    getStatsWindowHeight() - 12
+  );
 
-  Object.keys(table)
-    .sort()
-    .forEach(function (key, i)
+  const confirmedStyle = "color:" + color + ";";
+  const workedStyle = "color:" + color + ";background-clip:content-box;box-shadow: 0 0 8px 3px inset;";
+  const neededStyle = "color:#000000;background-color:" + color + ";text-shadow: 0px 0px 1px black;";
+
+  const rows = [];
+
+  rows.push(
+    "<div style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow-y:auto;overflow-x:hidden;height:" +
+      maxHeight +
+      "px;'>"
+  );
+  rows.push("<table class='darkTable' align='center'>");
+  rows.push("<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Worked") + " (" + worked + ")</th></tr>");
+  rows.push("<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Confirmed") + " (" + confirmed + ")</th></tr>");
+  rows.push("<tr><th style='font-weight:bold'>" + I18N("gt.displayItemsList.Needed") + " (" + needed + ")</th></tr>");
+  rows.push("<tr><th align='left'>Name</th></tr>");
+
+  entries
+    .sort(function (a, b)
     {
+      return a[0].localeCompare(b[0]);
+    })
+    .forEach(function ([key, item])
+    {
+      const name =
+        typeof item.name != "undefined" && item.name != key
+          ? key + " / " + item.name
+          : key;
+
       let style;
-      let name;
-      if (typeof table[key].name != "undefined" && table[key].name != key)
+      if (item.confirmed === true)
       {
-        name = key + " / " + table[key].name;
+        style = confirmedStyle;
+      }
+      else if (item.worked === true)
+      {
+        style = workedStyle;
       }
       else
       {
-        name = key;
+        style = neededStyle;
       }
-      if (table[key].confirmed == true)
-      {
-        style = "color:" + color + ";" + confirmed;
-      }
-      else if (table[key].worked == true)
-      {
-        style = "color:" + color + ";" + unconf;
-      }
-      else
-      {
-        // needed
-        style = "color:#000000;background-color:" + color + ";" + bold;
-      }
-      worker += "<tr><td align=left style='" + style + "'>" + name + "</td></tr>";
+
+      rows.push("<tr><td align='left' style='" + style + "'>" + name + "</td></tr>");
     });
-  worker += "</table></div>";
-  return worker;
+
+  rows.push("</table></div>");
+
+  return rows.join("");
 }
 
 function showWPXBox()
