@@ -3847,46 +3847,39 @@ function clearGrids()
   GT.liveGrids = {};
 }
 
+function resetWorkingCollection(collection)
+{
+  for (const key in collection)
+  {
+    const obj = collection[key];
+    obj.worked = false;
+    obj.confirmed = false;
+    obj.worked_bands = {};
+    obj.confirmed_bands = {};
+    obj.worked_modes = {};
+    obj.confirmed_modes = {};
+  }
+}
+
 function clearQsoGrids()
 {
-  GT.layerSources.qso.clear();
-  GT.layerSources.qsoPins.clear();
+  const layerSources = GT.layerSources;
+
+  layerSources.qso.clear();
+  layerSources.qsoPins.clear();
 
   GT.qsoGrids = {};
 
-  for (const key in GT.dxccInfo)
-  {
-    clearWorkingObject(GT.dxccInfo[key]);
-  }
-  for (const key in GT.cqZones)
-  {
-    clearWorkingObject(GT.cqZones[key]);
-  }
-  for (const key in GT.ituZones)
-  {
-    clearWorkingObject(GT.ituZones[key]);
-  }
-  for (const key in GT.wasZones)
-  {
-    clearWorkingObject(GT.wasZones[key]);
-  }
-  for (const key in GT.wacpZones)
-  {
-    clearWorkingObject(GT.wacpZones[key]);
-  }
-  for (const key in GT.wacZones)
-  {
-    clearWorkingObject(GT.wacZones[key])
-  }
-  for (const key in GT.countyData)
-  {
-    clearWorkingObject(GT.countyData[key]);
-  }
-  for (const key in GT.us48Data)
-  {
-    clearWorkingObject(GT.us48Data[key]);
-  }
+  resetWorkingCollection(GT.dxccInfo);
+  resetWorkingCollection(GT.cqZones);
+  resetWorkingCollection(GT.ituZones);
+  resetWorkingCollection(GT.wasZones);
+  resetWorkingCollection(GT.wacpZones);
+  resetWorkingCollection(GT.wacZones);
+  resetWorkingCollection(GT.countyData);
+  resetWorkingCollection(GT.us48Data);
 }
+
 
 function clearCalls()
 {
@@ -10930,20 +10923,15 @@ function selectElementContents(el)
 
 function createWorkingObject(name)
 {
-  let workingObject = {};
-  workingObject.name = name;
-  clearWorkingObject(workingObject);
-  return workingObject;
-}
-
-function clearWorkingObject(workingObject)
-{
-  workingObject.worked = false;
-  workingObject.confirmed = false;
-  workingObject.worked_bands = {};
-  workingObject.confirmed_bands = {};
-  workingObject.worked_modes = {};
-  workingObject.confirmed_modes = {};
+  return {
+    name,
+    worked: false,
+    confirmed: false,
+    worked_bands: {},
+    confirmed_bands: {},
+    worked_modes: {},
+    confirmed_modes: {}
+  };
 }
 
 function loadMaidenHeadData()
@@ -13751,151 +13739,70 @@ function getLookupCachedObject(call, gridPass, resultFunction = null, noResultFu
 
 function cacheLookupObject(lookup, gridPass, cacheable = false)
 {
+  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(lookup, key);
+
+  const rename = (from, to) =>
+  {
+    if (hasOwn(from))
+    {
+      lookup[to] = lookup[from];
+      delete lookup[from];
+    }
+  };
+
   if (!("cnty" in lookup))
   {
     lookup.cnty = null;
   }
 
-  if (lookup.hasOwnProperty("callsign"))
+  rename("callsign", "call");
+
+  if (lookup.call)
   {
-    lookup.call = lookup.callsign;
-    delete lookup.callsign;
+    lookup.call = lookup.call.toUpperCase();
   }
 
-  lookup.call = lookup.call.toUpperCase();
+  rename("latitude", "lat");
+  rename("longitude", "lon");
+  rename("locator", "grid");
 
-  if (lookup.hasOwnProperty("latitude"))
+  rename("website", "url");
+  rename("web", "url");
+
+  rename("qslpic", "image");
+  rename("picture", "image");
+
+  rename("address", "addr1");
+  rename("adr_city", "addr2");
+  rename("city", "addr2");
+
+  rename("itu", "ituzone");
+  rename("cq", "cqzone");
+  rename("adif", "dxcc");
+
+  if (!hasOwn("dxcc") && lookup.call)
   {
-    lookup.lat = lookup.latitude;
-    delete lookup.latitude;
-  }
-  if (lookup.hasOwnProperty("longitude"))
-  {
-    lookup.lon = lookup.longitude;
-    delete lookup.longitude;
-  }
-  if (lookup.hasOwnProperty("locator"))
-  {
-    lookup.grid = lookup.locator;
-    delete lookup.locator;
-  }
-  if (lookup.hasOwnProperty("website"))
-  {
-    lookup.url = lookup.website;
-    delete lookup.website;
-  }
-  if (lookup.hasOwnProperty("web"))
-  {
-    lookup.url = lookup.web;
-    delete lookup.web;
-  }
-  if (lookup.hasOwnProperty("qslpic"))
-  {
-    lookup.image = lookup.qslpic;
-    delete lookup.qslpic;
-  }
-  if (lookup.hasOwnProperty("picture"))
-  {
-    lookup.image = lookup.picture;
-    delete lookup.picture;
-  }
-  if (lookup.hasOwnProperty("address"))
-  {
-    lookup.addr1 = lookup.address;
-    delete lookup.address;
-  }
-  if (lookup.hasOwnProperty("adr_city"))
-  {
-    lookup.addr2 = lookup.adr_city;
-    delete lookup.adr_city;
-  }
-  if (lookup.hasOwnProperty("city"))
-  {
-    lookup.addr2 = lookup.city;
-    delete lookup.city;
-  }
-  if (lookup.hasOwnProperty("itu"))
-  {
-    lookup.ituzone = lookup.itu;
-    delete lookup.itu;
-  }
-  if (lookup.hasOwnProperty("cq"))
-  {
-    lookup.cqzone = lookup.cq;
-    delete lookup.cq;
-  }
-  if (lookup.hasOwnProperty("adif"))
-  {
-    lookup.dxcc = lookup.adif;
-    delete lookup.adif;
-  }
-  if (!lookup.hasOwnProperty("dxcc"))
-  {
-    lookup.dxcc = callsignToDxcc(lookup.call.toUpperCase());
-  }
-  if (lookup.hasOwnProperty("adr_name"))
-  {
-    lookup.name = lookup.adr_name;
-    delete lookup.adr_name;
-  }
-  if (lookup.hasOwnProperty("adr_street1"))
-  {
-    lookup.addr1 = lookup.adr_street1;
-    delete lookup.adr_street1;
-  }
-  if (lookup.hasOwnProperty("us_state"))
-  {
-    lookup.state = lookup.us_state;
-    delete lookup.us_state;
-  }
-  if (lookup.hasOwnProperty("oblast"))
-  {
-    lookup.state = lookup.oblast;
-    delete lookup.oblast;
-  }
-  if (lookup.hasOwnProperty("district"))
-  {
-    lookup.state = lookup.district;
-    delete lookup.district;
-  }
-  if (lookup.hasOwnProperty("adr_zip"))
-  {
-    lookup.zip = lookup.adr_zip;
-    delete lookup.adr_zip;
-  }
-  if (lookup.hasOwnProperty("adr_country"))
-  {
-    lookup.country = lookup.adr_country;
-    delete lookup.adr_country;
-  }
-  if (lookup.hasOwnProperty("us_county"))
-  {
-    lookup.county = lookup.us_county;
-    delete lookup.us_county;
-  }
-  if (lookup.hasOwnProperty("qsldirect"))
-  {
-    lookup.mqsl = lookup.qsldirect;
-    delete lookup.qsldirect;
-  }
-  if (lookup.hasOwnProperty("qsl"))
-  {
-    lookup.bqsl = lookup.qsl;
-    delete lookup.qsl;
-  }
-  if (lookup.hasOwnProperty("utc_offset"))
-  {
-    lookup.GMTOffset = lookup.utc_offset;
-    delete lookup.utc_offset;
+    lookup.dxcc = callsignToDxcc(lookup.call);
   }
 
-  if (lookup.hasOwnProperty("land"))
-  {
-    lookup.country = lookup.land;
-    delete lookup.land;
-  }
+  rename("adr_name", "name");
+  rename("adr_street1", "addr1");
 
-  if ("grid" in lookup)
+  rename("us_state", "state");
+  rename("oblast", "state");
+  rename("district", "state");
+
+  rename("adr_zip", "zip");
+  rename("adr_country", "country");
+  rename("us_county", "county");
+
+  rename("qsldirect", "mqsl");
+  rename("qsl", "bqsl");
+  rename("utc_offset", "GMTOffset");
+
+  rename("land", "country");
+
+  if ("grid" in lookup && lookup.grid)
   {
     lookup.grid = lookup.grid.toUpperCase();
   }
@@ -13961,184 +13868,204 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
 
 function displayLookupObject(lookup, gridPass, fromCache = false)
 {
-  let worker = "";
-  let thisCall = getLookProp(lookup, "call").toUpperCase();
+  const p = (key) => getLookProp(lookup, key);
 
-  worker += "<table title='Click to copy address to clipboard' onclick='setClipboardFromLookup();' style='cursor:pointer' >";
-  worker += "<tr>";
-  worker += "<td style='font-size:36pt;color:cyan;font-weight:bold'>";
-  worker += formatCallsign(getLookProp(lookup, "call").toUpperCase());
-  worker += "</td>";
-  worker += "<td align='center' style='margin:0;padding:0'>";
-  if (lookup.dxcc > 0 && lookup.dxcc in GT.dxccInfo)
-  {
-    worker += "<img style='padding-top:4px' src='img/flags/24/" + GT.dxccInfo[lookup.dxcc].flag + "'>";
-  }
-  worker += "</td>";
-  worker += "<td rowspan=6>";
-  let image = getLookProp(lookup, "image");
-  if (image.length > 0)
-  {
-    worker += "<img style='border:1px solid gray' class='roundBorder' width='220px' src='" + image + "'>";
-  }
-  worker += "</td>";
-  worker += "</tr>";
+  const call = p("call").toUpperCase();
+  const image = p("image");
+  const name = p("name");
+  const addrAttn = p("addrAttn");
+  const addr1 = p("addr1");
+  const addr2 = joinCommaIf(p("addr2"), joinSpaceIf(p("state"), p("zip")));
+  const country = p("country");
+  const email = p("email");
+  const url = p("url");
+  const grid = p("grid");
+  const gtGrid = p("gtGrid");
+  const lat = p("lat");
+  const lon = p("lon");
 
-  GT.lastLookupAddress = "";
-  if (getLookProp(lookup, "addrAttn").length > 0)
+  const addRowIf = (arr, label, value, extra = "") =>
   {
-    worker += "<tr>";
-    worker += "<td>";
-    worker += getLookProp(lookup, "addrAttn");
-    GT.lastLookupAddress += getLookProp(lookup, "addrAttn") + "\n";
-    worker += "</td>";
-    worker += "</tr>";
-  }
-  worker += "<tr>";
-  worker += "<td>";
-  worker += "<b>" + getLookProp(lookup, "name") + "</b>";
-  GT.lastLookupAddress += getLookProp(lookup, "name") + "\n";
-  worker += "</td>";
-  worker += "</tr>";
-  worker += "<tr>";
-  worker += "<td>";
-  worker += getLookProp(lookup, "addr1");
-  GT.lastLookupAddress += getLookProp(lookup, "addr1") + "\n";
-  worker += "</td>";
-  worker += "</tr>";
-  worker += "<tr>";
-  worker += "<td>";
-  worker += joinCommaIf(getLookProp(lookup, "addr2"), joinSpaceIf(getLookProp(lookup, "state"), getLookProp(lookup, "zip")));
-  GT.lastLookupAddress += joinCommaIf(getLookProp(lookup, "addr2"), joinSpaceIf(getLookProp(lookup, "state"), getLookProp(lookup, "zip"))) + "\n";
-  worker += "</td>";
-  worker += "</tr>";
-  worker += "<tr>";
-  worker += "<td>";
-  let country = getLookProp(lookup, "country");
-  worker += country;
-  GT.lastLookupAddress += country + "\n";
+    if (value.length > 0)
+    {
+      arr.push(`<tr${extra}><td>${label}</td><td>${value}</td></tr>`);
+    }
+  };
 
-  worker += "</td>";
-  worker += "</tr>";
-  worker += "<tr>";
-  worker += "<td>";
-  let email = getLookProp(lookup, "email");
-  if (email.length > 0)
+  const addressLines = [];
+  if (addrAttn.length > 0) addressLines.push(addrAttn);
+  addressLines.push(name, addr1, addr2, country);
+  if (email.length > 0) addressLines.push(email);
+  GT.lastLookupAddress = addressLines.join("\n") + "\n";
+
+  const cardRows = [];
+
+  if (addrAttn.length > 0)
   {
-    worker += "<div style='cursor:pointer;font-weight:bold;vertical-align:top' onclick='window.opener.mailThem(\"" + email + "\");'>" + email + "</div>";
-    GT.lastLookupAddress += email + "\n";
+    cardRows.push(`<tr><td>${addrAttn}</td></tr>`);
   }
 
-  worker += "</td>";
-  worker += "</tr>";
-  worker += "</table>";
-  let card = "<div class='mapItem' id='callCard' style='top:0;padding:4px;'>" + worker + "</div>";
-  worker = "";
-  worker += "<table align='center' class='bioTable' >";
-  worker += "<tr><th colspan=2>Details</th></tr>";
-  if (getLookProp(lookup, "url").length > 0)
+  cardRows.push(
+    `<tr><td><b>${name}</b></td></tr>`,
+    `<tr><td>${addr1}</td></tr>`,
+    `<tr><td>${addr2}</td></tr>`,
+    `<tr><td>${country}</td></tr>`,
+    `<tr><td>${
+      email.length > 0
+        ? `<div style='cursor:pointer;font-weight:bold;vertical-align:top' onclick='window.opener.mailThem("${email}");'>${email}</div>`
+        : ""
+    }</td></tr>`
+  );
+
+  const card = `
+    <div class='mapItem' id='callCard' style='top:0;padding:4px;'>
+      <table title='Click to copy address to clipboard' onclick='setClipboardFromLookup();' style='cursor:pointer'>
+        <tr>
+          <td style='font-size:36pt;color:cyan;font-weight:bold'>${formatCallsign(call)}</td>
+          <td align='center' style='margin:0;padding:0'>
+            ${lookup.dxcc > 0 && lookup.dxcc in GT.dxccInfo
+              ? `<img style='padding-top:4px' src='img/flags/24/${GT.dxccInfo[lookup.dxcc].flag}'>`
+              : ""}
+          </td>
+          <td rowspan='6'>
+            ${image.length > 0
+              ? `<img style='border:1px solid gray' class='roundBorder' width='220px' src='${image}'>`
+              : ""}
+          </td>
+        </tr>
+        ${cardRows.join("")}
+      </table>
+    </div>`;
+
+  const detailsRows = ["<tr><th colspan='2'>Details</th></tr>"];
+
+  if (url.length > 0)
   {
-    worker += "<tr>";
-    worker += "<td>Website</td>";
-    worker += "<td  >";
-    worker += "<font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"" + getLookProp(lookup, "url") + "\");' >Link</div></b></font>";
-    worker += "</td>";
-    worker += "</tr>";
-  }
-  if (Number(getLookProp(lookup, "bio")) > 0)
-  {
-    worker += "<tr>";
-    worker += "<td>Biography</td>";
-    worker += "<td>";
-    worker += "<font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://www.qrz.com/db/" + getLookProp(lookup, "call") + "\");'>Link</div></b></font>";
-    worker += "</td>";
-    worker += "</tr>";
+    detailsRows.push(
+      `<tr><td>Website</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("${url}");'>Link</div></b></font></td></tr>`
+    );
   }
 
-  worker += makeRow("Type", lookup, "type");
-  worker += makeRow("Class", lookup, "class");
-  worker += makeRow("Codes", lookup, "codes");
-  worker += makeRow("QTH", lookup, "qth");
-  let dates = joinIfBothWithDash(getLookProp(lookup, "efdate"), getLookProp(lookup, "expdate"));
-  if (dates.length > 0)
+  if (Number(p("bio")) > 0)
   {
-    worker += "<tr><td>Effective Dates</td><td>" + dates + "</td></tr>";
-  }
-  let Aliases = joinCommaIf(getLookProp(lookup, "aliases"), getLookProp(lookup, "p_call"));
-  if (Aliases.length > 0)
-  {
-    worker += "<tr title='" + Aliases + "' ><td>Aliases</td><td>" + Aliases + "</td></tr>";
-  }
-  worker += makeRow("Polish OT", lookup, "plot");
-  worker += makeRow("German DOK", lookup, "dok");
-  worker += makeYesNoRow("DOK is Sonder-DOK", lookup, "sondok");
-  worker += "<tr><td>DXCC</td><td>" + getLookProp(lookup, "dxcc") + " - " + GT.dxccToAltName[getLookProp(lookup, "dxcc")] + "</td></tr>";
-  worker += makeRow("CQ zone", lookup, "cqzone");
-  worker += makeRow("ITU zone", lookup, "ituzone");
-  worker += makeRow("IOTA", lookup, "iota");
-  worker += makeRow("FIPS", lookup, "fips");
-  worker += makeRow("FRN", lookup, "frn");
-  worker += makeRow("Timezone", lookup, "TimeZone");
-  worker += makeRow("GMT Offset", lookup, "GMTOffset");
-  worker += makeRow("County", lookup, "county");
-  worker += makeRow("Latitude", lookup, "lat");
-  worker += makeRow("Longitude", lookup, "lon");
-  if (getLookProp(lookup, "lat").length > 0 && getLookProp(lookup, "lon").length > 0)
-  {
-    worker += "<tr><td>Distance</td><td style='color:cyan'>" +
-      parseInt(
-        MyCircle.distance(
-          GT.myLat,
-          GT.myLon,
-          Number(lookup.lat), Number(lookup.lon),
-          distanceUnit.value
-        ) * MyCircle.validateRadius(distanceUnit.value)
-      ) + distanceUnit.value.toLowerCase() + "</td></tr>";
-    let bearing = parseInt(MyCircle.bearing(GT.myLat, GT.myLon, Number(lookup.lat), Number(lookup.lon)));
-    worker += "<tr><td>Azimuth</td><td style='color:yellow'>" + bearing + "&deg;</td></tr>";
-  }
-  worker += makeRow("Grid", lookup, "grid", true);
-  if (getLookProp(lookup, "gtGrid").length > 0 && getLookProp(lookup, "gtGrid").toUpperCase() != getLookProp(lookup, "grid").toUpperCase())
-  {
-    worker += makeRow("GT Grid", lookup, "gtGrid", true);
+    detailsRows.push(
+      `<tr><td>Biography</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("https://www.qrz.com/db/${p("call")}");'>Link</div></b></font></td></tr>`
+    );
   }
 
-  worker += makeRow("Born", lookup, "born");
-  worker += makeYesNoRow("LoTW", lookup, "lotw");
-  worker += makeYesNoRow("eQSL", lookup, "eqsl");
-  worker += makeYesNoRow("Bureau QSL", lookup, "bqsl");
-  worker += makeYesNoRow("Mail Direct QSL", lookup, "mqsl");
-  worker += makeRow("QSL Via", lookup, "qsl_via");
-  worker += makeRow("QRZ Admin", lookup, "user");
-  worker += makeRow("Prefix", lookup, "prefix");
-  worker += lookup.source;
+  detailsRows.push(
+    makeRow("Type", lookup, "type"),
+    makeRow("Class", lookup, "class"),
+    makeRow("Codes", lookup, "codes"),
+    makeRow("QTH", lookup, "qth")
+  );
 
-  if (GT.settings.callsignLookups.lotwUseEnable == true && thisCall in GT.lotwCallsigns)
+  const dates = joinIfBothWithDash(p("efdate"), p("expdate"));
+  addRowIf(detailsRows, "Effective Dates", dates);
+
+  const aliases = joinCommaIf(p("aliases"), p("p_call"));
+  addRowIf(detailsRows, "Aliases", aliases, ` title='${aliases}'`);
+
+  detailsRows.push(
+    makeRow("Polish OT", lookup, "plot"),
+    makeRow("German DOK", lookup, "dok"),
+    makeYesNoRow("DOK is Sonder-DOK", lookup, "sondok"),
+    `<tr><td>DXCC</td><td>${p("dxcc")} - ${GT.dxccToAltName[p("dxcc")]}</td></tr>`,
+    makeRow("CQ zone", lookup, "cqzone"),
+    makeRow("ITU zone", lookup, "ituzone"),
+    makeRow("IOTA", lookup, "iota"),
+    makeRow("FIPS", lookup, "fips"),
+    makeRow("FRN", lookup, "frn"),
+    makeRow("Timezone", lookup, "TimeZone"),
+    makeRow("GMT Offset", lookup, "GMTOffset"),
+    makeRow("County", lookup, "county"),
+    makeRow("Latitude", lookup, "lat"),
+    makeRow("Longitude", lookup, "lon")
+  );
+
+  if (lat.length > 0 && lon.length > 0)
   {
-    lookup.ulotw = "&#10004; (" + userDayString(GT.lotwCallsigns[thisCall] * 86400 * 1000) + ")";
-    worker += makeRow("LoTW Member", lookup, "ulotw");
+    const distance = parseInt(
+      MyCircle.distance(
+        GT.myLat,
+        GT.myLon,
+        Number(lat),
+        Number(lon),
+        distanceUnit.value
+      ) * MyCircle.validateRadius(distanceUnit.value)
+    );
+
+    const bearing = parseInt(
+      MyCircle.bearing(GT.myLat, GT.myLon, Number(lat), Number(lon))
+    );
+
+    detailsRows.push(
+      `<tr><td>Distance</td><td style='color:cyan'>${distance}${distanceUnit.value.toLowerCase()}</td></tr>`,
+      `<tr><td>Azimuth</td><td style='color:yellow'>${bearing}&deg;</td></tr>`
+    );
   }
-  if (GT.settings.callsignLookups.eqslUseEnable == true && thisCall in GT.eqslCallsigns)
+
+  detailsRows.push(makeRow("Grid", lookup, "grid", true));
+
+  if (gtGrid.length > 0 && gtGrid.toUpperCase() != grid.toUpperCase())
   {
-    lookup.ueqsl = "&#10004;";
-    worker += makeRow("eQSL Member", lookup, "ueqsl");
+    detailsRows.push(makeRow("GT Grid", lookup, "gtGrid", true));
   }
-  if (GT.settings.callsignLookups.oqrsUseEnable == true && thisCall in GT.oqrsCallsigns)
+
+  detailsRows.push(
+    makeRow("Born", lookup, "born"),
+    makeYesNoRow("LoTW", lookup, "lotw"),
+    makeYesNoRow("eQSL", lookup, "eqsl"),
+    makeYesNoRow("Bureau QSL", lookup, "bqsl"),
+    makeYesNoRow("Mail Direct QSL", lookup, "mqsl"),
+    makeRow("QSL Via", lookup, "qsl_via"),
+    makeRow("QRZ Admin", lookup, "user"),
+    makeRow("Prefix", lookup, "prefix"),
+    lookup.source
+  );
+
+  if (GT.settings.callsignLookups.lotwUseEnable == true && call in GT.lotwCallsigns)
   {
-    lookup.uoqrs = "&#10004;";
-    worker += makeRow("ClubLog OQRS", lookup, "uoqrs");
+    detailsRows.push(
+      `<tr><td>LoTW Member</td><td>&#10004; (${userDayString(GT.lotwCallsigns[call] * 86400 * 1000)})</td></tr>`
+    );
+  }
+
+  if (GT.settings.callsignLookups.eqslUseEnable == true && call in GT.eqslCallsigns)
+  {
+    detailsRows.push("<tr><td>eQSL Member</td><td>&#10004;</td></tr>");
+  }
+
+  if (GT.settings.callsignLookups.oqrsUseEnable == true && call in GT.oqrsCallsigns)
+  {
+    detailsRows.push("<tr><td>ClubLog OQRS</td><td>&#10004;</td></tr>");
   }
 
   if (fromCache)
   {
-    worker += "<tr><td>Cached</td><td>Yes</td></tr>";
+    detailsRows.push("<tr><td>Cached</td><td>Yes</td></tr>");
   }
 
-  worker += "</table>";
-  let details = "<div class='mapItem' id='callDetails' style='padding:4px;'>" +  worker + "</div>";
-  let genMessage = "<tr><td colspan=2><div title=\"Clear\" class=\"button\" onclick=\"window.opener.clearLookup();\" >Clear</div> <div title=\"Generate Messages\" class=\"button\" onclick=\"window.opener.setCallAndGrid('" + getLookProp(lookup, "call") + "','" + getLookProp(lookup, "grid") + "');\">Generate Messages</div></td></tr>";
+  const details = `
+    <div class='mapItem' id='callDetails' style='padding:4px;'>
+      <table align='center' class='bioTable'>
+        ${detailsRows.join("")}
+      </table>
+    </div>`;
 
-  setLookupDiv("lookupInfoDiv", "<table align='center'><tr><td>" + card + "</td><td>" + details + "</td></tr>" + genMessage + "</table>");
+  const genMessage = `
+    <tr>
+      <td colspan='2'>
+        <div title='Clear' class='button' onclick='window.opener.clearLookup();'>Clear</div>
+        <div title='Generate Messages' class='button' onclick='window.opener.setCallAndGrid("${p("call")}","${grid}");'>Generate Messages</div>
+      </td>
+    </tr>`;
+
+  setLookupDiv(
+    "lookupInfoDiv",
+    `<table align='center'><tr><td>${card}</td><td>${details}</td></tr>${genMessage}</table>`
+  );
+
   setLookupDivHeight("lookupBoxDiv", getLookupWindowHeight() + "px");
 }
 

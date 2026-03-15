@@ -1,12 +1,4 @@
 {
-  "Mapnik by OpenStreetMap (Intl)": {
-    "sourceType" : "XYZ",
-    "url": "http://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "attributions": "<a href=\"http://openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a>",
-    "minZoom": 0,
-    "maxZoom": 19,
-    "offline": false
-  },
   "Mapnik by OpenStreetMap (Deutsch)": {
     "sourceType" : "XYZ",
     "url": "http://{a-c}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png",

@@ -44,7 +44,7 @@ const def_legendColors = {
 };
 
 const def_maps = {
-  mapIndex: "Mapnik by OpenStreetMap (Intl)",
+  mapIndex: "Street by Esri (English)",
   offlineMapIndex: "Satellite by MapTiler (No Labels)(Offline)",
   nightMapIndex: "Dark Gray by Esri (English)",
   offlineNightMapIndex: "Toner by Stamen (No Labels)(Offline)"
@@ -151,7 +151,7 @@ const def_settings = {
     longitude: 0.0,
     latitude: 0.0,
     mapOpacity: 1,
-    mapIndex: "Mapnik by OpenStreetMap (Intl)",
+    mapIndex: "Street by Esri (English)",
     offlineMapIndex: "Satellite by MapTiler (No Labels)(Offline)",
     mergeOverlay: false,
     mouseOver: true,
@@ -189,7 +189,6 @@ const def_settings = {
       "Humanitarian by OpenStreetMap (Intl)": "#90cccb",
       "Light Gray by Esri (English)": "#d0ced2",
       "Mapnik by OpenStreetMap (Deutsch)": "#aad3df",
-      "Mapnik by OpenStreetMap (Intl)": "#aad3df",
       "Mapnik by OpenStreetMap (français)": "#b4d0d0",
       "National Geographic by Esri (English)": "#80b3de",
       "Oceans by Esri (No Labels)": "#94b9e5",
