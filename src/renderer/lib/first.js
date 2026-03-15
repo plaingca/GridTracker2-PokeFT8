@@ -10,33 +10,129 @@ const fs = require("fs");
 const process = require("process");
 const { webUtils } = require('electron');
 
-console.log = logError;
+const originalConsole = {
+  log: console.log.bind(console),
+  error: console.error.bind(console),
+  warn: console.warn.bind(console)
+};
 
-function logError(error)
+function serializeForLog(value)
 {
-  if (typeof error == "string")
+  if (value instanceof Error)
   {
-    electron.ipcRenderer.send("log", error);
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack
+    };
   }
-  else
-  {
-    try 
-    {
-      electron.ipcRenderer.send("log", JSON.stringify(error, null, 2));
-    }
-    catch (e)
-    {
 
+  if (typeof value === "string")
+  {
+    return value;
+  }
+
+  try
+  {
+    return JSON.stringify(value, getCircularReplacer(), 2);
+  }
+  catch (err)
+  {
+    try
+    {
+      return String(value);
+    }
+    catch
+    {
+      return "[Unserializable value]";
     }
   }
 }
 
-window.onerror = function(message, source, lineNumber, colno, error) {
-  logError(`${error.stack}`);
+function getCircularReplacer()
+{
+  const seen = new WeakSet();
+
+  return function (key, value)
+  {
+    if (typeof value === "object" && value !== null)
+    {
+      if (seen.has(value))
+      {
+        return "[Circular]";
+      }
+      seen.add(value);
+    }
+
+    if (value instanceof Error)
+    {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack
+      };
+    }
+
+    return value;
+  };
+}
+
+function sendToElectron(channel, parts)
+{
+  try
+  {
+    const text = parts.map(serializeForLog).join(" ");
+    electron.ipcRenderer.send(channel, text);
+  }
+  catch (err)
+  {
+    originalConsole.error("Failed to send log to Electron:", err);
+  }
+}
+
+console.log = function (...args)
+{
+  originalConsole.log(...args);
+  sendToElectron("log", args);
 };
 
-process.on('uncaughtException', function (error) {
-  logError(error);
+console.warn = function (...args)
+{
+  originalConsole.warn(...args);
+  //sendToElectron("log", args);
+};
+
+console.error = function (...args)
+{
+  originalConsole.error(...args);
+  sendToElectron("log", args);
+};
+
+window.onerror = function (message, source, lineNumber, colno, error)
+{
+  if (error && error.stack)
+  {
+    sendToElectron("log", [error]);
+  }
+  else
+  {
+    sendToElectron("log", [
+      `WindowError: ${message} at ${source}:${lineNumber}:${colno}`
+    ]);
+  }
+};
+
+window.addEventListener("unhandledrejection", function (event)
+{
+  sendToElectron("log", [
+    "UnhandledPromiseRejection:",
+    event.reason
+  ]);
+});
+
+process.on("uncaughtException", function (error)
+{
+  sendToElectron("log", [error]);
 });
 
 try

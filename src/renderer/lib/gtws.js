@@ -17,16 +17,18 @@ GT.chatRecvFunctions = {
 
 GT.oamsDenied = false;
 
-const ChatState = Object();
-ChatState.none = 100;
-ChatState.idle = 0;
-ChatState.connect = 1;
-ChatState.connecting = 2;
-ChatState.connected = 3;
-ChatState.status = 4;
-ChatState.closed = 5;
-ChatState.error = 6;
-ChatState.waitUUID = 7;
+const ChatState = {
+  none: 100,
+  idle: 0,
+  connect: 1,
+  connecting: 2,
+  connected: 3,
+  status: 4,
+  closed: 5,
+  error: 6,
+  waitUUID: 7
+};
+
 
 GT.gtStateToFunction = {
   100: gtSetIdle,
@@ -140,7 +142,7 @@ function gtInError()
 
 function gtChatSendClose()
 {
-  msg = Object();
+  let msg = Object();
   msg.type = "close";
   msg.uuid = GT.settings.app.chatUUID;
 
@@ -295,7 +297,7 @@ function oamsBandActivityCheck()
 
 function gtChatSendBandActivityRequest(gridArray)
 {
-  msg = Object();
+  let msg = Object();
   msg.type = "ba";
   msg.uuid = GT.settings.app.chatUUID;
   msg.ga = gridArray;
@@ -420,7 +422,7 @@ function gtChatUpdateCall(jsmesg)
 
 function gtChatGetList()
 {
-  msg = Object();
+  let msg = Object();
   msg.type = "list";
   msg.uuid = GT.settings.app.chatUUID;
 
@@ -430,20 +432,25 @@ function gtChatGetList()
 function redrawPins()
 {
   clearGtFlags();
-  for (cid in GT.gtFlagPins)
+
+  const features = [];
+
+  for (const cid in GT.gtFlagPins)
   {
-    if (GT.gtFlagPins[cid].pin != null)
-    {
-      delete GT.gtFlagPins[cid].pin;
-      GT.gtFlagPins[cid].pin = null;
-    }
+    const pinObj = GT.gtFlagPins[cid];
 
-    makeGtPin(GT.gtFlagPins[cid]);
+    pinObj.pin = null;
+    makeGtPin(pinObj);
 
-    if (GT.gtFlagPins[cid].pin != null)
+    if (pinObj.pin != null)
     {
-      GT.layerSources.gtflags.addFeature(GT.gtFlagPins[cid].pin);
+      features.push(pinObj.pin);
     }
+  }
+
+  if (features.length > 0)
+  {
+    GT.layerSources.gtflags.addFeatures(features);
   }
 }
 
@@ -680,9 +687,7 @@ function gtChatStateMachine()
 {
   if (GT.settings.app.offAirServicesEnable == true && GT.settings.map.offlineMode == false && GT.settings.app.myCall.length > 2 && GT.settings.app.myCall != "NOCALL" && GT.oamsDenied == false)
   {
-    let now = timeNowSec();
     GT.gtStateToFunction[GT.gtState]();
-
     GT.getEngineWasRunning = true;
   }
   else
