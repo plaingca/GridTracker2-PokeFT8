@@ -3052,29 +3052,25 @@ function squareToCenter(qth)
   return obj;
 }
 
-function maidenheadToBounds(qth, allChars = false) {
-  const grid = qth.trim().toUpperCase();
-  const c = (i) => grid.charCodeAt(i);
+// Pre-computed constants
+const K_LO_STEP_6 = 0.08333333333333333;
+const K_LA_STEP_6 = 0.04166666666666666;
+const K_LO_MIN_6 = 179.91666666666666;
+const LA_MIN_6 = 89.95833333333333;
 
-  let lo1 = (c(0) - 65) * 20 + (c(2) - 48) * 2;
-  let la1 = (c(1) - 65) * 10 + (c(3) - 48);
+function maidenheadToBounds(qth, allChars) {
+  const c0 = qth.charCodeAt(0) & 0xDF;
+  const c1 = qth.charCodeAt(1) & 0xDF;
 
-  const six = grid.length === 6 && ((GT.pushPinMode && GT.settings.app.sixWideMode != 0) || allChars);
-  const loStep = six ? 5 / 60 : 2;
-  const laStep = six ? 2.5 / 60 : 1;
+  let la1 = (c1 - 65) * 10 + (qth.charCodeAt(3) - 48);
+  let lo1 = (c0 - 65) * 20 + (qth.charCodeAt(2) - 48) * 2;
 
-  if (six) {
-    lo1 += (c(4) - 65) * loStep;
-    la1 += (c(5) - 65) * laStep;
+  if (qth.length === 6 && (allChars || (GT.pushPinMode && GT.settings.app.sixWideMode))) {
+    la1 += ((qth.charCodeAt(5) & 0xDF) - 65) * K_LA_STEP_6;
+    lo1 += ((qth.charCodeAt(4) & 0xDF) - 65) * K_LO_STEP_6;
+    return { la1: la1 - 90, lo1: lo1 - 180, la2: la1 - LA_MIN_6, lo2: lo1 - K_LO_MIN_6, size: 6 };
   }
-
-  return {
-    la1: clamp(la1 - 90, -90, 90),
-    lo1: clamp(lo1 - 180, -180, 180),
-    la2: clamp(la1 + laStep - 90, -90, 90),
-    lo2: clamp(lo1 + loStep - 180, -180, 180),
-    size: six ? 6 : 4
-  };
+  return { la1: la1 - 90, lo1: lo1 - 180, la2: la1 - 89, lo2: lo1 - 178, size: 4 };
 }
 
 function iconFeature(center, iconObj, zIndex, propName)
