@@ -3056,7 +3056,7 @@ function squareToCenter(qth)
 const K_LO_STEP_6 = 0.08333333333333333;
 const K_LA_STEP_6 = 0.04166666666666666;
 const K_LO_MIN_6 = 179.91666666666666;
-const LA_MIN_6 = 89.95833333333333;
+const K_LA_MIN_6 = 89.95833333333333;
 
 function maidenheadToBounds(qth, allChars) {
   const c0 = qth.charCodeAt(0) & 0xDF;
@@ -3068,7 +3068,7 @@ function maidenheadToBounds(qth, allChars) {
   if (qth.length === 6 && (allChars || (GT.pushPinMode && GT.settings.app.sixWideMode))) {
     la1 += ((qth.charCodeAt(5) & 0xDF) - 65) * K_LA_STEP_6;
     lo1 += ((qth.charCodeAt(4) & 0xDF) - 65) * K_LO_STEP_6;
-    return { la1: la1 - 90, lo1: lo1 - 180, la2: la1 - LA_MIN_6, lo2: lo1 - K_LO_MIN_6, size: 6 };
+    return { la1: la1 - 90, lo1: lo1 - 180, la2: la1 - K_LA_MIN_6, lo2: lo1 - K_LO_MIN_6, size: 6 };
   }
   return { la1: la1 - 90, lo1: lo1 - 180, la2: la1 - 89, lo2: lo1 - 178, size: 4 };
 }
