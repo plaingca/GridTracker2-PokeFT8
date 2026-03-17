@@ -1153,6 +1153,74 @@ function applyQSOs(task)
   }
 }
 
+
+// =========================================================================
+// V8 OPTIMIZATION: Rigid Object Constructor for Live Callsigns
+// Guarantees a single Hidden Class (Memory Shape) for massive V8 speedups.
+// =========================================================================
+function LiveCallsign(hash, DEcall, DXcall, grid, mode, band, msg, dxcc, time) {
+  // 1. Core identifiers
+  this.hash = hash;
+  this.DEcall = DEcall;
+  this.DXcall = DXcall;
+  this.grid = grid;
+  this.mode = mode;
+  this.band = band;
+  this.msg = msg;
+  this.dxcc = dxcc;
+  
+  // 2. Timestamps
+  this.time = time;
+  this.age = time;
+  this.life = time;
+  
+  // 3. QSO Data
+  this.worked = false;
+  this.confirmed = false;
+  this.qso = false;
+  this.RSTsent = "-";
+  this.RSTrecv = "-";
+  this.dt = 0.0;
+  this.delta = -1;
+  this.wspr = null;
+  
+  // 4. Geographic Data
+  this.distance = 0;
+  this.heading = 0;
+  this.px = null;
+  this.zone = null;
+  this.cont = null;
+  this.pota = null;
+  this.state = null;
+  this.cnty = null;
+  this.zipcode = null;
+  this.ituz = null;
+  this.cqz = null;
+  
+  // 5. System State / Flags
+  this.instance = null;
+  this.rosterAlerted = false;
+  this.shouldRosterAlert = false;
+  this.audioAlerted = false;
+  this.shouldAudioAlert = false;
+  this.qrz = false;
+  this.digital = true;
+  this.phone = false;
+  this.even = false;
+  this.qual = false;
+  this.locked = false;
+  this.reset = false;
+  this.CQ = false;
+  this.RR73 = false;
+  
+  // 6. Arrays / Strings
+  this.vucc_grids = [];
+  this.propMode = "";
+  this.IOTA = "";
+  this.cntys = 0;
+  this.UTC = "";
+}
+
 function addLiveCallsign(
   finalGrid,
   finalDXcall,
@@ -1191,71 +1259,26 @@ function addLiveCallsign(
 
   if (callsign == null)
   {
-    let newCallsign = {};
-    newCallsign.DEcall = finalDXcall;
-    newCallsign.grid = finalGrid;
+    // Pass finalDXcall to DEcall, and finalDEcall to DXcall (matching original parameter swap)
+    let newCallsign = new LiveCallsign(hash, finalDXcall, finalDEcall, finalGrid, mode, band, finalMsg, finalDxcc, finalTime);
+    newCallsign.wspr = wspr;
 
-    newCallsign.mode = mode;
-    newCallsign.band = band;
-    newCallsign.msg = finalMsg;
-    newCallsign.dxcc = finalDxcc;
-    newCallsign.worked = false;
-    newCallsign.confirmed = false;
-    newCallsign.RSTsent = "-";
-    newCallsign.RSTrecv = "-";
-    newCallsign.dt = 0.0;
-    newCallsign.qso = false;
-    newCallsign.distance = 0;
-    newCallsign.px = null;
-    newCallsign.zone = null;
-    newCallsign.pota = null;
-    newCallsign.cnty = null;
-    newCallsign.cont = null;
     if (finalDxcc > -1)
     {
       newCallsign.px = getWpx(finalDXcall);
       if (newCallsign.px)
       {
-        newCallsign.zone = Number(
-          newCallsign.px.charAt(newCallsign.px.length - 1)
-        );
+        newCallsign.zone = Number(newCallsign.px.charAt(newCallsign.px.length - 1));
       }
 
-      if (newCallsign.cont == null)
-      {
-        newCallsign.cont = GT.dxccInfo[finalDxcc].continent;
-        if (newCallsign.dxcc == 390 && newCallsign.zone == 1) { newCallsign.cont = "EU"; }
-      }
+      newCallsign.cont = GT.dxccInfo[finalDxcc].continent;
+      if (newCallsign.dxcc == 390 && newCallsign.zone == 1) { newCallsign.cont = "EU"; }
     }
-    if (finalRSTsent != null)
-    {
-      newCallsign.RSTsent = finalRSTsent;
-    }
-    if (finalRSTrecv != null)
-    {
-      newCallsign.RSTrecv = finalRSTrecv;
-    }
-    newCallsign.time = finalTime;
-    newCallsign.age = finalTime;
-    newCallsign.delta = -1;
-    newCallsign.DXcall = finalDEcall;
-    newCallsign.wspr = wspr;
-    newCallsign.state = null;
-    newCallsign.instance = null;
-    newCallsign.rosterAlerted = false;
-    newCallsign.shouldRosterAlert = false;
-    newCallsign.audioAlerted = false;
-    newCallsign.shouldAudioAlert = false;
-    newCallsign.zipcode = null;
-    newCallsign.qrz = false;
-    newCallsign.vucc_grids = [];
-    newCallsign.propMode = "";
-    newCallsign.digital = true;
-    newCallsign.phone = false;
-    newCallsign.IOTA = "";
-    newCallsign.hash = hash;
 
-    if (newCallsign.state == null && isKnownCallsignUS(newCallsign.dxcc))
+    if (finalRSTsent != null) newCallsign.RSTsent = finalRSTsent;
+    if (finalRSTrecv != null) newCallsign.RSTrecv = finalRSTrecv;
+
+    if (isKnownCallsignUS(newCallsign.dxcc))
     {
       let fourGrid = finalGrid.substr(0, 4);
       if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length == 1)
@@ -5968,65 +5991,43 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     if (callsign == null)
     {
-      let newCallsign = {};
-      newCallsign.DEcall = msgDEcallsign;
-      newCallsign.grid = theirQTH;
-      newCallsign.wspr = null;
-      newCallsign.msg = newMessage.Msg;
+      let dxcc = callsignToDxcc(msgDEcallsign);
+      let newCallsign = new LiveCallsign(
+        hash,
+        msgDEcallsign,        // DEcall
+        msgDXcallsign.trim(), // DXcall
+        theirQTH,             // grid
+        newMessage.OM,        // mode
+        newMessage.OB,        // band
+        newMessage.Msg,       // msg
+        dxcc,                 // dxcc
+        theTimeStamp          // time
+      );
+      
       newCallsign.RSTsent = newMessage.SR;
-      newCallsign.RSTrecv = "-";
-      newCallsign.time = theTimeStamp;
-      newCallsign.life = newCallsign.age = timeNowSec();
       newCallsign.delta = newMessage.DF;
       newCallsign.dt = newMessage.DT.toFixed(2);
-      newCallsign.DXcall = msgDXcallsign.trim();
-      newCallsign.state = null;
-      newCallsign.zipcode = null;
-      newCallsign.worked = false;
-      newCallsign.confirmed = false;
-      newCallsign.qso = false;
-      newCallsign.dxcc = callsignToDxcc(newCallsign.DEcall);
-      newCallsign.px = null;
-      newCallsign.pota = null;
-      newCallsign.zone = null;
-      newCallsign.vucc_grids = [];
-      newCallsign.propMode = "";
-      newCallsign.digital = true;
-      newCallsign.phone = false;
-      newCallsign.even = false;
-      newCallsign.IOTA = "";
-      newCallsign.hash = hash;
-      if (newCallsign.dxcc != -1)
+
+      if (dxcc != -1)
       {
-        newCallsign.px = getWpx(newCallsign.DEcall);
+        newCallsign.px = getWpx(msgDEcallsign);
         if (newCallsign.px)
         {
-          newCallsign.zone = Number(
-            newCallsign.px.charAt(newCallsign.px.length - 1)
-          );
+          newCallsign.zone = Number(newCallsign.px.charAt(newCallsign.px.length - 1));
         }
 
-        newCallsign.cont = GT.dxccInfo[newCallsign.dxcc].continent;
-        if (newCallsign.dxcc == 390 && newCallsign.zone == 1) { newCallsign.cont = "EU"; }
+        newCallsign.cont = GT.dxccInfo[dxcc].continent;
+        if (dxcc == 390 && newCallsign.zone == 1) { newCallsign.cont = "EU"; }
       }
 
-      newCallsign.ituz = ituZoneFromCallsign(newCallsign.DEcall, newCallsign.dxcc);
-      newCallsign.cqz = cqZoneFromCallsign(newCallsign.DEcall, newCallsign.dxcc);
-      newCallsign.distance = 0;
-      newCallsign.heading = 0;
-
-      newCallsign.cnty = null;
-      newCallsign.qual = false;
+      newCallsign.ituz = ituZoneFromCallsign(msgDEcallsign, dxcc);
+      newCallsign.cqz = cqZoneFromCallsign(msgDEcallsign, dxcc);
 
       getLookupCachedObject(msgDEcallsign, null, null, null, newCallsign);
 
-      if (newCallsign.dxcc in GT.dxccCount) GT.dxccCount[newCallsign.dxcc]++;
-      else GT.dxccCount[newCallsign.dxcc] = 1;
+      if (dxcc in GT.dxccCount) GT.dxccCount[dxcc]++;
+      else GT.dxccCount[dxcc] = 1;
 
-      newCallsign.rosterAlerted = false;
-      newCallsign.shouldRosterAlert = false;
-      newCallsign.audioAlerted = false;
-      newCallsign.shouldAudioAlert = false;
       GT.liveCallsigns[hash] = newCallsign;
       callsign = newCallsign;
     }
