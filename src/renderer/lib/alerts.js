@@ -428,76 +428,71 @@ function displayAlertPopUp(what, message, target)
 {
   if (GT.alertWindowInitialized == false) return;
 
-  var worker = "";
-  var acount = 0;
+  const html = [];
+  let acount = 0;
 
   if (Object.keys(GT.settings.customAlerts).length > 0)
   {
-    for (var key in GT.settings.customAlerts)
+    for (const key in GT.settings.customAlerts)
     {
       if (GT.settings.customAlerts[key].needAck) acount++;
     }
 
-    worker +=
-      "<div id='tableDiv' style='overflow:hidden;'>";
-
-    worker += "<table align='center' class='darkTable' >";
-
-    worker += "<tr>";
-    worker += "<th>Type</th>";
-    worker += "<th>Value</th>";
-    worker += "<th>Notify</th>";
-    worker += "<th>Repeat</th>";
-    worker += "<th>Filename</th>";
-    worker += "<th>Alerted</th>";
-    worker += "<th>Last Message</th>";
-    worker += "<th>When</th>";
-    worker += "</tr>";
+    html.push("<div id='tableDiv' style='overflow:hidden;'>");
+    html.push("<table align='center' class='darkTable' >");
+    html.push("<tr>");
+    html.push("<th>Type</th>");
+    html.push("<th>Value</th>");
+    html.push("<th>Notify</th>");
+    html.push("<th>Repeat</th>");
+    html.push("<th>Filename</th>");
+    html.push("<th>Alerted</th>");
+    html.push("<th>Last Message</th>");
+    html.push("<th>When</th>");
+    html.push("</tr>");
 
     for (var key in GT.settings.customAlerts)
     {
       if (GT.settings.customAlerts[key].needAck)
       {
-        worker += "<tr>";
-        worker += "<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>";
+        html.push("<tr>");
+        html.push("<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>");
         if (GT.settings.customAlerts[key].type == 0)
-        { worker += "<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"; }
+        { html.push("<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"); }
         if (GT.settings.customAlerts[key].type == 2)
-        { worker += "<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"; }
+        { html.push("<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"); }
         if (GT.settings.customAlerts[key].type == 4)
-        { worker += "<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"; }
+        { html.push("<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"); }
         if (GT.settings.customAlerts[key].type == 5)
         {
-          worker +=
-            "<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>";
+          html.push("<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>");
         }
         if (GT.settings.customAlerts[key].type == 6)
-        { worker += "<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"; }
+        { 
+          html.push("<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"); 
+        }
 
-        worker += "<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>";
-        worker += "<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>";
-        worker +=
-          "<td>" +
+        html.push("<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>");
+        html.push("<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>");
+        html.push("<td>" +
           (GT.settings.customAlerts[key].shortname.length > 0 ? GT.settings.customAlerts[key].shortname : "-") +
-          "</td>";
-        worker += "<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>";
-        worker +=
-          "<td style='color:cyan'>" +
+          "</td>");
+        html.push("<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
+        html.push("<td style='color:cyan'>" +
           (GT.settings.customAlerts[key].lastMessage.length > 0
             ? GT.settings.customAlerts[key].lastMessage
             : "-") +
-          "</td>";
+          "</td>");
         ageString = userTimeString(GT.settings.customAlerts[key].lastTime * 1000);
-        worker +=
-          "<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>";
-        worker += "</tr>";
+        html.push("<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
+        html.push("</tr>");
       }
     }
-    worker += "</table>";
-    worker += "</div>";
+    html.push("</table>");
+    html.push("</div>");
   }
 
-  GT.alertWindowHandle.window.alertPopListDiv.innerHTML = worker;
+  GT.alertWindowHandle.window.alertPopListDiv.innerHTML = html.join("");
   GT.alertWindowHandle.resizeTo(parseInt(GT.alertWindowHandle.window.alertsPopDiv.offsetWidth) + 20, parseInt(GT.alertWindowHandle.window.alertsPopDiv.offsetHeight) + 44);
 
   openAlertWindow(true);
@@ -580,78 +575,71 @@ GT.alertRepeatOptions["3"] = "Inf(Session)";
 
 function displayAlerts()
 {
-  var worker = "";
+  const html = [];
 
   if (Object.keys(GT.settings.customAlerts).length > 0)
   {
-    worker +=
-      "<div style='padding-right:8px;overflow:auto;overflow-x:hidden;height:" +
+    html.push("<div style='padding-right:8px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(Object.keys(GT.settings.customAlerts).length * 24 + 23, 312) +
-      "px;'>";
+      "px;'>");
 
-    worker += "<table align='center' class='darkTable' >";
+    html.push("<table align='center' class='darkTable' >");
 
-    worker += "<tr>";
-    worker += "<th>Type</th>";
-    worker += "<th>Value</th>";
-    worker += "<th>Notify</th>";
-    worker += "<th>Repeat</th>";
-    worker += "<th>Filename</th>";
-    worker += "<th>Alerted</th>";
-    worker += "<th>Last Message</th>";
-    worker += "<th>When</th>";
-    worker += "<th>Reset</th>";
-    worker += "<th>Delete</th>";
-    worker += "</tr>";
+    html.push("<tr>");
+    html.push("<th>Type</th>");
+    html.push("<th>Value</th>");
+    html.push("<th>Notify</th>");
+    html.push("<th>Repeat</th>");
+    html.push("<th>Filename</th>");
+    html.push("<th>Alerted</th>");
+    html.push("<th>Last Message</th>");
+    html.push("<th>When</th>");
+    html.push("<th>Reset</th>");
+    html.push("<th>Delete</th>");
+    html.push("</tr>");
 
     for (var key in GT.settings.customAlerts)
     {
-      worker += "<tr>";
-      worker += "<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>";
+      html.push("<tr>");
+      html.push("<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>");
       if (GT.settings.customAlerts[key].type == 0)
-      { worker += "<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"; }
+      { html.push("<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"); }
       if (GT.settings.customAlerts[key].type == 2)
-      { worker += "<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"; }
+      { html.push("<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"); }
       if (GT.settings.customAlerts[key].type == 4)
-      { worker += "<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"; }
+      { html.push("<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"); }
       if (GT.settings.customAlerts[key].type == 5)
       {
-        worker +=
-          "<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>";
+        html.push("<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>");
       }
       if (GT.settings.customAlerts[key].type == 6)
-      { worker += "<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"; }
+      { html.push("<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"); }
 
-      worker += "<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>";
-      worker += "<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>";
-      worker +=
-        "<td>" +
+      html.push("<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>");
+      html.push("<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>");
+      html.push("<td>" +
         (GT.settings.customAlerts[key].shortname.length > 0 ? GT.settings.customAlerts[key].shortname : "-") +
-        "</td>";
-      worker += "<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>";
-      worker +=
-        "<td style='color:cyan'>" +
+        "</td>");
+      html.push("<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
+      html.push("<td style='color:cyan'>" +
         (GT.settings.customAlerts[key].lastMessage.length > 0
           ? GT.settings.customAlerts[key].lastMessage
           : "-") +
-        "</td>";
+        "</td>");
       ageString = userTimeString(GT.settings.customAlerts[key].lastTime * 1000);
-      worker +=
-        "<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>";
-      worker +=
-        "<td style='cursor:pointer' onclick='resetAlert(\"" +
+      html.push("<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
+      html.push("<td style='cursor:pointer' onclick='resetAlert(\"" +
         key +
-        "\")'><img src='img/reset_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px' ></td>";
-      worker +=
-        "<td style='cursor:pointer' onclick='deleteAlert(\"" +
+        "\")'><img src='img/reset_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px' ></td>");
+      html.push("<td style='cursor:pointer' onclick='deleteAlert(\"" +
         key +
-        "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td>";
-      worker += "</tr>";
+        "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td>");
+      html.push("</tr>");
     }
-    worker += "</table>";
-    worker += "</div>";
+    html.push("</table>");
+    html.push("</div>");
   }
-  alertListDiv.innerHTML = worker;
+  alertListDiv.innerHTML = html.join("");;
 }
 
 function wantedChanged(what)

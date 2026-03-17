@@ -914,25 +914,25 @@ function setAdifStartup(checkbox)
 
   if (buttonAdifCheckBox.checked || loadAdifCheckBox.checked)
   {
-    let worker = "";
+    let html = [];
     if (GT.settings.startupLogs.length > 0)
     {
-      worker += "<table class='darkTable'>";
+      html.push("<table class='darkTable'>");
       for (const i in GT.settings.startupLogs)
       {
         const appFile = GT.settings.startupLogs[i];
         let style = isInAppLog(appFile.file) ? "style='text-decoration: line-through red; text-decoration-thickness: 2px;'" : "";
-        worker += "<tr title='" + appFile.file + "'>";
-        worker += "<td " + style + ">" +  getParentFolderAndFilename(appFile.file) + "</td>";
-        worker += "<td onclick='removeStartupLog(" + i + ")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer'></td></tr>";
+        html.push("<tr title='" + appFile.file + "'>");
+        html.push("<td " + style + ">" +  getParentFolderAndFilename(appFile.file) + "</td>");
+        html.push("<td onclick='removeStartupLog(" + i + ")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer'></td></tr>");
       }
-      worker += "</table>";
+      html.push("</table>");
     }
     else
     {
-      worker = "No file(s) selected";
+      html = ["No file(s) selected"];
     }
-    startupLogFileDiv.innerHTML = worker;
+    startupLogFileDiv.innerHTML = html.join("");
     selectFileOnStartupDiv.style.display = "block";
   }
   else
@@ -1078,26 +1078,26 @@ function getParentFolderAndFilename(filepath)
 
 function updateAppLogsUI()
 {
-  let worker = "";
+  let html = [];
   if (GT.settings.appLogs.length > 0)
   {
-    worker += "<table class='darkTable'><tr><th>" + I18N("settings.alerts.AudioAlert.Header.Enable") + "</th>";
-    worker += "<th>" + I18N("settings.alerts.AudioAlert.Header.Value") + "</th></tr>";
+    html.push("<table class='darkTable'><tr><th>" + I18N("settings.alerts.AudioAlert.Header.Enable") + "</th>");
+    html.push("<th>" + I18N("settings.alerts.AudioAlert.Header.Value") + "</th></tr>");
     for (const i in GT.settings.appLogs)
     {
       const appFile = GT.settings.appLogs[i];
-      worker += "<tr title='" + appFile.file + "'>";
-      worker += "<td><input type='checkbox' " + (appFile.enabled ? "checked" : "") +  " onclick='toggleAppLog(" + i + ", this)' /></td>";
-      worker += "<td >" +  getParentFolderAndFilename(appFile.file) + "</td>";
-      worker += "<td onclick='removeAppLog(" + i + ")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer'></td></tr>";
+      html.push("<tr title='" + appFile.file + "'>");
+      html.push("<td><input type='checkbox' " + (appFile.enabled ? "checked" : "") +  " onclick='toggleAppLog(" + i + ", this)' /></td>");
+      html.push("<td >" +  getParentFolderAndFilename(appFile.file) + "</td>");
+      html.push("<td onclick='removeAppLog(" + i + ")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer'></td></tr>");
     }
-    worker += "</table>";
+    html.push("</table>");
   }
   else
   {
-    worker = "No file(s) selected";
+    html = ["No file(s) selected"];
   }
-  appLogsFilesDiv.innerHTML = worker;
+  appLogsFilesDiv.innerHTML = html.join("");
 }
 
 function removeAppLog(i)
@@ -2015,14 +2015,14 @@ function testTrustedQSL(test)
   }
   else
   {
-    let worker = "";
+    const html = [];
     if (GT.settings.trustedQsl.binaryFileValid == false)
-    { worker += "Invalid tqsl executable<br>"; }
+    { html.push("Invalid tqsl executable<br>"); }
     if (GT.settings.trustedQsl.stationFileValid == false)
-    { worker += "Stations not found<br>"; }
-    if (!ValidateText(lotwTrusted)) worker += "TQSL Password missing<br>";
-    if (!ValidateText(lotwStation)) worker += "Select Station<br>";
-    lotwTestResult.innerHTML = worker;
+    { html.push("Stations not found<br>"); }
+    if (!ValidateText(lotwTrusted)) html.push("TQSL Password missing<br>");
+    if (!ValidateText(lotwStation)) html.push("Select Station<br>");
+    lotwTestResult.innerHTML = html.join();
   }
 }
 

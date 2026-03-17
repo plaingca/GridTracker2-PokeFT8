@@ -18,12 +18,12 @@ function renderCompactRosterRow(callObj, showBand)
   let onClick = " onClick='initiateQso(\"" + callObj.hash + "\")' id='" + callObj.hash + "' title='" + title + "' ";
   let wholeClick = (CR.isCompactCounty ? "" : onClick);
   let callsignClick = (CR.isCompactCounty ? onClick : "");
-  let worker = "<div class='compact' " + wholeClick + " >";
-  worker += "<div class='compactCallsign' " + callsignClick + " name='Callsign' " + callObj.style.call + " >" + formatCallsign(callObj.DEcallHTML || callObj.DEcall) + bandView + "</div>";
-  worker += "<div class='compactData'>";
-  worker += renderEntryForColumn(CR.rosterSettings.compactEntity, callObj, "div");
-  worker += "</div></div>";
-  return worker;
+  const html = ["<div class='compact' " + wholeClick + " >"];
+  html.push("<div class='compactCallsign' " + callsignClick + " name='Callsign' " + callObj.style.call + " >" + formatCallsign(callObj.DEcallHTML || callObj.DEcall) + bandView + "</div>");
+  html.push("<div class='compactData'>");
+  html.push(renderEntryForColumn(CR.rosterSettings.compactEntity, callObj, "div"));
+  html.push("</div></div>");
+  return html.join("");
 }
 
 function renderCompactRosterFooter()

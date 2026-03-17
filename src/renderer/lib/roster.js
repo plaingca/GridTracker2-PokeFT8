@@ -369,7 +369,7 @@ function updateInstances()
   if (GT.instanceCount > 1)
   {
     let instances = GT.instances;
-    let worker = "";
+    const html = [];
     let keys = Object.keys(instances).sort();
     for (const key in keys)
     {
@@ -384,13 +384,13 @@ function updateInstances()
         {
           color = "purple";
         }
-        worker += `<div class='button' style='background-color:${color};'>` +
+        html.push(`<div class='button' style='background-color:${color};'>` +
                   `<input type='checkbox' id='${inst}' onchange='instanceChange(this);' ` +
                   (instances[inst].crEnable ? "checked " : "") +
-                  `>&nbsp;${shortInst}</div>`
+                  `>&nbsp;${shortInst}</div>`)
       }
     }
-    instancesDiv.innerHTML = worker;
+    instancesDiv.innerHTML = html.join("");
     instancesWrapper.style.display = "";
   }
   else
@@ -524,13 +524,13 @@ function addAwardTracker(sponsor, name, enabled)
 
 function updateAwardList(target = null)
 {
-  let worker = "<table id='awardTable' class='awardTableCSS' >";
-  worker += "<tr>";
-  worker += "<th align='left'>Name</th><th>Award</th><th>Track</th><th></th>";
-  worker += "</tr>";
-  worker += "</table>";
+  const html = ["<table id='awardTable' class='awardTableCSS' >"];
+  html.push("<tr>");
+  html.push("<th align='left'>Name</th><th>Award</th><th>Track</th><th></th>");
+  html.push("</tr>");
+  html.push("</table>");
 
-  AwardWantedList.innerHTML = worker;
+  AwardWantedList.innerHTML = html.join("");
 
   let keys = Object.keys(CR.awardTracker).sort();
 
@@ -1252,25 +1252,25 @@ function closeSettings()
 
 function renderIgnoresTab()
 {
-  let worker = "";
+  const html = [];
   let clearString = "<th>none</th>";
   if (Object.keys(CR.ignoredCalls).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCallsignIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Callsigns</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Callsigns</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredCalls)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:#FFFF00;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCallsignIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:#FFFF00;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCallsignIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredCQ).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCQIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>CQ</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>CQ</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredCQ)
       .sort()
       .forEach(function (rawKey, i)
@@ -1279,64 +1279,64 @@ function renderIgnoresTab()
         let key = split[0];
         let dxcc = -1;
         if (split.length == 2) dxcc = parseInt(split[1]);
-        worker += "<tr><td align=left style='color:lightgreen;' >" + key + " from " + (dxcc == -1 ? "All" : GT.dxccToAltName[dxcc]) + "</td><td style='cursor:pointer;' onclick='deleteCQIgnore(\"" + rawKey + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:lightgreen;' >" + key + " from " + (dxcc == -1 ? "All" : GT.dxccToAltName[dxcc]) + "</td><td style='cursor:pointer;' onclick='deleteCQIgnore(\"" + rawKey + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredDxcc).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllDxccIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>DXCC</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>DXCC</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredDxcc)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:#FFA500' >" + GT.dxccToAltName[key] + " (" + GT.dxccInfo[key].pp + ")</td><td style='cursor:pointer;' onclick='deleteDxccIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:#FFA500' >" + GT.dxccToAltName[key] + " (" + GT.dxccInfo[key].pp + ")</td><td style='cursor:pointer;' onclick='deleteDxccIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredGrid).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllGridIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Grid</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Grid</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredGrid)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:cyan' >" + key + "</td><td style='cursor:pointer;' onclick='deleteGridIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:cyan' >" + key + "</td><td style='cursor:pointer;' onclick='deleteGridIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredCQz).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCQzIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables' ><table class='darkTable' align=center><tr><th align=left>CQ Zones</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables' ><table class='darkTable' align=center><tr><th align=left>CQ Zones</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredCQz)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCQzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCQzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredITUz).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllITUzIgnores()'>Clear All</th>";
-    worker += "<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>ITU Zones</th>" + clearString + "</tr>";
+    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>ITU Zones</th>" + clearString + "</tr>");
     Object.keys(CR.ignoredITUz)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteITUzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>";
+        html.push("<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteITUzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
-  ignoresEditView.innerHTML = worker;
+  ignoresEditView.innerHTML = html.join("");
   ignoresBoxDiv.style.height = (window.innerHeight - 50) + "px";
 
   let elems = document.getElementsByClassName("ignoresTables");
@@ -3343,21 +3343,21 @@ function renderWatchersTab()
 
   if (Object.keys(CR.watchers).length > 0)
   {
-    let worker = "<div id='watcherTable'><table class='darkTable' align=center><tr>";
+    const html = ["<div id='watcherTable'><table class='darkTable' align=center><tr>"];
     
     for (column in CR.watcherColumns)
     {
-      worker += "<th ";
-      worker += (CR.watcherColumns[column].sort ? "style='cursor: pointer;' onClick='setWatcherSorting(\"" + column + "\");'": "" );
-      worker += ">" + CR.watcherColumns[column].text;
+      html.push("<th ");
+      html.push((CR.watcherColumns[column].sort ? "style='cursor:pointer;' onClick='setWatcherSorting(\"" + column + "\");'": "" ));
+      html.push(">" + CR.watcherColumns[column].text);
       if (CR.rosterSettings.watcherSortColumn == column)
       {
-        worker += "<div style='display:inline-block;margin:0px;padding:0px;'>&nbsp;" + (CR.rosterSettings.watcherSortReverse == false ? "▲" : "▼") + "</div>";
+        html.push("<div style='display:inline-block;margin:0px;padding:0px;'>&nbsp;" + (CR.rosterSettings.watcherSortReverse == false ? "▲" : "▼") + "</div>");
       }
-      worker += "</th>";
+      html.push("</th>");
     }
 
-    worker += "</tr>";
+    html.push("</tr>");
 
     let sorted = Object.keys(CR.watchers).sort( watcherSortFunc );
   
@@ -3365,20 +3365,20 @@ function renderWatchersTab()
 
     sorted.forEach(function (key)
       {
-        worker += "<tr><td style='cursor:pointer;font-size:larger;' onclick='toggleWatcher(\"" + key + "\")'>" + (CR.watchers[key].watch ? "👀" : "🙈") + "</td>";
-        worker += "<td align=left style='color:yellow;' >" + CR.watchers[key].name + "</td><td>" + CR.watchers[key].type + "</td><td>" + (CR.watchers[key].regex ? "☑️" : "") + "</td>";
+        html.push("<tr><td style='cursor:pointer;font-size:larger;' onclick='toggleWatcher(\"" + key + "\")'>" + (CR.watchers[key].watch ? "👀" : "🙈") + "</td>");
+        html.push("<td align=left style='color:yellow;' >" + CR.watchers[key].name + "</td><td>" + CR.watchers[key].type + "</td><td>" + (CR.watchers[key].regex ? "☑️" : "") + "</td>");
         let text = htmlEntities(CR.watchers[key].text);
-        worker += "<td style='overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:250px;color:cyan;'>" + (CR.watchers[key].regex ? text : formatCallsign(text)) + "</td>";
-        worker += "<td>" + (CR.watchers[key].start ? window.opener.userTimeString(CR.watchers[key].startTime) : "") + "</td>";
-        worker += "<td>" + (CR.watchers[key].end ? window.opener.userTimeString(CR.watchers[key].endTime) : "") + "</td>";
-        worker += "<td style='cursor:pointer;font-size:larger;' onclick='editWatcher(\"" + key + "\")'>📝</td>";
-        worker += "<td style='cursor:pointer;font-size:larger;' onclick='deleteWatcher(\"" + key + "\")'>";
-        worker += CR.watchers[key].autoDelete ? "🤖" : "🚮";
-        worker += "</td></tr>";
+        html.push("<td style='overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:250px;color:cyan;'>" + (CR.watchers[key].regex ? text : formatCallsign(text)) + "</td>");
+        html.push("<td>" + (CR.watchers[key].start ? window.opener.userTimeString(CR.watchers[key].startTime) : "") + "</td>");
+        html.push("<td>" + (CR.watchers[key].end ? window.opener.userTimeString(CR.watchers[key].endTime) : "") + "</td>");
+        html.push("<td style='cursor:pointer;font-size:larger;' onclick='editWatcher(\"" + key + "\")'>📝</td>");
+        html.push("<td style='cursor:pointer;font-size:larger;' onclick='deleteWatcher(\"" + key + "\")'>");
+        html.push(CR.watchers[key].autoDelete ? "🤖" : "🚮");
+        html.push("</td></tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
     
-    watcherEditView.innerHTML = worker;
+    watcherEditView.innerHTML = html.join("");
     let height = 40;
     if (watcherBoxDiv.offsetHeight >= window.innerHeight - height)
     {

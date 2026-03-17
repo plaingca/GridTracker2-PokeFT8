@@ -666,34 +666,34 @@ function mouseOutPark(feature)
 
 function createParkTipTable(toolElement)
 {
-  var worker = "";
+  const html = [];
   var key = toolElement.key;
   var now = Date.now();
 
-  worker += "<div style='background-color:#000;color:lightgreen;font-weight:bold;font-size:12px;border:1px solid gray;margin:0px' class='roundBorder'>" +
+  html.push("<div style='background-color:#000;color:lightgreen;font-weight:bold;font-size:12px;border:1px solid gray;margin:0px' class='roundBorder'>" +
     key +
     " : <font color='cyan'>" + GT.pota.parks[key].name + "" +
     " (<font color='yellow'>" + GT.dxccToAltName[Number(GT.pota.parks[key].entityId)] + "</font>)" +
-    "</font><br><font color='lightblue'>" + GT.pota.parks[key].locationDesc + "</font></div>";
+    "</font><br><font color='lightblue'>" + GT.pota.parks[key].locationDesc + "</font></div>");
 
-  worker += "<table id='potaSpotsTable' class='darkTable' style='margin: 0 auto;'>";
-  worker += "<tr><th>Activator</th><th>Spotter</th><th>Freq</th><th>Mode</th><th>Count</th><th>When</th><th>Source</th><th>Comment</th></tr>";
+  html.push("<table id='potaSpotsTable' class='darkTable' style='margin: 0 auto;'>");
+  html.push("<tr><th>Activator</th><th>Spotter</th><th>Freq</th><th>Mode</th><th>Count</th><th>When</th><th>Source</th><th>Comment</th></tr>");
   for (const i in GT.pota.parkSpots[key])
   {
     if (validateMapBandAndMode(GT.pota.parkSpots[key][i].band, GT.pota.parkSpots[key][i].mode))
     {
-      worker += "<tr>";
-      worker += "<td style='color:yellow'>" + GT.pota.parkSpots[key][i].activator + "</td>";
-      worker += "<td style='color:cyan'>" + ((GT.pota.parkSpots[key][i].spotter == GT.pota.parkSpots[key][i].activator) ? "Self" : GT.pota.parkSpots[key][i].spotter) + "</td>";
-      worker += "<td style='color:lightgreen' >" + formatMhz(GT.pota.parkSpots[key][i].frequency, 3, 3) + " <font color='yellow'>(" + GT.pota.parkSpots[key][i].band + ")</font></td>";
-      worker += "<td style='color:orange'>" + GT.pota.parkSpots[key][i].mode + "</td>";
-      worker += "<td>" + GT.pota.parkSpots[key][i].count + "</td>";
-      worker += "<td style='color:lightblue' >" + toDHMS(parseInt((now - GT.pota.parkSpots[key][i].spotTime) / 1000)) + "</td>";
-      worker += "<td>" + GT.pota.parkSpots[key][i].source + "</td>";
-      worker += "<td>" + GT.pota.parkSpots[key][i].comments + "</td>";
-      worker += "</tr>";
+      html.push("<tr>");
+      html.push("<td style='color:yellow'>" + GT.pota.parkSpots[key][i].activator + "</td>");
+      html.push("<td style='color:cyan'>" + ((GT.pota.parkSpots[key][i].spotter == GT.pota.parkSpots[key][i].activator) ? "Self" : GT.pota.parkSpots[key][i].spotter) + "</td>");
+      html.push("<td style='color:lightgreen' >" + formatMhz(GT.pota.parkSpots[key][i].frequency, 3, 3) + " <font color='yellow'>(" + GT.pota.parkSpots[key][i].band + ")</font></td>");
+      html.push("<td style='color:orange'>" + GT.pota.parkSpots[key][i].mode + "</td>");
+      html.push("<td>" + GT.pota.parkSpots[key][i].count + "</td>");
+      html.push("<td style='color:lightblue' >" + toDHMS(parseInt((now - GT.pota.parkSpots[key][i].spotTime) / 1000)) + "</td>");
+      html.push("<td>" + GT.pota.parkSpots[key][i].source + "</td>");
+      html.push("<td>" + GT.pota.parkSpots[key][i].comments + "</td>");
+      html.push("</tr>");
     }
   }
-  worker += "</table>";
-  myParktip.innerHTML = worker;
+  html.push("</table>");
+  myParktip.innerHTML = html.join("");
 }

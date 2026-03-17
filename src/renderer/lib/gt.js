@@ -1488,7 +1488,7 @@ function createSpotTipTable(toolElement)
   try
   {
     let now = timeNowSec();
-    let worker = "";
+    const html = [];
     if (toolElement.spot in GT.receptionReports.spots)
     {
       GT.layerSources.pskHop.clear();
@@ -1497,33 +1497,33 @@ function createSpotTipTable(toolElement)
       let LL = squareToCenter(GT.settings.app.myRawGrid);
       let fromPoint = ol.proj.fromLonLat([LL.o, LL.a]);
 
-      worker = "<table id='tooltipTable' class='darkTable' ><tr><th colspan=2 style='color:cyan'>Rx Spot</th></tr>";
-      worker += "<tr><td>Call</td><td style='color:#ff0' >" + formatCallsign(report.call) + "</td></tr>";
-      worker += "<tr><td>dB</td><td style='color:#DD44DD' >" + formatSignalReport(Number(report.snr)) + "</td></tr>";
-      worker += "<tr><td>Age</td><td>" + toDHMS(Number(now - report.when)) + "</td></tr>";
+      html.push("<table id='tooltipTable' class='darkTable' ><tr><th colspan=2 style='color:cyan'>Rx Spot</th></tr>");
+      html.push("<tr><td>Call</td><td style='color:#ff0' >" + formatCallsign(report.call) + "</td></tr>");
+      html.push("<tr><td>dB</td><td style='color:#DD44DD' >" + formatSignalReport(Number(report.snr)) + "</td></tr>");
+      html.push("<tr><td>Age</td><td>" + toDHMS(Number(now - report.when)) + "</td></tr>");
 
       if (report.dxcc > 0)
       {
-        worker += "<tr><td>DXCC</td><td style='color:orange;'>" + GT.dxccToAltName[report.dxcc] + " <font color='lightgreen'>(" + GT.dxccInfo[report.dxcc].pp + ")</font></td>";
+        html.push("<tr><td>DXCC</td><td style='color:orange;'>" + GT.dxccToAltName[report.dxcc] + " <font color='lightgreen'>(" + GT.dxccInfo[report.dxcc].pp + ")</font></td>");
       }
 
-      worker += "<tr><td>Grid</td><td style='color:cyan;cursor:pointer' >" + report.grid + "</td></tr>";
-      worker += "<tr><td>Freq</td><td style='color:lightgreen' >" + formatMhz(report.freq) + " <font color='yellow'>(" + report.band + ")</font></td></tr>";
-      worker += "<tr><td>Mode</td><td style='color:orange' >" + report.mode + "</td></tr>";
+      html.push("<tr><td>Grid</td><td style='color:cyan;cursor:pointer' >" + report.grid + "</td></tr>");
+      html.push("<tr><td>Freq</td><td style='color:lightgreen' >" + formatMhz(report.freq) + " <font color='yellow'>(" + report.band + ")</font></td></tr>");
+      html.push("<tr><td>Mode</td><td style='color:orange' >" + report.mode + "</td></tr>");
 
       LL = squareToCenter(report.grid);
 
       report.bearing = parseInt(MyCircle.bearing(GT.myLat, GT.myLon, LL.a, LL.o));
-      worker += "<tr><td>Dist</td><td style='color:cyan'>" + parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o, distanceUnit.value) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase() + "</td></tr>";
-      worker += "<tr><td>Azim</td><td style='color:yellow'>" + report.bearing + "&deg;</td></tr>";
-      worker += "<tr><td>Time</td><td>" + userTimeString(report.when * 1000) + "</td></tr>";
+      html.push("<tr><td>Dist</td><td style='color:cyan'>" + parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o, distanceUnit.value) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase() + "</td></tr>");
+      html.push("<tr><td>Azim</td><td style='color:yellow'>" + report.bearing + "&deg;</td></tr>");
+      html.push("<tr><td>Time</td><td>" + userTimeString(report.when * 1000) + "</td></tr>");
       if ("source" in report)
       {
         let color = (report.source == "O" ? "cyan;font-size: larger" : "orange");
         let fullSource = (report.source == "O" ? "OAMS Realtime Network" : report.source == "M" ? "PSK-MQTT" : "PSK-Reporter");
-        worker += "<tr><td>Source</td><td style='color:" + color + ";'>" + fullSource + "</font></td>";
+        html.push("<tr><td>Source</td><td style='color:" + color + ";'>" + fullSource + "</font></td>");
       }
-      worker += "</table>";
+      html.push("</table>");
 
       let strokeWeight = pathWidthValue.value;
       let toPoint = ol.proj.fromLonLat([LL.o, LL.a]);
@@ -1539,7 +1539,7 @@ function createSpotTipTable(toolElement)
         false
       );
     }
-    myTooltip.innerHTML = worker;
+    myTooltip.innerHTML = html.join("");
     return 10;
   }
   catch (err)
@@ -1729,58 +1729,56 @@ function createTooltTipTable(toolElement)
 
     const msg = (typeof call.msg == "undefined" || call.msg == "") ? "-" : call.msg;
 
-    let row = "<tr>";
+    const row = ["<tr>"];
 
-    row += "<td" + bgDE + ">";
-    row +=
-      "<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
+    row.push("<td" + bgDE + ">");
+    row.push("<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
       call.DEcall +
       "\",\"" +
       qth +
       "\");'>" +
       formatCallsign(call.DEcall) +
-      "</div>";
-    row += "</td>";
+      "</div>");
+    row.push("</td>");
 
-    row += "<td>" + (call.delta > -1 ? call.delta : "-") + "</td>";
-    row += "<td>" + call.RSTsent + "</td>";
-    row += "<td>" + call.RSTrecv + "</td>";
-    row += "<td" + bgDX + ">";
+    row.push("<td>" + (call.delta > -1 ? call.delta : "-") + "</td>");
+    row.push("<td>" + call.RSTsent + "</td>");
+    row.push("<td>" + call.RSTrecv + "</td>");
+    row.push("<td" + bgDX + ">");
 
     if (call.DXcall.indexOf("CQ") == 0 || call.DXcall == "-")
     {
-      row += formatCallsign(call.DXcall);
+      row.push(formatCallsign(call.DXcall));
     }
     else
     {
-      row +=
-        "<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
+      row.push("<div style='display:inline-table;cursor:pointer' onclick='startLookup(\"" +
         call.DXcall +
         "\",null);'>" +
         formatCallsign(call.DXcall) +
-        "</div>";
+        "</div>");
     }
 
-    row += "</td>";
-    row += "<td style='color:lightblue'>" + call.mode + "</td>";
-    row += "<td style='color:lightgreen'>" + call.band + "</td>";
+    row.push("</td>");
+    row.push("<td style='color:lightblue'>" + call.mode + "</td>");
+    row.push("<td style='color:lightgreen'>" + call.band + "</td>");
 
     if (isQso)
     {
-      row += "<td align='center'>" + (call.confirmed ? "&#10004;" : "") + "</td>";
+      row.push("<td align='center'>" + (call.confirmed ? "&#10004;" : "") + "</td>");
     }
 
-    row += "<td>" + msg + "</td>";
-    row += getDxccText(call);
-    row += "<td align='center' style='color:lightblue'>" + getAgeString(call) + "</td>";
+    row.push("<td>" + msg + "</td>");
+    row.push(getDxccText(call));
+    row.push("<td align='center' style='color:lightblue'>" + getAgeString(call) + "</td>");
 
-    if (showLoTW) row += getLookupCell(GT.lotwCallsigns, call);
-    if (showEQSL) row += getLookupCell(GT.eqslCallsigns, call);
-    if (showOQRS) row += getLookupCell(GT.oqrsCallsigns, call);
+    if (showLoTW) row.push(getLookupCell(GT.lotwCallsigns, call));
+    if (showEQSL) row.push(getLookupCell(GT.eqslCallsigns, call));
+    if (showOQRS) row.push(getLookupCell(GT.oqrsCallsigns, call));
 
-    row += "</tr>";
+    row.push("</tr>");
 
-    return row;
+    return row.join("");
   }
 
   if (isQso)
@@ -2528,12 +2526,13 @@ function moonOver(feature)
   let elColor = "yellow";
   if (elevation <= 0) elColor = "red";
   if (elevation > 10.0) elColor = "lightgreen";
-  let worker = "<table class='darkTable'>";
-  worker += "<tr><th colspan=2 style='font-size:15px;color:cyan;'>Moon</th></tr>";
-  worker += "<tr><th >Azimuth</th><td  style='color:lightgreen'>" + object.azimuth.toFixed(1) + "&deg;</td></tr>";
-  worker += "<tr><th >Elevation</th><td  style='color:" + elColor + "'>" + elevation + "</td></tr>";
-  worker += "</table>";
-  myMoonTooltip.innerHTML = worker;
+  const html = [];
+  html.push("<table class='darkTable'>");
+  html.push("<tr><th colspan=2 style='font-size:15px;color:cyan;'>Moon</th></tr>");
+  html.push("<tr><th >Azimuth</th><td  style='color:lightgreen'>" + object.azimuth.toFixed(1) + "&deg;</td></tr>");
+  html.push("<tr><th >Elevation</th><td  style='color:" + elColor + "'>" + elevation + "</td></tr>");
+  html.push("</table>");
+  myMoonTooltip.innerHTML = html.join("");
 
   moonMove();
 
@@ -2631,81 +2630,79 @@ function trophyOver(feature)
     }
   }
 
-  let worker = "<table>";
-  worker += "<tr><th colspan=2 >" + trophy + "</th></tr>";
-  worker += "<tr><td colspan=2><font color='white'><b>" + name + "</b></font></td></tr>";
+  const html = [];
+  html.push("<table>");
+  html.push("<tr><th colspan=2 >" + trophy + "</th></tr>");
+  html.push("<tr><td colspan=2><font color='white'><b>" + name + "</b></font></td></tr>");
 
   if (zone)
   {
-    worker += " <tr><td colspan=2><font color='lightgreen'>" + zone + "</font></td></tr>";
+    html.push(" <tr><td colspan=2><font color='lightgreen'>" + zone + "</font></td></tr>");
   }
 
-  let wc1Table = "<td></td>";
+  let wc1Table = ["<td></td>"];
   if (infoObject.worked)
   {
-    wc1Table = "<td align=center><table class='darkTable'>";
-    wc1Table += "<tr><td colspan=2 ><font  color='yellow'>" + I18N("gt.wcTable.Worked") + "</font></td></tr>";
-    wc1Table += "<tr><td align=right><font color='green'>Band</font></td>";
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table = ["<td align=center><table class='darkTable'>"];
+    wc1Table.push("<tr><td colspan=2 ><font  color='yellow'>" + I18N("gt.wcTable.Worked") + "</font></td></tr>");
+    wc1Table.push("<tr><td align=right><font color='green'>Band</font></td>");
+    wc1Table.push("<td align=left><table class='subtable'>");
     let keys = Object.keys(infoObject.worked_bands).sort();
     for (key in keys)
     {
-      wc1Table += "<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_bands[keys[key]] + ") </font></td></tr>";
+      wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_bands[keys[key]] + ") </font></td></tr>");
     }
-    wc1Table += "</table></td>";
-    wc1Table += "</tr>";
-    wc1Table += "<tr>";
-    wc1Table += "<td align=right><font color='orange'>" + I18N("gt.wcTable.Mode") + "</font></td>";
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table.push("</table></td>");
+    wc1Table.push("</tr>");
+    wc1Table.push("<tr>");
+    wc1Table.push("<td align=right><font color='orange'>" + I18N("gt.wcTable.Mode") + "</font></td>");
+    wc1Table.push("<td align=left><table class='subtable'>");
     keys = Object.keys(infoObject.worked_modes).sort();
     for (key in keys)
     {
-      wc1Table += "<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_modes[keys[key]] + ") </font></td></tr>";
+      wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_modes[keys[key]] + ") </font></td></tr>");
     }
 
-    wc1Table += "</table></td>";
-    wc1Table += "</tr>";
-    wc1Table += "</table></td>";
+    wc1Table.push("</table></td>");
+    wc1Table.push("</tr>");
+    wc1Table.push("</table></td>");
   }
-  let wcTable = "<td></td>";
+  let wcTable = ["<td></td>"];
   if (infoObject.confirmed)
   {
-    wcTable = "<td align=center><table class='darkTable'>";
-    wcTable += "<tr><td colspan=2 ><font  color='lightgreen'>" + I18N("gt.wcTable.Confirmed") + "</font></td></tr>";
-    wcTable += "<tr><td align=right><font color='green'>" + I18N("gt.wcTable.Band") + "</font></td>";
-    wcTable += "<td align=left><table class='subtable'>";
+    wcTable = ["<td align=center><table class='darkTable'>"];
+    wcTable.push("<tr><td colspan=2 ><font  color='lightgreen'>" + I18N("gt.wcTable.Confirmed") + "</font></td></tr>");
+    wcTable.push("<tr><td align=right><font color='green'>" + I18N("gt.wcTable.Band") + "</font></td>");
+    wcTable.push("<td align=left><table class='subtable'>");
     let keys = Object.keys(infoObject.confirmed_bands).sort();
     for (key in keys)
     {
-      wcTable += "<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_bands[keys[key]] + ") </font></td></tr>";
+      wcTable.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_bands[keys[key]] + ") </font></td></tr>");
     }
-    wcTable += "</table></td>";
-    wcTable += "</tr>";
-    wcTable += "<tr>";
-    wcTable += "<td align=right><font color='orange'>" + I18N("gt.wcTable.Mode") + "</font></td>";
-    wcTable += "<td align=left><table class='subtable'>";
+    wcTable.push("</table></td>");
+    wcTable.push("</tr>");
+    wcTable.push("<tr>");
+    wcTable.push("<td align=right><font color='orange'>" + I18N("gt.wcTable.Mode") + "</font></td>");
+    wcTable.push("<td align=left><table class='subtable'>");
     keys = Object.keys(infoObject.confirmed_modes).sort();
     for (key in keys)
     {
-      wcTable += "<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_modes[keys[key]] + ") </font></td></tr>";
+      wcTable.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_modes[keys[key]] + ") </font></td></tr>");
     }
-    wcTable += "</table></td>";
-    wcTable += "</tr>";
-    wcTable += "</table></td>";
+    wcTable.push("</table></td></tr></table></td>");
   }
   if (!infoObject.worked && !infoObject.confirmed)
   {
-    worker +=
-      "<tr><td colspan=2 ><font  color='orange'>" + I18N("gt.wcTable.Needed") + "</font></td></tr>";
+    html.push( "<tr><td colspan=2 ><font  color='orange'>" + I18N("gt.wcTable.Needed") + "</font></td></tr>");
   }
   else
   {
-    worker += "<tr>" + wc1Table + wcTable + "</tr>";
+    html.push("<tr>" + wc1Table.join("") + wcTable.join("") + "</tr>");
   }
 
-  worker += "</table>";
+  html.push("</table>");
 
-  myTrophyTooltip.innerHTML = "<div style='font-size:15px;color:cyan;' class='roundBorder'>" + worker + "</div>";
+  myTrophyTooltip.innerHTML = "<div style='font-size:15px;color:cyan;' class='roundBorder'>" + html.join("") + "</div>";
 
   trophyMove(feature);
   myTrophyTooltip.style.zIndex = 499;
@@ -2734,10 +2731,10 @@ function mouseDownGrid(longlat)
 
   let grid = latLonToGridSquare(longlat[1], longlat[0]);
   GT.MyCurrentGrid = grid.substr(0, 4);
-  let worker = "";
-  worker += "<table align='center' class='darkTable'><tr style='color:white;'>";
+  const html = [];
+  html.push("<table align='center' class='darkTable'><tr style='color:white;'>");
   let bearing = parseInt(MyCircle.bearing(GT.myLat, GT.myLon, longlat[1], longlat[0]));
-  worker += "<tr><td>Dist</td><td style='color:lightgreen'>" +
+  html.push( "<tr><td>Dist</td><td style='color:lightgreen'>" +
     parseInt(
       MyCircle.distance(
         GT.myLat,
@@ -2747,50 +2744,50 @@ function mouseDownGrid(longlat)
       ) * MyCircle.validateRadius(distanceUnit.value)
     ) +
     distanceUnit.value.toLowerCase() +
-    "</td></tr>";
-  worker += "<tr><td>Azim</td><td style='color:yellow'>" + bearing + "&deg;</td></tr>";
-  worker += "<tr><td>Lat</td><td style='color:orange'>" + longlat[1].toFixed(3) + "</td></tr>";
-  worker += "<tr><td>Long</td><td style='color:lightblue'>" + longlat[0].toFixed(3) + "</td></tr></table>";
+    "</td></tr>");
+  html.push("<tr><td>Azim</td><td style='color:yellow'>" + bearing + "&deg;</td></tr>");
+  html.push("<tr><td>Lat</td><td style='color:orange'>" + longlat[1].toFixed(3) + "</td></tr>");
+  html.push("<tr><td>Long</td><td style='color:lightblue'>" + longlat[0].toFixed(3) + "</td></tr></table>");
   if (grid in GT.gridToDXCC)
   {
-    worker += "<table align='center' class='darkTable' style='border-top:none'><tr style='color:white;'>";
-    worker += "<tr style='color:orange;'>";
+    html.push("<table align='center' class='darkTable' style='border-top:none'><tr style='color:white;'>");
+    html.push("<tr style='color:orange;'>");
     for (let x = 0; x < GT.gridToDXCC[grid].length; x++)
     {
-      worker +=
+      html.push(
         "<td>" +
         GT.dxccToAltName[GT.gridToDXCC[grid][x]] +
         " <font color='lightgreen'>(" +
         GT.dxccInfo[GT.gridToDXCC[grid][x]].pp +
-        ")</font></td>";
+        ")</font></td>");
     }
     if (grid in GT.gridToState)
     {
-      worker += "</tr><tr style='color:yellow;'>";
+      html.push("</tr><tr style='color:yellow;'>");
       for (let x = 0; x < GT.gridToDXCC[grid].length; x++)
       {
-        worker += "<td>";
+        html.push("<td>");
         if (grid in GT.gridToState)
         {
           for (let y = 0; y < GT.gridToState[grid].length; y++)
           {
             if (GT.gridToDXCC[grid][x] == GT.StateData[GT.gridToState[grid][y]].dxcc)
             {
-              worker += GT.StateData[GT.gridToState[grid][y]].name + "<br>";
+              html.push(GT.StateData[GT.gridToState[grid][y]].name + "<br>");
             }
           }
         }
-        worker += "</td>";
+        html.push("</td>");
       }
     }
-    worker += "</tr></table>";
+    html.push("</tr></table>");
 
     showDxccGrids(grid);
   }
 
   tempGridToBox(grid, "#000000FF", "#00000000");
 
-  myGridTooltip.innerHTML = "<div style='font-size:14px;font-weight:bold;color:cyan;margin:0 auto' class='roundBorder'>" + grid + "</div>" + worker;
+  myGridTooltip.innerHTML = "<div style='font-size:14px;font-weight:bold;color:cyan;margin:0 auto' class='roundBorder'>" + grid + "</div>" + html.join("");
   GT.MyGridIsUp = true;
 
   mouseMoveGrid();
@@ -2817,7 +2814,7 @@ function mouseUpGrid()
 
 function createFlagTipTable(feature)
 {
-  let worker = "";
+  const html = [];
   let key = feature.key;
   let dxcc = callsignToDxcc(GT.gtFlagPins[key].call);
   let dxccName = GT.dxccToAltName[dxcc];
@@ -2832,21 +2829,21 @@ function createFlagTipTable(feature)
     workColor = "#00FF00";
   }
 
-  worker += "<div style='background-color:" + workColor + ";color:#000;font-weight:bold;font-size:18px;border:2px solid gray;margin:0px' class='roundBorder'>" + formatCallsign(GT.gtFlagPins[key].call) + "</div>";
-  worker += "<table id='tooltipTable' class='darkTable' >";
-  worker += "<tr><td>DXCC</td><td style='color:orange;'>" + dxccName + " <font color='lightgreen'>(" + GT.dxccInfo[dxcc].pp + ")</font></td>";
-  worker += "<tr><td>Grid</td><td style='color:cyan;' >" + GT.gtFlagPins[key].grid + "</td></tr>";
-  worker += "<tr><td>Freq</td><td style='color:lightgreen' >" + formatMhz(Number(GT.gtFlagPins[key].freq / 1000), 3, 3) + " <font color='yellow'>(" + formatBand(Number(GT.gtFlagPins[key].freq / 1000000)) + ")</font></td></tr>";
-  worker += "<tr><td>Mode</td><td style='color:orange' >" + GT.gtFlagPins[key].mode + "</td></tr>";
+  html.push("<div style='background-color:" + workColor + ";color:#000;font-weight:bold;font-size:18px;border:2px solid gray;margin:0px' class='roundBorder'>" + formatCallsign(GT.gtFlagPins[key].call) + "</div>");
+  html.push("<table id='tooltipTable' class='darkTable' >");
+  html.push("<tr><td>DXCC</td><td style='color:orange;'>" + dxccName + " <font color='lightgreen'>(" + GT.dxccInfo[dxcc].pp + ")</font></td>");
+  html.push("<tr><td>Grid</td><td style='color:cyan;' >" + GT.gtFlagPins[key].grid + "</td></tr>");
+  html.push("<tr><td>Freq</td><td style='color:lightgreen' >" + formatMhz(Number(GT.gtFlagPins[key].freq / 1000), 3, 3) + " <font color='yellow'>(" + formatBand(Number(GT.gtFlagPins[key].freq / 1000000)) + ")</font></td></tr>");
+  html.push("<tr><td>Mode</td><td style='color:orange' >" + GT.gtFlagPins[key].mode + "</td></tr>");
 
   let LL = squareToCenter(GT.gtFlagPins[key].grid);
   let bearing = parseInt(MyCircle.bearing(GT.myLat, GT.myLon, LL.a, LL.o));
 
-  worker += "<tr><td>Dist</td><td style='color:cyan'>" + parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase() + "</td></tr>";
-  worker += "<tr><td>Azim</td><td style='color:yellow'>" + bearing + "&deg;</td></tr>";
-  worker += "</table>";
+  html.push("<tr><td>Dist</td><td style='color:cyan'>" + parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase() + "</td></tr>");
+  html.push("<tr><td>Azim</td><td style='color:yellow'>" + bearing + "&deg;</td></tr>");
+  html.push("</table>");
 
-  myFlagtip.innerHTML = worker;
+  myFlagtip.innerHTML = html.join("");
 }
 
 function mouseOverGtFlag(feature)
@@ -2901,13 +2898,14 @@ function createTimezoneTipTable(feature)
   if (zone.indexOf(abbr) > -1) abbr = "";
   else abbr = " <font color='orange'>(" + abbr + ")</font>";
 
-  worker = "<div style='background-color:cyan;color:#000;font-weight:bold;font-size:16px;border:2px solid gray;margin:0px;padding:1px' class='roundBorder'>" + props.tzid + "</div>";
-  worker += "<table id='tooltipTable' class='darkTable' align=center>";
-  worker += "<tr><td style='color:yellow;font-weight:bold'>" + m.format("LLLL") + "</td></tr>";
-  worker += "<tr><td style='color:#00FF00;font-weight:bold'>" + zone + abbr + "</td></tr>";
-  worker += "</table>";
+  const html = [];
+  html.push("<div style='background-color:cyan;color:#000;font-weight:bold;font-size:16px;border:2px solid gray;margin:0px;padding:1px' class='roundBorder'>" + props.tzid + "</div>");
+  html.push("<table id='tooltipTable' class='darkTable' align=center>");
+  html.push("<tr><td style='color:yellow;font-weight:bold'>" + m.format("LLLL") + "</td></tr>");
+  html.push("<tr><td style='color:#00FF00;font-weight:bold'>" + zone + abbr + "</td></tr>");
+  html.push("</table>");
 
-  myTimezoneTip.innerHTML = worker;
+  myTimezoneTip.innerHTML = html.join("");
 }
 
 function TimezoneMove()
@@ -5569,18 +5567,18 @@ function handleInstanceStatus(newMessage)
         updateCountStats();
 
         if (bandChange || modeChange) reloadInfo();
-        let worker = "";
+        const html = [];
 
-        worker += "<div  style='vertical-align:top;display:inline-block;margin-right:8px;'>";
-        worker += "<table class='darkTable' align=center>";
-        worker += "<tr><th colspan=7>Last " + GT.lastMessages.length + " Decoded Messages</th></tr>";
-        worker += "<tr><th>Time</th><th>dB</th><th>DT</th><th>Freq</th><th>Mode</th><th>Message</th><th>DXCC</th></tr>";
+        html.push("<div  style='vertical-align:top;display:inline-block;margin-right:8px;'>");
+        html.push("<table class='darkTable' align=center>");
+        html.push("<tr><th colspan=7>Last " + GT.lastMessages.length + " Decoded Messages</th></tr>");
+        html.push("<tr><th>Time</th><th>dB</th><th>DT</th><th>Freq</th><th>Mode</th><th>Message</th><th>DXCC</th></tr>");
 
-        worker += GT.lastMessages.join("");
+        html.push(GT.lastMessages.join(""));
 
-        worker += "</table></div>";
+        html.push("</table></div>");
 
-        setStatsDiv("decodeLastListDiv", worker);
+        setStatsDiv("decodeLastListDiv", html.join(""));
         setStatsDivHeight("decodeLastListDiv", getStatsWindowHeight() + 26 + "px");
         showCallsignBoxIfTabOpen();
 
@@ -6835,14 +6833,14 @@ function importSettings(contents)
 
 function showCallsignBox(redraw)
 {
-  let worker = "<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bold'>" + I18N("gt.callsignBox.title") + "</div><br>";
+  const html = ["<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bold'>" + I18N("gt.callsignBox.title") + "</div><br>"];
 
   GT.newCallsignCount = Object.keys(GT.liveCallsigns).length;
   if (GT.newCallsignCount > 0)
   {
     let newCallList = Array();
 
-    worker +=
+    html.push(
       "<div  style='display:inline-block;padding-right:4px;margin-right:8px; overflow:auto;overflow-x:hidden;height:" +
       Math.min(GT.newCallsignCount * 24 + 26, getStatsWindowHeight()) + "px;'>" +
         "<table class='darkTable' align=center>" +
@@ -6855,10 +6853,10 @@ function showCallsignBox(redraw)
         "<th>" + I18N("gt.callsignBox.Flag") + "</th>" +
         "<th align=left>" + I18N("gt.callsignBox.QSO") + "</th>" +
         "<th>" + I18N("gt.callsignBox.QSL") + "</th>" +
-        "<th>" + I18N("gt.callsignBox.When") + "</th>";
-    if (GT.settings.callsignLookups.lotwUseEnable == true) worker += "<th>" + I18N("gt.callsignBox.LoTW") + "</th>";
-    if (GT.settings.callsignLookups.eqslUseEnable == true) worker += "<th>" + I18N("gt.callsignBox.eQSL") + "</th>";
-    if (GT.settings.callsignLookups.oqrsUseEnable == true) worker += "<th>" + I18N("gt.callsignBox.OQRS") + "</th>";
+        "<th>" + I18N("gt.callsignBox.When") + "</th>");
+    if (GT.settings.callsignLookups.lotwUseEnable == true) html.push("<th>" + I18N("gt.callsignBox.LoTW") + "</th>");
+    if (GT.settings.callsignLookups.eqslUseEnable == true) html.push("<th>" + I18N("gt.callsignBox.eQSL") + "</th>");
+    if (GT.settings.callsignLookups.oqrsUseEnable == true) html.push("<th>" + I18N("gt.callsignBox.OQRS") + "</th>");
     for (let x in GT.liveCallsigns)
     {
       if (GT.liveCallsigns[x].dxcc != -1)
@@ -6877,35 +6875,35 @@ function showCallsignBox(redraw)
       let thisCall = formatCallsign(newCallList[x].DEcall);
       let bandColor = newCallList[x].band in GT.pskColors ? GT.pskColors[newCallList[x].band] : GT.pskColors.OOB;
 
-      worker += "<tr><td align=left style='color:#ff0;cursor:pointer'  onClick='window.opener.startLookup(\"" + newCallList[x].DEcall + "\",\"" + grid + "\");'>" + thisCall + "</td>";
-      worker += "<td align=left style='color:cyan;' >" + grid + "</td>";
-      worker += "<td style='color:#" + bandColor + ";'>" + newCallList[x].band + "</td>";
-      worker += "<td style='color:orange;'>" + geo.name + "<font style='color:lightgreen;'> (" + geo.pp + ")<font></td>";
-      worker += "<td>" + cqzone + "</td><td>" + ituzone + "</td>";
-      worker += "<td align='center' style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/" + geo.flag + "'></td>";
-      worker += "<td>" + (thisCall in GT.tracker.worked.call ? "&#10004;" : "") + "</td><td>" + (thisCall in GT.tracker.confirmed.call ? "&#10004;" : "") + "</td>";
+      html.push("<tr><td align=left style='color:#ff0;cursor:pointer'  onClick='window.opener.startLookup(\"" + newCallList[x].DEcall + "\",\"" + grid + "\");'>" + thisCall + "</td>");
+      html.push("<td align=left style='color:cyan;' >" + grid + "</td>");
+      html.push("<td style='color:#" + bandColor + ";'>" + newCallList[x].band + "</td>");
+      html.push("<td style='color:orange;'>" + geo.name + "<font style='color:lightgreen;'> (" + geo.pp + ")<font></td>");
+      html.push("<td>" + cqzone + "</td><td>" + ituzone + "</td>");
+      html.push("<td align='center' style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/" + geo.flag + "'></td>");
+      html.push("<td>" + (thisCall in GT.tracker.worked.call ? "&#10004);" : "") + "</td><td>" + (thisCall in GT.tracker.confirmed.call ? "&#10004;" : "") + "</td>");
       let ageString = "";
       if (timeNowSec() - newCallList[x].time < 3601) { ageString = toDHMS(timeNowSec() - newCallList[x].time); }
       else
       {
         ageString = userTimeString(newCallList[x].time * 1000);
       }
-      worker += "<td>" + ageString + "</td>";
+      html.push("<td>" + ageString + "</td>");
       if (GT.settings.callsignLookups.lotwUseEnable == true)
       {
-        worker += "<td align='center'>" + (thisCall in GT.lotwCallsigns ? "&#10004;" : "") + "</td>";
+        html.push("<td align='center'>" + (thisCall in GT.lotwCallsigns ? "&#10004);" : "") + "</td>");
       }
       if (GT.settings.callsignLookups.eqslUseEnable == true)
       {
-        worker += "<td align='center'>" + (thisCall in GT.eqslCallsigns ? "&#10004;" : "") + "</td>";
+        html.push("<td align='center'>" + (thisCall in GT.eqslCallsigns ? "&#10004);" : "") + "</td>");
       }
       if (GT.settings.callsignLookups.oqrsUseEnable == true)
       {
-        worker += "<td align='center'>" + (thisCall in GT.oqrsCallsigns ? "&#10004;" : "") + "</td>";
+        html.push("<td align='center'>" + (thisCall in GT.oqrsCallsigns ? "&#10004);" : "") + "</td>");
       }
-      worker += "</tr>";
+      html.push("</tr>");
     }
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
 
   let heard = 0;
@@ -6926,7 +6924,7 @@ function showCallsignBox(redraw)
         heard++;
       }
     }
-    worker +=
+    html.push(
       "<div  style='vertical-align:top;display:inline-block;margin-right:2px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(
         Object.keys(GT.dxccCount).length * 23 + 45,
@@ -6939,27 +6937,27 @@ function showCallsignBox(redraw)
         "<th align=left>" + I18N("gt.callsignBox.Name") + "</th>" +
         "<th>" + I18N("gt.callsignBox.Flag") + "</th>" +
         "<th align=left>" + I18N("gt.callsignBox.Calls") + "</th>" +
-        "</tr>";
+        "</tr>");
     Object.keys(List)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:#ff0;' >" + key + "</td>";
-        worker +=
+        html.push("<tr><td align=left style='color:#ff0;' >" + key + "</td>");
+        html.push(
           "<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" +
           List[key].flag +
-          "'></td>";
-        worker +=
+          "'></td>");
+        html.push(
           "<td align=left style='color:lightblue;' >" +
           List[key].total +
-          "</td>";
-        worker += "</tr>";
+          "</td>");
+        html.push("</tr>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
-  worker += "</div>";
+  html.push("</div>");
 
-  setStatsDiv("callsignListDiv", worker);
+  setStatsDiv("callsignListDiv", html.join(""));
 }
 
 function showCallsignBoxIfTabOpen()
@@ -7374,110 +7372,110 @@ function showWorkedBox(sortIndex, nextPage, redraw)
     const startIndex = GT.qsoPage * perPage;
     const endIndex = Math.min(startIndex + perPage, ObjectCount);
 
-    let workHead = "<b> Entries (" + ObjectCount + ")</b>";
+    const workHead = ["<b> Entries (" + ObjectCount + ")</b>"];
 
     if (GT.qsoPages > 1)
     {
-      workHead += "<br><font style='font-size:15px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", -1);'>&#8678;&nbsp;</font>";
-      workHead += " Page " + (GT.qsoPage + 1) + " of " + GT.qsoPages + " (" + (endIndex - startIndex) + ") ";
-      workHead += "<font style='font-size:16px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", 1);'>&nbsp;&#8680;</font>";
+      workHead.push("<br><font style='font-size:15px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", -1);'>&#8678;&nbsp;</font>");
+      workHead.push(" Page " + (GT.qsoPage + 1) + " of " + GT.qsoPages + " (" + (endIndex - startIndex) + ") ");
+      workHead.push("<font style='font-size:16px;' color='cyan' onClick='window.opener.showWorkedBox(" + mySort + ", 1);'>&nbsp;&#8680;</font>");
     }
 
-    setStatsDiv("workedHeadDiv", workHead);
+    setStatsDiv("workedHeadDiv", workHead.join(""));
 
     if (myObjects != null)
     {
-      let worker = "";
-      worker += "<table id='logTable' style='white-space:nowrap;overflow:auto;overflow-x:hidden;' class='darkTable' align=center>";
-      worker += "<tr><th><input type='text' id='searchWB' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.searchWB + "' size='8' oninput='window.opener.showWorkedSearchChanged(this);' / >";
+      const html = [];
+      html.push("<table id='logTable' style='white-space:nowrap;overflow:auto;overflow-x:hidden;' class='darkTable' align=center>");
+      html.push("<tr><th><input type='text' id='searchWB' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.searchWB + "' size='8' oninput='window.opener.showWorkedSearchChanged(this);' / >");
 
       if (GT.searchWB.length > 0)
       {
-        worker += "<img title='Clear Callsign' onclick='searchWB.value=\"\";window.opener.showWorkedSearchChanged(searchWB);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
+        html.push("<img title='Clear Callsign' onclick='searchWB.value=\"\");window.opener.showWorkedSearchChanged(searchWB);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />");
       }
 
-      worker += "</th>";
-      worker += "<th><input type='text' id='searchGrid' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.gridSearch + "' size='6' oninput='window.opener.showWorkedSearchGrid(this);' / >";
+      html.push("</th>");
+      html.push("<th><input type='text' id='searchGrid' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.gridSearch + "' size='6' oninput='window.opener.showWorkedSearchGrid(this);' / >");
 
       if (GT.gridSearch.length > 0)
       {
-        worker += "<img title='Clear Grid' onclick='searchGrid.value=\"\";window.opener.showWorkedSearchGrid(searchGrid);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
+        html.push("<img title='Clear Grid' onclick='searchGrid.value=\"\");window.opener.showWorkedSearchGrid(searchGrid);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />");
       }
 
-      worker += "</th>";
-      worker += "<th><div id='bandFilterDiv'></div></th>";
-      worker += "<th><div id='modeFilterDiv'></div></th>";
-      worker += "<th><div id='qslFilterDiv'></div></th>";
-      worker += "<th></th>";
-      worker += "<th></th>";
+      html.push("</th>");
+      html.push("<th><div id='bandFilterDiv'></div></th>");
+      html.push("<th><div id='modeFilterDiv'></div></th>");
+      html.push("<th><div id='qslFilterDiv'></div></th>");
+      html.push("<th></th>");
+      html.push("<th></th>");
 
       if (GT.filterDxcc != 0)
       {
-        worker += "<th style='border-right:none;'><div id='dxccFilterDiv'></div></th>";
-        worker += "<th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc = 0; window.opener.showWorkedBox();' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer' /></th>";
+        html.push("<th style='border-right:none;'><div id='dxccFilterDiv'></div></th>");
+        html.push("<th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc = 0; window.opener.showWorkedBox();' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer' /></th>");
       }
       else
       {
-        worker += "<th colspan='1'><div id='dxccFilterDiv'></div></th>";
+        html.push("<th colspan='1'><div id='dxccFilterDiv'></div></th>");
       }
 
-      worker += "<th><input type='text' id='searchState' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.stateSearch + "' size='3' oninput='window.opener.showWorkedSearchState(this);' / >";
+      html.push("<th><input type='text' id='searchState' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.stateSearch + "' size='3' oninput='window.opener.showWorkedSearchState(this);' / >");
 
       if (GT.stateSearch.length > 0)
       {
-        worker += "<img title='Clear Park' onclick='searchState.value=\"\";window.opener.showWorkedSearchState(searchState);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
+        html.push("<img title='Clear Park' onclick='searchState.value=\"\");window.opener.showWorkedSearchState(searchState);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />");
       }
 
-      worker += "</th>";
+      html.push("</th>");
 
-      worker += "<th><input type='text' id='searchCnty' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.cntySearch + "' size='4' oninput='window.opener.showWorkedSearchCnty(this);' / >";
+      html.push("<th><input type='text' id='searchCnty' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.cntySearch + "' size='4' oninput='window.opener.showWorkedSearchCnty(this);' / >");
 
       if (GT.cntySearch.length > 0)
       {
-        worker += "<img title='Clear County' onclick='searchCnty.value=\"\";window.opener.showWorkedSearchCnty(searchCnty);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
+        html.push("<img title='Clear County' onclick='searchCnty.value=\"\");window.opener.showWorkedSearchCnty(searchCnty);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />");
       }
 
-      worker += "</th>";
+      html.push("</th>");
 
       if (GT.settings.app.potaFeatureEnabled)
       {
-        worker += "<th><input type='text' id='searchPOTA' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.potaSearch + "' size='4' oninput='window.opener.showWorkedSearchPOTA(this);' / >";
+        html.push("<th><input type='text' id='searchPOTA' style='margin:0px' oncontextmenu='contextMenu()' class='inputTextValue' value='" + GT.potaSearch + "' size='4' oninput='window.opener.showWorkedSearchPOTA(this);' / >");
 
         if (GT.potaSearch.length > 0)
         {
-          worker += "<img title='Clear Park' onclick='searchPOTA.value=\"\";window.opener.showWorkedSearchPOTA(searchPOTA);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />";
+          html.push("<img title='Clear Park' onclick='searchPOTA.value=\"\");window.opener.showWorkedSearchPOTA(searchPOTA);' src='img/trash_24x48.png' style='width: 30px; margin:0px; padding:0px; margin-bottom: -4px; cursor: pointer;' />");
         }
 
-        worker += "</th>";
+        html.push("</th>");
       }
 
-      worker += "<th><label>" + I18N("gt.Zday") + "</label>&nbsp;<input type='checkbox' id='Zday' " + (GT.Zday ? "checked" : "") + " onclick='window.opener.changeZday(Zday)'/></th>";
-      worker += "</tr>";
+      html.push("<th><label>" + I18N("gt.Zday") + "</label>&nbsp;<input type='checkbox' id='Zday' " + (GT.Zday ? "checked" : "") + " onclick='window.opener.changeZday(Zday)'/></th>");
+      html.push("</tr>");
 
-      worker += "<tr><th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(0);'>" + I18N("gt.qsoPage.Station") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(1);'>" + I18N("gt.qsoPage.Grid") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(5);'>" + I18N("gt.qsoPage.Band") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(2);'>" + I18N("gt.qsoPage.Mode") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(6);'>" + I18N("gt.qsoPage.QSL") + "</th>";
-      worker += "<th align=center>" + I18N("gt.qsoPage.Sent") + "</th>";
-      worker += "<th align=center>" + I18N("gt.qsoPage.Rcvd") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>" + I18N("gt.qsoPage.DXCC") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>" + I18N("gt.qsoPage.Flag") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(8);'>" + I18N("roster.secondary.wanted.state") + "</th>";
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(9);'>" + I18N("roster.secondary.wanted.county") + "</th>";
+      html.push("<tr><th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(0);'>" + I18N("gt.qsoPage.Station") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(1);'>" + I18N("gt.qsoPage.Grid") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(5);'>" + I18N("gt.qsoPage.Band") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(2);'>" + I18N("gt.qsoPage.Mode") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(6);'>" + I18N("gt.qsoPage.QSL") + "</th>");
+      html.push("<th align=center>" + I18N("gt.qsoPage.Sent") + "</th>");
+      html.push("<th align=center>" + I18N("gt.qsoPage.Rcvd") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>" + I18N("gt.qsoPage.DXCC") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>" + I18N("gt.qsoPage.Flag") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(8);'>" + I18N("roster.secondary.wanted.state") + "</th>");
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(9);'>" + I18N("roster.secondary.wanted.county") + "</th>");
 
       if (GT.settings.app.potaFeatureEnabled)
       {
-        worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(7);'>POTA</th>";
+        html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(7);'>POTA</th>");
       }
 
-      worker += "<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(4);'>" + I18N("gt.qsoPage.When") + "</th>";
+      html.push("<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(4);'>" + I18N("gt.qsoPage.When") + "</th>");
 
-      if (GT.settings.callsignLookups.lotwUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.LoTW") + "</th>";
-      if (GT.settings.callsignLookups.eqslUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.eQSL") + "</th>";
-      if (GT.settings.callsignLookups.oqrsUseEnable == true) worker += "<th>" + I18N("gt.qsoPage.OQRS") + "</th>";
+      if (GT.settings.callsignLookups.lotwUseEnable == true) html.push("<th>" + I18N("gt.qsoPage.LoTW") + "</th>");
+      if (GT.settings.callsignLookups.eqslUseEnable == true) html.push("<th>" + I18N("gt.qsoPage.eQSL") + "</th>");
+      if (GT.settings.callsignLookups.oqrsUseEnable == true) html.push("<th>" + I18N("gt.qsoPage.OQRS") + "</th>");
 
-      worker += "</tr>";
+      html.push("</tr>");
 
       for (let i = startIndex; i < endIndex; i++)
       {
@@ -7497,51 +7495,51 @@ function showWorkedBox(sortIndex, nextPage, redraw)
           confTitle = "title='" + Object.keys(srcs).join(", ") + "'";
         }
 
-        worker += "<tr align=left>";
-        worker += "<td style='color:#ff0;cursor:pointer' onclick='window.opener.startLookup(\"" + key.DEcall + "\",\"" + key.grid + "\");'>" + formatCallsign(key.DEcall) + "</td>";
-        worker += "<td style='color:cyan;'>" + key.grid + (key.vucc_grids.length ? ", " + key.vucc_grids.join(", ") : "") + "</td>";
-        worker += "<td style='color:lightgreen'>" + key.band + "</td>";
-        worker += "<td style='color:lightblue'>" + key.mode + "</td>";
-        worker += "<td align=left " + confTitle + ">" + confTd + "</td>";
-        worker += "<td>" + key.RSTsent + "</td>";
-        worker += "<td>" + key.RSTrecv + "</td>";
-        worker += "<td style='color:orange'>" + GT.dxccToAltName[key.dxcc] + " <font color='lightgreen'>(" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].pp : "?") + ")</font></td>";
-        worker += "<td align=center style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].flag : "_United Nations.png") + "'></td>";
+        html.push("<tr align=left>");
+        html.push("<td style='color:#ff0;cursor:pointer' onclick='window.opener.startLookup(\"" + key.DEcall + "\",\"" + key.grid + "\");'>" + formatCallsign(key.DEcall) + "</td>");
+        html.push("<td style='color:cyan;'>" + key.grid + (key.vucc_grids.length ? ", " + key.vucc_grids.join(", ") : "") + "</td>");
+        html.push("<td style='color:lightgreen'>" + key.band + "</td>");
+        html.push("<td style='color:lightblue'>" + key.mode + "</td>");
+        html.push("<td align=left " + confTitle + ">" + confTd + "</td>");
+        html.push("<td>" + key.RSTsent + "</td>");
+        html.push("<td>" + key.RSTrecv + "</td>");
+        html.push("<td style='color:orange'>" + GT.dxccToAltName[key.dxcc] + " <font color='lightgreen'>(" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].pp : "?") + ")</font></td>");
+        html.push("<td align=center style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/" + (key.dxcc in GT.dxccInfo ? GT.dxccInfo[key.dxcc].flag : "_United Nations.png") + "'></td>");
 
         if (key.state)
         {
           const title = (key.state in GT.StateData) ? "title='" + GT.StateData[key.state].name + "'" : "";
-          worker += "<td align=center style='color:lightgreen' " + title + ">" + key.state.substr(3) + "</td>";
+          html.push("<td align=center style='color:lightgreen' " + title + ">" + key.state.substr(3) + "</td>");
         }
         else
         {
-          worker += "<td></td>";
+          html.push("<td></td>");
         }
 
         if (key.cnty && key.cnty in GT.countyData)
         {
-          worker += "<td align=center style='color:cyan'>" + GT.countyData[key.cnty].geo.properties.n + "</td>";
+          html.push("<td align=center style='color:cyan'>" + GT.countyData[key.cnty].geo.properties.n + "</td>");
         }
         else
         {
-          worker += "<td></td>";
+          html.push("<td></td>");
         }
 
         if (GT.settings.app.potaFeatureEnabled)
         {
-          worker += key.pota ? "<td align=center style='color:#fbb6fc'>" + key.pota + "</td>" : "<td></td>";
+          html.push(key.pota ? "<td align=center style='color:#fbb6fc'>" + key.pota + "</td>" : "<td></td>");
         }
 
-        worker += "<td style='color:lightblue'>" + userTimeString(key.time * 1000) + "</td>";
+        html.push("<td style='color:lightblue'>" + userTimeString(key.time * 1000) + "</td>");
 
         if (GT.settings.callsignLookups.lotwUseEnable == true)
         {
-          worker += "<td align=center>" + (key.DEcall in GT.lotwCallsigns ? "&#10004;" : "") + "</td>";
+          html.push("<td align=center>" + (key.DEcall in GT.lotwCallsigns ? "&#10004);" : "") + "</td>");
         }
 
         if (GT.settings.callsignLookups.eqslUseEnable == true)
         {
-          worker += "<td align=center>" + (key.DEcall in GT.eqslCallsigns ? "&#10004;" : "") + "</td>";
+          html.push("<td align=center>" + (key.DEcall in GT.eqslCallsigns ? "&#10004);" : "") + "</td>");
         }
 
         if (GT.settings.callsignLookups.oqrsUseEnable == true)
@@ -7550,26 +7548,26 @@ function showWorkedBox(sortIndex, nextPage, redraw)
           {
             if (key.confirmed == false)
             {
-              worker += "<td style='cursor:pointer;' align='left' onClick='window.opener.openSite(\"https://clublog.org/logsearch/logsearch.php?log=" +
-                key.DEcall + "&call=" + key.DXcall + "&SubmitLogSearch=Show+contacts\");'>&#10004; &#128236;</td>";
+              html.push("<td style='cursor:pointer;' align='left' onClick='window.opener.openSite(\"https://clublog.org/logsearch/logsearch.php?log=" +
+                key.DEcall + "&call=" + key.DXcall + "&SubmitLogSearch=Show+contacts\");'>&#10004; &#128236;</td>");
             }
             else
             {
-              worker += "<td>&#10004;</td>";
+              html.push("<td>&#10004);</td>");
             }
           }
           else
           {
-            worker += "<td></td>";
+            html.push("<td></td>");
           }
         }
 
-        worker += "</tr>";
+        html.push("</tr>");
       }
 
-      worker += "</table>";
+      html.push("</table>");
 
-      setStatsDiv("workedListDiv", worker);
+      setStatsDiv("workedListDiv", html.join(""));
 
       statsValidateCallByElement("searchWB");
       statsValidateCallByElement("searchGrid");
@@ -7750,7 +7748,7 @@ function searchWorked(dxcc, band, mode)
 
 function getBandSlots()
 {
-  let worker = "";
+  const html = [];
   let bands = (GT.myDXCC in GT.callsignDatabaseUSplus) ? GT.us_bands : GT.non_us_bands;
   let bandslots = {};
   let total = 0;
@@ -7786,28 +7784,28 @@ function getBandSlots()
       }
     }
   }
-  worker += "<table class='darkTable' align=center>";
-  worker += "<tr><th colspan=" + (bands.length + 4) + ">Confirmed Band Slots</th></tr>";
-  worker += "<tr>";
-  worker += "<th>Mixed</th>";
-  worker += "<th>Phone</th>";
-  worker += "<th>Digital</th>";
+  html.push("<table class='darkTable' align=center>");
+  html.push("<tr><th colspan=" + (bands.length + 4) + ">Confirmed Band Slots</th></tr>");
+  html.push("<tr>");
+  html.push("<th>Mixed</th>");
+  html.push("<th>Phone</th>");
+  html.push("<th>Digital</th>");
   for (const band in bands)
   {
-    worker += "<th><font color=" + GT.pskColors[bands[band]] + ">" + bands[band] + "</font></th>";
+    html.push("<th><font color=" + GT.pskColors[bands[band]] + ">" + bands[band] + "</font></th>");
   }
-  worker += "<th>Total</th></tr><tr>";
-  worker += "<td>" + bandslots.Mixed + "</td>";
-  worker += "<td>" + bandslots.Phone + "</td>";
-  worker += "<td>" + bandslots.Digital + "</td>";
+  html.push("<th>Total</th></tr><tr>");
+  html.push("<td>" + bandslots.Mixed + "</td>");
+  html.push("<td>" + bandslots.Phone + "</td>");
+  html.push("<td>" + bandslots.Digital + "</td>");
   for (const band in bands)
   {
     total += bandslots[bands[band]];
-    worker += "<td>" + bandslots[bands[band]] + "</td>";
+    html.push("<td>" + bandslots[bands[band]] + "</td>");
   }
-  worker += "<td>" + total + "</td></tr></table><br>";
+  html.push("<td>" + total + "</td></tr></table><br>");
 
-  return worker;
+  return html.join("");
 }
 
 function keysThatContain(obj, text) {
@@ -7816,27 +7814,27 @@ function keysThatContain(obj, text) {
 
 function getDXMarathon()
 {
-  let worker = "<h1>" +I18N("rosterColumns.Wanted.dxm") + " " + GT.currentYear + "</h1>";
+  const html = ["<h1>" +I18N("rosterColumns.Wanted.dxm") + " " + GT.currentYear + "</h1>"];
 
-  worker += "<table class='darkTable' align=center>";
-  worker += "<tr><th><font color='orange'>";
-  worker +=  I18N("gt.viewInfo.worldGeoData");
-  worker += "</font></th><th><font color='cyan'>";
-  worker +=  I18N("gt.viewInfo.cqZones");
-  worker += "</font></th><th><font color='yellow'>Total</font></th></tr>";
-  worker += "<td style='color:white;'>" + keysThatContain(GT.tracker.worked.dxm, "c" + GT.currentYear) + "</td>";
-  worker += "<td style='color:white;'>" + keysThatContain(GT.tracker.worked.dxm, "z" + GT.currentYear) + "</td>";
-  worker += "<td style='font-weight:bold;color:white;'>" + keysThatContain(GT.tracker.worked.dxm, GT.currentYear) + "</td></table>";
+  html.push("<table class='darkTable' align=center>");
+  html.push("<tr><th><font color='orange'>");
+  html.push(I18N("gt.viewInfo.worldGeoData"));
+  html.push("</font></th><th><font color='cyan'>");
+  html.push(I18N("gt.viewInfo.cqZones"));
+  html.push("</font></th><th><font color='yellow'>Total</font></th></tr>");
+  html.push("<td style='color:white;'>" + keysThatContain(GT.tracker.worked.dxm, "c" + GT.currentYear) + "</td>");
+  html.push("<td style='color:white;'>" + keysThatContain(GT.tracker.worked.dxm, "z" + GT.currentYear) + "</td>");
+  html.push("<td style='font-weight:bold;color:white;'>" + keysThatContain(GT.tracker.worked.dxm, GT.currentYear) + "</td></table>");
 
-  return worker;
+  return html.join("");
 }
 
 function showDXCCsBox()
 {
-  let worker = getBandSlots();
+  const html = [getBandSlots()];
   let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter.length == 0 ? "" : GT.settings.app.gtBandFilter;
   let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode : GT.settings.app.gtModeFilter.length == 0 ? "" : GT.settings.app.gtModeFilter;
-  worker += getCurrentBandModeHTML();
+  html.push(getCurrentBandModeHTML());
   let confirmed = 0;
   let worked = 0;
   let needed = 0;
@@ -7879,7 +7877,7 @@ function showDXCCsBox()
 
   if (worked > 0)
   {
-    worker +=
+    html.push(
       "<div  style='vertical-align:top;display:inline-block;margin-right:5px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(Object.keys(List).length * 23, getStatsWindowHeight() - 70) +
       "px;'><table class='darkTable' align=center>" +
@@ -7887,7 +7885,7 @@ function showDXCCsBox()
         "" + I18N("gt.dxccBox.Worked") + " (" + worked + ")</th>" +
         "<tr><th align=left>" + I18N("gt.dxccBox.Name") + "</th>" +
         "<th>" + I18N("gt.dxccBox.Flag") + "</th>" +
-        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>";
+        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>");
     Object.keys(List)
       .sort()
       .forEach(function (key, i)
@@ -7895,15 +7893,15 @@ function showDXCCsBox()
         let rowStyle = List[key].confirmed ? "" : "background-clip:content-box;box-shadow: 0 0 8px 3px inset; cursor:pointer ";
         let rowAttributes = List[key].confirmed ? "" : "onclick='searchWorked(" + List[key].dxcc + ", \"" + band + "\", \"" + mode + "\");'";
 
-        worker += "<tr><td align=left style='color:#ff0;" + rowStyle + "' " + rowAttributes + ">" + key + "</td>";
-        worker += "<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" + List[key].flag + "'></td>";
-        worker += "<td align=left style='color:cyan;' >" + List[key].dxcc + "</td>";
+        html.push("<tr><td align=left style='color:#ff0;" + rowStyle + "' " + rowAttributes + ">" + key + "</td>");
+        html.push("<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" + List[key].flag + "'></td>");
+        html.push("<td align=left style='color:cyan;' >" + List[key].dxcc + "</td>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
   if (confirmed > 0)
   {
-    worker +=
+    html.push(
       "<div  style='padding:0px;vertical-align:top;display:inline-block;margin-right:5px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(Object.keys(ListConfirmed).length * 23, getStatsWindowHeight() - 70) +
         "px;'><table class='darkTable' align=center>" +
@@ -7911,21 +7909,21 @@ function showDXCCsBox()
         " (" + confirmed + ")</th>" +
         "<tr><th align=left>" + I18N("gt.dxccBox.Name") + "</th>" +
         "<th>" + I18N("gt.dxccBox.Flag") + "</th>" +
-        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>";
+        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>");
     Object.keys(ListConfirmed)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:#ff0;' >" + key + "</td>";
-        worker += "<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" +
-          ListConfirmed[key].flag + "'></td>";
-        worker += "<td align=left style='color:cyan;' >" + ListConfirmed[key].dxcc + "</td>";
+        html.push("<tr><td align=left style='color:#ff0;' >" + key + "</td>");
+        html.push("<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" +
+          ListConfirmed[key].flag + "'></td>");
+        html.push("<td align=left style='color:cyan;' >" + ListConfirmed[key].dxcc + "</td>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
   if (needed > 0)
   {
-    worker +=
+    html.push(
       "<div  style='vertical-align:top;display:inline-block;overflow:auto;overflow-x:hidden;height:" +
       Math.min(Object.keys(ListNotWorked).length * 23, getStatsWindowHeight() - 70) +
         "px;'><table class='darkTable' align=center>" +
@@ -7933,56 +7931,56 @@ function showDXCCsBox()
         " (" + needed + ")</th>" +
         "<tr><th align=left>" + I18N("gt.dxccBox.Name") + "</th>" +
         "<th>" + I18N("gt.dxccBox.Flag") + "</th>" +
-        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>";
+        "<th align=left>" + I18N("gt.dxccBox.DXCC") + "</th></tr>");
     Object.keys(ListNotWorked)
       .sort()
       .forEach(function (key, i)
       {
-        worker += "<tr><td align=left style='color:#ff0;' >" + key + "</td>";
-        worker += "<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" + ListNotWorked[key].flag + "'></td>";
-        worker += "<td align=left style='color:cyan;' >" + ListNotWorked[key].dxcc + "</td>";
+        html.push("<tr><td align=left style='color:#ff0;' >" + key + "</td>");
+        html.push("<td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/" + ListNotWorked[key].flag + "'></td>");
+        html.push("<td align=left style='color:cyan;' >" + ListNotWorked[key].dxcc + "</td>");
       });
-    worker += "</table></div>";
+    html.push("</table></div>");
   }
-  setStatsDiv("dxccListDiv", worker);
+  setStatsDiv("dxccListDiv", html.join(""));
 }
 
 function showZonesBox()
 {
-  let worker = getCurrentBandModeHTML();
+  const html = [getCurrentBandModeHTML()];
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.CQZoneBox.Worked") + "</b><br>";
-  worker += displayItemList(GT.cqZones, "#FFA500");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.CQZoneBox.Worked") + "</b><br>");
+  html.push(displayItemList(GT.cqZones, "#FFA500"));
+  html.push("</div>");
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.ITUZoneBox.Worked") + "</b><br>";
-  worker += displayItemList(GT.ituZones, "#00DDDD");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.ITUZoneBox.Worked") + "</b><br>");
+  html.push(displayItemList(GT.ituZones, "#00DDDD"));
+  html.push("</div>");
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAC") + "</b><br>";
-  worker += displayItemList(GT.wacZones, "#90EE90");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAC") + "</b><br>");
+  html.push(displayItemList(GT.wacZones, "#90EE90"));
+  html.push("</div>");
 
-  setStatsDiv("zonesListDiv", worker);
+  setStatsDiv("zonesListDiv", html.join(""));
 }
 
 function showWASPlusBox()
 {
-  let worker = getCurrentBandModeHTML();
+  const html = [getCurrentBandModeHTML()];
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAS") + "</b><br>";
-  worker += displayItemList(GT.wasZones, "#00DDDD");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAS") + "</b><br>");
+  html.push(displayItemList(GT.wasZones, "#00DDDD"));
+  html.push("</div>");
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WACP") + "</b><br>";
-  worker += displayItemList(GT.wacpZones, "#FFA500");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WACP") + "</b><br>");
+  html.push(displayItemList(GT.wacpZones, "#FFA500"));
+  html.push("</div>");
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.us48Data") + "</b><br>";
-  worker += displayItemList(GT.us48Data, "#DDDD00");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.us48Data") + "</b><br>");
+  html.push(displayItemList(GT.us48Data, "#DDDD00"));
+  html.push("</div>");
 
-  setStatsDiv("wasPlusListDiv", worker);
+  setStatsDiv("wasPlusListDiv", html.join(""));
 }
 
 function displayItemList(table, color)
@@ -8059,7 +8057,7 @@ function displayItemList(table, color)
 
 function showWPXBox()
 {
-  let worker = getCurrentBandModeHTML();
+  const html = [getCurrentBandModeHTML()];
 
   let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter.length == 0 ? "" : GT.settings.app.gtBandFilter;
   let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode : GT.settings.app.gtModeFilter.length == 0 ? "" : GT.settings.app.gtModeFilter;
@@ -8094,63 +8092,63 @@ function showWPXBox()
 
   if (worked > 0)
   {
-    worker +=
+    html.push(
       "<div  style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'>" +
         "<b>" + I18N("gt.WPXBox.worked") + " (<font color='#fff'>" +
       worked +
-      "</font>)</b><br>";
-    worker +=
+      "</font>)</b><br>");
+    html.push(
       "<div  style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(worked * 23 + 45, getStatsWindowHeight() - 6) +
-      "px;'><table class='darkTable' align=center>";
+      "px;'><table class='darkTable' align=center>");
     Object.keys(List)
       .sort()
       .forEach(function (key, i)
       {
-        worker +=
+        html.push(
           "<tr><td align=left style='color:#ff0;' >" +
           formatCallsign(key) +
           "</td><td style='color:#0ff;'>" +
           formatCallsign(GT.QSOhash[GT.tracker.worked.px[key]].DEcall) +
-          "</td></tr>";
+          "</td></tr>");
       });
 
-    worker += "</table></div>";
-    worker += "</div>";
+    html.push("</table></div>");
+    html.push("</div>");
   }
 
   if (confirmed > 0)
   {
-    worker +=
+    html.push(
       "<div  style='vertical-align:top;display:inline-block;margin-right:16px;overflow:auto;overflow-x:hidden;color:cyan;'>" +
         "<b>" + I18N("gt.WPXBox.confirmed") + " (<font color='#fff'>" +
       confirmed +
-      "</font>)</b><br>";
-    worker +=
+      "</font>)</b><br>");
+    html.push(
       "<div  style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(confirmed * 23 + 45, getStatsWindowHeight() - 6) +
-      "px;'><table class='darkTable' align=center>";
+      "px;'><table class='darkTable' align=center>");
     Object.keys(ListConfirmed)
       .sort()
       .forEach(function (key, i)
       {
-        worker +=
+        html.push(
           "<tr><td align=left style='color:#ff0;' >" +
           formatCallsign(key) +
           "</td><td style='color:#0ff;'>" +
           formatCallsign(GT.QSOhash[GT.tracker.confirmed.px[key]].DEcall) +
-          "</td></tr>";
+          "</td></tr>");
       });
 
-    worker += "</table></div>";
-    worker += "</div>";
+    html.push("</table></div>");
+    html.push("</div>");
   }
 
-  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.countyData") + "</b><br>";
-  worker += displayItemList(GT.countyData, "orange");
-  worker += "</div>";
+  html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.countyData") + "</b><br>");
+  html.push(displayItemList(GT.countyData, "orange"));
+  html.push("</div>");
   
-  setStatsDiv("wpxListDiv", worker);
+  setStatsDiv("wpxListDiv", html.join(""));
 }
 
 function showRootInfoBox(toggle = true)
@@ -8470,7 +8468,7 @@ function workObject(obj, count, band, mode, type, didConfirm)
 
 function renderStatsBox()
 {
-  let worker = "";
+  const html = [];
   let scoreSection = "Initial";
   try
   {
@@ -8876,209 +8874,206 @@ function renderStatsBox()
       9: ["WACP", "CA Provinces", "WACP", "lightblue"]
     };
 
-    worker = "<font color='cyan'>";
-
-    worker += "<h1>" + I18N("gt.logbook.title") + "</h1>";
-
-    worker += "<table style='display:inline-table;margin:5px;' class='darkTable'>";
+    html.push("<font color='cyan'>");
+    html.push("<h1>" + I18N("gt.logbook.title") + "</h1>");
+    html.push("<table style='display:inline-table;margin:5px;' class='darkTable'>");
 
     let ws = "";
     if (Object.keys(details.callsigns).length > 1) ws = "s";
-    worker +=
+    html.push(
       "<tr><td>Callsign" +
       ws +
       "</td><td style='color:yellow' ><b>" +
       Object.keys(details.callsigns).sort().join(", ") +
-      "</b></td></tr>";
-    worker +=
+      "</b></td></tr>");
+    html.push(
       "<tr><td>" + I18N("gt.logbook.firstContact") + "</td><td style='color:white' >" +
       userTimeString(details.oldest * 1000) +
-      "</td></tr>";
-    worker +=
+      "</td></tr>");
+    html.push(
       "<tr><td>" + I18N("gt.logbook.lastContact") + "</td><td style='color:white' >" +
       userTimeString(details.newest * 1000) +
-      "</td></tr>";
-    worker += "</table>";
-    worker += "<br>";
-    worker += "<h1>" + I18N("gt.logbook.scoreCard") + "</h1>";
-    worker += "<table style='display:inline-table;margin:5px;' class='darkTable'>";
-    worker += "<tr><th>" + I18N("gt.logbook.topScore") + "</th>" + "<th style='color:yellow'>" + I18N("gt.logbook.worked") + "</th>" + "<th style='color:lightgreen'>" + I18N("gt.logbook.confirmed") + "</th></tr>";
+      "</td></tr>");
+    html.push("</table>");
+    html.push("<br>");
+    html.push("<h1>" + I18N("gt.logbook.scoreCard") + "</h1>");
+    html.push("<table style='display:inline-table;margin:5px;' class='darkTable'>");
+    html.push("<tr><th>" + I18N("gt.logbook.topScore") + "</th>" + "<th style='color:yellow'>" + I18N("gt.logbook.worked") + "</th>" + "<th style='color:lightgreen'>" + I18N("gt.logbook.confirmed") + "</th></tr>");
 
     for (let key in AwardNames)
     {
       scoreSection = "Award " + AwardNames[key][1];
       let infoObject = output[AwardNames[key][0]];
-      worker += "<tr><td style='color:white'>" + AwardNames[key][1] + "</td>";
-      worker +=
+      html.push("<tr><td style='color:white'>" + AwardNames[key][1] + "</td>");
+      html.push(
         "<td style='color:" +
         AwardNames[key][3] +
         "'>" +
         infoObject.worked_high_key +
         "<font color='white'> (" +
         infoObject.worked_high +
-        ")</font></td>";
+        ")</font></td>");
 
       if (infoObject.confirmed_high_key)
       {
-        worker +=
+        html.push(
           "<td style='color:" +
           AwardNames[key][3] +
           "'>" +
           infoObject.confirmed_high_key +
           "<font color='white'> (" +
           infoObject.confirmed_high +
-          ")</font></td>";
+          ")</font></td>");
       }
-      else worker += "<td></td>";
+      else html.push("<td></td>");
 
-      worker += "</tr>";
+      html.push("</tr>");
     }
 
     scoreSection = "Long Distance";
 
-    worker += "<tr><td style='color:white'>" + I18N("gt.score.LongDist") + "</td>";
-    worker +=
+    html.push("<tr><td style='color:white'>" + I18N("gt.score.LongDist") + "</td>");
+    html.push(
       "<td style='color:lightgreen'>" +
       long_distance.worked_unit +
       " " +
-      distanceUnit.value.toLowerCase();
+      distanceUnit.value.toLowerCase());
     if (long_distance.worked_hash && long_distance.worked_hash.length > 0 && long_distance.worked_hash in GT.QSOhash)
     {
-      worker +=
+      html.push(
         "<font style='color:yellow' > " +
         GT.QSOhash[long_distance.worked_hash].DEcall +
-        "</font>";
-      worker +=
+        "</font>");
+      html.push(
         "<font style='color:orange' > " +
         GT.QSOhash[long_distance.worked_hash].grid +
-        "</font>";
+        "</font>");
     }
-    worker += "</td>";
+    html.push("</td>");
 
     if (long_distance.confirmed_hash && long_distance.confirmed_hash.length > 0 && long_distance.confirmed_unit > 0 && long_distance.confirmed_hash in GT.QSOhash)
     {
-      worker +=
+      html.push(
         "<td style='color:lightgreen'>" +
         long_distance.confirmed_unit +
         " " +
-        distanceUnit.value.toLowerCase();
-      worker +=
+        distanceUnit.value.toLowerCase());
+      html.push(
         "<font style='color:yellow' > " +
         GT.QSOhash[long_distance.confirmed_hash].DEcall +
-        "</font>";
-      worker +=
+        "</font>");
+      html.push(
         "<font style='color:orange' > " +
         GT.QSOhash[long_distance.confirmed_hash].grid +
-        "</font></td>";
+        "</font></td>");
     }
-    else worker += "<td></td>";
+    else html.push("<td></td>");
 
     scoreSection = "Short Distance";
 
-    worker += "<tr><td style='color:white' >" + I18N("gt.score.ShortDist") + "</td>";
-    worker +=
+    html.push("<tr><td style='color:white' >" + I18N("gt.score.ShortDist") + "</td>");
+    html.push(
       "<td style='color:lightblue'>" +
       short_distance.worked_unit +
       " " +
-      distanceUnit.value.toLowerCase();
+      distanceUnit.value.toLowerCase());
     if (short_distance.worked_hash && short_distance.worked_hash.length > 0 && short_distance.worked_hash in GT.QSOhash)
     {
-      worker +=
+      html.push(
         "<font style='color:yellow' > " +
         GT.QSOhash[short_distance.worked_hash].DEcall +
-        "</font>";
-      worker +=
+        "</font>");
+      html.push(
         "<font style='color:orange' > " +
         GT.QSOhash[short_distance.worked_hash].grid +
-        "</font>";
+        "</font>");
     }
-    worker += "</td>";
+    html.push("</td>");
 
     if (short_distance.confirmed_hash && short_distance.confirmed_hash.length > 0 && short_distance.confirmed_unit > 0 && short_distance.confirmed_hash in GT.QSOhash)
     {
-      worker +=
+      html.push(
         "<td style='color:lightblue'>" +
         short_distance.confirmed_unit +
         " " +
-        distanceUnit.value.toLowerCase();
-      worker +=
+        distanceUnit.value.toLowerCase());
+      html.push(
         "<font style='color:yellow' > " +
         GT.QSOhash[short_distance.confirmed_hash].DEcall +
-        "</font>";
-      worker +=
+        "</font>");
+      html.push(
         "<font style='color:orange' > " +
         GT.QSOhash[short_distance.confirmed_hash].grid +
-        "</font></td>";
+        "</font></td>");
     }
-    else worker += "<td></td>";
+    else html.push("<td></td>");
 
-    worker += "</tr>";
-    worker += "</table>";
-    worker += "<br>";
+    html.push("</tr>");
+    html.push("</table>");
+    html.push("<br>");
 
     scoreSection = "DX Marathon";
 
-    worker += getDXMarathon();
+    html.push(getDXMarathon());
 
-    worker += "<h1>" + I18N("gt.AwardTypes") + "</h1>";
+    html.push("<h1>" + I18N("gt.AwardTypes") + "</h1>");
 
     scoreSection = "Award Types";
     for (let key in AwardNames)
     {
-      worker += createStatTable(
+      html.push( createStatTable(
         AwardNames[key][1],
         output[AwardNames[key][0]],
         AwardNames[key][2]
-      );
+      ));
     }
 
-    worker += "<br>";
+    html.push("<br>");
 
     scoreSection = "Mode Types";
 
-    worker += "<h1>" + I18N("gt.ModeTypes") + "</h1>";
+    html.push("<h1>" + I18N("gt.ModeTypes") + "</h1>");
     for (let key in TypeNames)
     {
-      worker += createStatTable(
+      html.push( createStatTable(
         TypeNames[key][1],
         output[TypeNames[key][0]],
         TypeNames[key][2]
-      );
+      ));
     }
 
-    worker += "<br>";
+    html.push("<br>");
 
-    worker += "<h1>" + I18N("gt.Distances") + "</h1>";
+    html.push("<h1>" + I18N("gt.Distances") + "</h1>");
     scoreSection = "Distances";
-    worker += createDistanceTable(long_distance, I18N("gt.LongestDist"));
-    worker += createDistanceTable(short_distance, I18N("gt.ShortestDist"));
-    worker += "<br>";
+    html.push(createDistanceTable(long_distance, I18N("gt.LongestDist")));
+    html.push(createDistanceTable(short_distance, I18N("gt.ShortestDist")));
+    html.push("<br>");
   }
   catch (e)
   {
-    worker +=
+    html.push(
       "<br> In Section: " +
       scoreSection +
-      "<br>" + I18N("gt.scorecardError");
+      "<br>" + I18N("gt.scorecardError"));
   }
 
-  setStatsDiv("statViewDiv", worker);
+  setStatsDiv("statViewDiv", html.join(""));
   setStatsDivHeight("statViewDiv", getStatsWindowHeight() + 29 + "px");
 }
 
 function createDistanceTable(obj, name)
 {
-  let worker =
-    "<table style='display:inline-table;margin:5px;' class='darkTable'>";
-  worker +=
+  const html = ["<table style='display:inline-table;margin:5px;' class='darkTable'>"];
+  html.push(
     "<tr><th colspan = 3 align=left style='font-size:15px;color:cyan;'>" +
     name +
-    "</th></tr>";
-  worker +=
+    "</th></tr>");
+  html.push(
     "<tr><td></td><td><font  color='yellow'>" + I18N("gt.distanceTable.Worked") +
-      "</font></td><td colspan=2 ><font color='lightgreen'>" + I18N("gt.distanceTable.Confirmed") + "</font></td></tr>";
-  worker += "<tr><td align=center><font color='lightgreen'>" + I18N("gt.distanceTable.Bands") + "</font></td>";
-  worker += "<td align=left><table class='subtable'>";
+      "</font></td><td colspan=2 ><font color='lightgreen'>" + I18N("gt.distanceTable.Confirmed") + "</font></td></tr>");
+  html.push("<tr><td align=center><font color='lightgreen'>" + I18N("gt.distanceTable.Bands") + "</font></td>");
+  html.push("<td align=left><table class='subtable'>");
   let keys = Object.keys(obj.band).sort(numberSort);
   for (let key in keys)
   {
@@ -9087,60 +9082,60 @@ function createDistanceTable(obj, name)
     {
       let grid = GT.QSOhash[bandEntry.worked_hash].grid;
       let call = GT.QSOhash[bandEntry.worked_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         bandEntry.worked_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");' >" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
   }
-  worker += "</table></td>";
-  worker += "<td align=left><table class='subtable'>";
+  html.push("</table></td>");
+  html.push("<td align=left><table class='subtable'>");
   for (let key in keys)
   {
     if (keys[key] in obj.band && obj.band[keys[key]].confirmed_hash && obj.band[keys[key]].confirmed_hash.length > 0 && obj.band[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.band[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.band[keys[key]].confirmed_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         obj.band[keys[key]].confirmed_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");'>" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
-    else worker += "<tr><td>&nbsp;</td></tr>";
+    else html.push("<tr><td>&nbsp;</td></tr>");
   }
 
-  worker += "</table></td>";
-  worker += "</tr>";
-  worker += "<tr><td align=center><font color='orange'>" + I18N("gt.distanceTable.Modes") + "</font></td>";
-  worker += "<td align=left><table class='subtable'>";
+  html.push("</table></td>");
+  html.push("</tr>");
+  html.push("<tr><td align=center><font color='orange'>" + I18N("gt.distanceTable.Modes") + "</font></td>");
+  html.push("<td align=left><table class='subtable'>");
   keys = Object.keys(obj.mode).sort();
   for (let key in keys)
   {
@@ -9149,59 +9144,59 @@ function createDistanceTable(obj, name)
     {
       let grid = GT.QSOhash[modeEntry.worked_hash].grid;
       let call = GT.QSOhash[modeEntry.worked_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         modeEntry.worked_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left  onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");' >" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
   }
-  worker += "</table></td>";
-  worker += "<td align=left><table class='subtable'>";
+  html.push("</table></td>");
+  html.push("<td align=left><table class='subtable'>");
   for (let key in keys)
   {
     if (keys[key] in obj.mode && obj.mode[keys[key]].confirmed_hash && obj.mode[keys[key]].confirmed_hash.length > 0 && obj.mode[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.mode[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.mode[keys[key]].confirmed_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         obj.mode[keys[key]].confirmed_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");' >" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
-    else worker += "<tr><td>&nbsp;</td></tr>";
+    else html.push("<tr><td>&nbsp;</td></tr>");
   }
-  worker += "</table></td>";
-  worker += "</tr>";
-  worker += "<tr><td align=center><font color='#DD44DD'>" + I18N("gt.distanceTable.Types") + "</font></td>";
-  worker += "<td align=left><table class='subtable'>";
+  html.push("</table></td>");
+  html.push("</tr>");
+  html.push("<tr><td align=center><font color='#DD44DD'>" + I18N("gt.distanceTable.Types") + "</font></td>");
+  html.push("<td align=left><table class='subtable'>");
   keys = Object.keys(obj.type).sort();
   for (let key in keys)
   {
@@ -9210,59 +9205,59 @@ function createDistanceTable(obj, name)
     {
       let grid = GT.QSOhash[typeEntry.worked_hash].grid;
       let call = GT.QSOhash[typeEntry.worked_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         typeEntry.worked_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");' >" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
   }
-  worker += "</table></td>";
-  worker += "<td align=left><table class='subtable'>";
+  html.push("</table></td>");
+  html.push("<td align=left><table class='subtable'>");
   for (let key in keys)
   {
     if (keys[key] in obj.type && obj.type[keys[key]].confirmed_hash && obj.type[keys[key]].confirmed_hash.length > 0 && obj.type[keys[key]].confirmed_hash in GT.QSOhash)
     {
       let grid = GT.QSOhash[obj.type[keys[key]].confirmed_hash].grid;
       let call = GT.QSOhash[obj.type[keys[key]].confirmed_hash].DEcall;
-      worker +=
+      html.push(
         "<tr><td align=right>" +
         keys[key] +
         "</td><td style='color:lightgreen' align=left>(" +
         obj.type[keys[key]].confirmed_unit +
         " " +
         distanceUnit.value.toLowerCase() +
-        ")</td>";
-      worker +=
+        ")</td>");
+      html.push(
         "<td style='color:yellow;cursor:pointer' align=left onclick='window.opener.startLookup(\"" +
         call +
         "\",\"" +
         grid +
         "\");' >" +
         call +
-        "</td>";
-      worker += "<td style='color:orange' align=left>" + grid + "</td>";
-      worker += "</tr>";
+        "</td>");
+      html.push("<td style='color:orange' align=left>" + grid + "</td>");
+      html.push("</tr>");
     }
-    else worker += "<tr><td>&nbsp;</td></tr>";
+    else html.push("<tr><td>&nbsp;</td></tr>");
   }
-  worker += "</table></td>";
-  worker += "</tr>";
-  worker += "</table>";
-  return worker;
+  html.push("</table></td>");
+  html.push("</tr>");
+  html.push("</table>");
+  return html.join("");
 }
 
 function numberSort(a, b)
@@ -9295,140 +9290,92 @@ function numberSort(a, b)
 
 function createStatTable(title, infoObject, awardName)
 {
-  let wc1Table = "";
+  const wc1Table = [];
 
   if (infoObject.worked)
   {
-    wc1Table =
-      "<table style='display:inline-table;margin:5px;' class='darkTable'>";
-    wc1Table +=
-      "<tr><th colspan = 3 align=left style='font-size:15px;color:cyan;'>" +
-      title +
-      "</th></tr>";
-    let award = "<th></th>";
+    wc1Table.push("<table style='display:inline-table;margin:5px;' class='darkTable'>");
+    wc1Table.push("<tr><th colspan = 3 align=left style='font-size:15px;color:cyan;'>" + title + "</th></tr>");
+    wc1Table.push("<tr><th>" + awardName + "</th><td><font  color='yellow'>" + I18N("gt.statTable.Worked") + "</font> <font color='white'>(" + infoObject.worked + ")</font></td><td colspan=2 ><font  color='lightgreen'>" + I18N("gt.statTable.Confirmed") + "</font> <font color='white'>(" + infoObject.confirmed + ")</font></td></tr>");
 
-    wc1Table +=
-      "<tr>" +
-      award +
-      "<td><font  color='yellow'>" + I18N("gt.statTable.Worked") + "</font> <font color='white'>(" +
-      infoObject.worked +
-      ")</font></td><td colspan=2 ><font  color='lightgreen'>" + I18N("gt.statTable.Confirmed") + "</font> <font color='white'>(" +
-      infoObject.confirmed +
-      ")</font></td></tr>";
+    wc1Table.push("<tr><td align=center><font color='lightgreen'>" + I18N("gt.statTable.Bands") + "</font></td>");
 
-    wc1Table +=
-      "<tr><td align=center><font color='lightgreen'>" + I18N("gt.statTable.Bands") + "</font></td>";
-
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table.push("<td align=left><table class='subtable'>");
     let keys = Object.keys(infoObject.worked_bands).sort(numberSort);
     for (let key in keys)
     {
-      wc1Table +=
-        "<tr><td align=right>" +
-        keys[key] +
-        "</td><td align=left> <font color='white'>(" +
-        infoObject.worked_bands[keys[key]] +
-        ")</font></td></tr>";
+      wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_bands[keys[key]] + ")</font></td></tr>");
     }
 
-    wc1Table += "</table></td>";
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table.push("</table></td>");
+    wc1Table.push("<td align=left><table class='subtable'>");
 
     for (let key in keys)
     {
       if (keys[key] in infoObject.confirmed_bands)
       {
-        wc1Table +=
-          "<tr><td align=right>" +
-          keys[key] +
-          "</td><td align=left> <font color='white'>(" +
-          infoObject.confirmed_bands[keys[key]] +
-          ")</font></td></tr>";
+        wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_bands[keys[key]] + ")</font></td></tr>");
       }
-      else wc1Table += "<tr><td>&nbsp;</td></tr>";
+      else wc1Table.push("<tr><td>&nbsp;</td></tr>");
     }
-    wc1Table += "</table></td>";
-    wc1Table += "</tr>";
+    wc1Table.push("</table></td>");
+    wc1Table.push("</tr>");
 
-    wc1Table += "<tr>";
-    wc1Table += "<td align=center><font color='orange'>" + I18N("gt.statTable.Modes") + "</font></td>";
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table.push("<tr>");
+    wc1Table.push("<td align=center><font color='orange'>" + I18N("gt.statTable.Modes") + "</font></td>");
+    wc1Table.push("<td align=left><table class='subtable'>");
     keys = Object.keys(infoObject.worked_modes).sort();
     for (let key in keys)
     {
-      wc1Table +=
-        "<tr><td align=right>" +
-        keys[key] +
-        "</td><td align=left> <font color='white'>(" +
-        infoObject.worked_modes[keys[key]] +
-        ")</font></td></tr>";
+      wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_modes[keys[key]] + ")</font></td></tr>");
     }
 
-    wc1Table += "</table></td>";
+    wc1Table.push("</table></td>");
 
-    wc1Table += "<td align=left><table class='subtable'>";
+    wc1Table.push("<td align=left><table class='subtable'>");
 
     for (let key in keys)
     {
       if (keys[key] in infoObject.confirmed_modes)
       {
-        wc1Table +=
-          "<tr><td align=right>" +
-          keys[key] +
-          "</td><td align=left> <font color='white'>(" +
-          infoObject.confirmed_modes[keys[key]] +
-          ")</font></td></tr>";
+        wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_modes[keys[key]] + ")</font></td></tr>");
       }
-      else wc1Table += "<tr><td>&nbsp;</td></tr>";
+      else wc1Table.push("<tr><td>&nbsp;</td></tr>");
     }
 
-    wc1Table += "</table></td>";
-    wc1Table += "</tr>";
+    wc1Table.push("</table></td>");
+    wc1Table.push("</tr>");
 
     if (infoObject.worked_type_count > 0)
     {
-      wc1Table += "<tr>";
-      wc1Table += "<td align=center><font color='#DD44DD'>" + I18N("gt.statTable.Types") + "</font></td>";
-      wc1Table += "<td align=left><table class='subtable'>";
+      wc1Table.push("<tr><td align=center><font color='#DD44DD'>" + I18N("gt.statTable.Types") + "</font></td>");
+      wc1Table.push("<td align=left><table class='subtable'>");
       let keys = Object.keys(infoObject.worked_types).sort();
       for (let key in keys)
       {
-        wc1Table +=
-          "<tr><td align=right>" +
-          keys[key] +
-          "</td><td align=left> <font color='white'>(" +
-          infoObject.worked_types[keys[key]] +
-          ") " +
-          "</font></td></tr>";
+        wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.worked_types[keys[key]] + ") </font></td></tr>");
       }
 
-      wc1Table += "</table></td>";
+      wc1Table.push("</table></td>");
 
-      wc1Table += "<td align=left><table class='subtable'>";
+      wc1Table.push("<td align=left><table class='subtable'>");
 
       for (let key in keys)
       {
         if (keys[key] in infoObject.confirmed_types)
         {
-          wc1Table +=
-            "<tr><td align=right>" +
-            keys[key] +
-            "</td><td align=left> <font color='white'>(" +
-            infoObject.confirmed_types[keys[key]] +
-            ") " +
-            "</font></td></tr>";
+          wc1Table.push("<tr><td align=right>" + keys[key] + "</td><td align=left> <font color='white'>(" + infoObject.confirmed_types[keys[key]] + ") </font></td></tr>");
         }
-        else wc1Table += "<tr><td>&nbsp;</td></tr>";
+        else wc1Table.push("<tr><td>&nbsp;</td></tr>");
       }
 
-      wc1Table += "</table></td>";
-      wc1Table += "</tr>";
+      wc1Table.push("</table></td></tr>");
     }
 
-    wc1Table += "</table>";
+    wc1Table.push("</table>");
   }
 
-  return wc1Table;
+  return wc1Table.join("");
 }
 
 function validatePropMode(propMode)
@@ -10022,7 +9969,7 @@ function renderBandActivity()
 {
   if (GT.settings.app.oamsBandActivity == false) return;
 
-  let buffer = "";
+  const buffer = [];
   if (typeof GT.settings.bandActivity.lines[GT.settings.app.myMode] != "undefined" || GT.oamsBandActivityData != null)
   {
     let lines = (GT.settings.app.myMode in GT.settings.bandActivity.lines) ? GT.settings.bandActivity.lines[GT.settings.app.myMode] : [];
@@ -10098,38 +10045,38 @@ function renderBandActivity()
     for (const band in bandData)
     {
       let blockMyBand = (band == GT.settings.app.myBand) ? " class='myBand' " : "";
-      let title;
+      const title = [];
       let blueBarValue;
 
       if (GT.settings.app.offAirServicesEnable == true && GT.settings.app.oamsBandActivity == true)
       {
-        title = "OAMS (blue)\n";
-        title += "\tScore: " + bandData[band].oamsScore + "\n\tDecodes: " + bandData[band].oamsDecodes + "\n\tTX-Spots: " + bandData[band].oamsTxSpots + "\n\tRX-Spots: " + bandData[band].oamsRxSpots + "\n\tTx: " + bandData[band].oamsTx + "\tRx: " + bandData[band].oamsRx;
-        title += "\nPSK-Reporter (red)\n";
-        title += "\tScore: " + bandData[band].pskScore + "\n\tSpots: " + bandData[band].pskSpots + "\n\tTx: " + bandData[band].pskTx + "\tRx: " + bandData[band].pskRx;
+        title.push("OAMS (blue)\n");
+        title.push("\tScore: " + bandData[band].oamsScore + "\n\tDecodes: " + bandData[band].oamsDecodes + "\n\tTX-Spots: " + bandData[band].oamsTxSpots + "\n\tRX-Spots: " + bandData[band].oamsRxSpots + "\n\tTx: " + bandData[band].oamsTx + "\tRx: " + bandData[band].oamsRx);
+        title.push("\nPSK-Reporter (red)\n");
+        title.push("\tScore: " + bandData[band].pskScore + "\n\tSpots: " + bandData[band].pskSpots + "\n\tTx: " + bandData[band].pskTx + "\tRx: " + bandData[band].pskRx);
         blueBarValue = (bandData[band].oamsScore * scaleFactor + 1);
       }
       else
       {
-        title = "Score: " + bandData[band].pskScore + "\nSpots: " + bandData[band].pskSpots + "\nTx: " + bandData[band].pskTx + "\tRx: " + bandData[band].pskRx;
+        title = ["Score: " + bandData[band].pskScore + "\nSpots: " + bandData[band].pskSpots + "\nTx: " + bandData[band].pskTx + "\tRx: " + bandData[band].pskRx];
         blueBarValue = (bandData[band].pskSpots * scaleFactor + 1);
       }
 
-      buffer += "<div title='" + title + "' style='display:inline-block;margin:1px;' class='aBand'>";
-      buffer += "<div style='height: " + blueBarValue + "px;' class='barRx'></div>";
-      buffer += "<div style='height: " + (bandData[band].pskScore * scaleFactor + 1) + "px;' class='barTx'></div>"; 
-      buffer += "<div style='font-size:10px' " + blockMyBand + ">" + parseInt(band) + "</div>";
-      buffer += "</div>";
+      buffer.push("<div title='" + title.join("") + "' style='display:inline-block;margin:1px;' class='aBand'>");
+      buffer.push("<div style='height: " + blueBarValue + "px;' class='barRx'></div>");
+      buffer.push("<div style='height: " + (bandData[band].pskScore * scaleFactor + 1) + "px;' class='barTx'></div>"); 
+      buffer.push("<div style='font-size:10px' " + blockMyBand + ">" + parseInt(band) + "</div>");
+      buffer.push("</div>");
     }
   }
   else
   {
-    buffer = "..no data yet..";
+    buffer = ["..no data yet.."];
   }
-  graphDiv.innerHTML = buffer;
+  graphDiv.innerHTML = buffer.join("");
   if (GT.baWindowInitialized == true)
   {
-    GT.baWindowHandle.window.graphDiv.innerHTML = buffer;
+    GT.baWindowHandle.window.graphDiv.innerHTML = buffer.join("");
   }
 }
 
@@ -13339,21 +13286,20 @@ function continueWithLookup(callsign, gridPass)
     }
     else
     {
-      let worker =
-        "<center>" + I18N("gt.callookDX1") +
+      const html = ["<center>" + I18N("gt.callookDX1") +
           "<br>" + I18N("gt.callookDX2") +
-          "<br>" + I18N("gt.callookDX3") + "<br>";
-      worker +=
+          "<br>" + I18N("gt.callookDX3") + "<br>"];
+      html.push(
         "<br>" + I18N("gt.callookDX4") + " <font color='orange'> " +
         callsign +
         "</font> " + I18N("gt.callookDX5") + " <font color='yellow'> " +
         where +
-        "</font><br>";
-      worker +=
-        "<br><br>" + I18N("gt.callookDX6") + "<br>";
-      worker += I18N("gt.callookDX7") + "<br></center>";
+        "</font><br>");
+      html.push(
+        "<br><br>" + I18N("gt.callookDX6") + "<br>");
+      html.push(I18N("gt.callookDX7") + "<br></center>");
 
-      setLookupDiv("lookupInfoDiv", worker);
+      setLookupDiv("lookupInfoDiv", html.join(""));
     }
   }
 }
@@ -14168,11 +14114,11 @@ function searchLogForCallsign(call)
     })
     .sort(GT.settings.app.myBandCompare);
 
-    let worker = "";
+  const html = [];
 
   if (call in GT.acknowledgedCalls)
   {
-    worker = "<h3>" + I18N("gt.lookup.acks") + " " + formatCallsign(call) + " <img class='lookupAckBadge' src='" + GT.acknowledgedCalls[call].badge + "'> " + GT.acknowledgedCalls[call].message + "</h3>";
+    html = ["<h3>" + I18N("gt.lookup.acks") + " " + formatCallsign(call) + " <img class='lookupAckBadge' src='" + GT.acknowledgedCalls[call].badge + "'> " + GT.acknowledgedCalls[call].message + "</h3>"];
   }
 
   let work = {};
@@ -14196,47 +14142,47 @@ function searchLogForCallsign(call)
     }
     else if (!(what in conf)) work[what] = GT.pskColors[list[row].band];
   }
-  worker += "<div class='mapItemNoSize'><table align='center' class='darkTable'>";
+  html.push("<div class='mapItemNoSize'><table align='center' class='darkTable'>");
   if (Object.keys(work).length > 0)
   {
-    worker += "<tr><th style='color:yellow'>Worked</th><td>";
+    html.push("<tr><th style='color:yellow'>Worked</th><td>");
     let k = Object.keys(work).sort();
     for (let key in k)
     {
-      worker += "<font color='#" + work[k[key]] + "'>" + k[key] + " </font>";
+      html.push("<font color='#" + work[k[key]] + "'>" + k[key] + " </font>");
     }
-    worker += "</td></tr>";
+    html.push("</td></tr>");
   }
   if (Object.keys(conf).length > 0)
   {
-    worker += "<tr><th style='color:lightgreen'>Confirmed</th><td>";
+    html.push("<tr><th style='color:lightgreen'>Confirmed</th><td>");
     let k = Object.keys(conf).sort();
     for (let key in k)
     {
-      worker += "<font color='#" + conf[k[key]] + "'>" + k[key] + " </font>";
+      html.push("<font color='#" + conf[k[key]] + "'>" + k[key] + " </font>");
     }
-    worker += "</td></tr>";
+    html.push("</td></tr>");
   }
   if (lastRow)
   {
-    worker += "<tr><th style='color:cyan'>Last QSO</th><td>";
-    worker += "<font color='#" + GT.pskColors[list[lastRow].band] + "'>" + list[lastRow].band + "," + list[lastRow].mode + " </font> " + userTimeString(list[lastRow].time * 1000);
-    worker += "</td></tr>";
+    html.push("<tr><th style='color:cyan'>Last QSO</th><td>");
+    html.push("<font color='#" + GT.pskColors[list[lastRow].band] + "'>" + list[lastRow].band + "," + list[lastRow].mode + " </font> " + userTimeString(list[lastRow].time * 1000));
+    html.push("</td></tr>");
   }
 
-  worker += "<tr><th style='color:orange'>" + GT.dxccToAltName[dxcc] + " (" + GT.dxccInfo[dxcc].pp + ")</th><td>";
+  html.push("<tr><th style='color:orange'>" + GT.dxccToAltName[dxcc] + " (" + GT.dxccInfo[dxcc].pp + ")</th><td>");
   for (let band in GT.colorBands)
   {
     if (String(dxcc) + "|" + GT.colorBands[band] in GT.tracker.worked.dxcc)
     {
       let strike = "";
       if (String(dxcc) + "|" + GT.colorBands[band] in GT.tracker.confirmed.dxcc) { strike = "text-decoration: underline overline;"; }
-      worker += "<div style='" + strike + "display:inline-block;color:#" + GT.pskColors[GT.colorBands[band]] + "'>" + GT.colorBands[band] + "</div>&nbsp;";
+      html.push("<div style='" + strike + "display:inline-block;color:#" + GT.pskColors[GT.colorBands[band]] + "'>" + GT.colorBands[band] + "</div>&nbsp;");
     }
   }
 
-  worker += "</td></tr></table></div>";
-  setLookupDiv("lookupLocalDiv", worker);
+  html.push("</td></tr></table></div>");
+  setLookupDiv("lookupLocalDiv", html.join(""));
 }
 
 function startGenMessages(call, grid, instance = null)

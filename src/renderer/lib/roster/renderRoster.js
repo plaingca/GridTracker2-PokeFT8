@@ -55,7 +55,7 @@ function renderRoster(callRoster, rosterSettings)
     sortCallList(visibleCallList, CR.rosterSettings.sortColumn, CR.rosterSettings.sortReverse);
   }
 
-  let worker = CR.rosterSettings.compact ? renderCompactRosterHeaders() : renderNormalRosterHeaders(rosterColumns);
+  const html = [CR.rosterSettings.compact ? renderCompactRosterHeaders() : renderNormalRosterHeaders(rosterColumns)];
 
   // Third loop: render all rows
   for (const x in visibleCallList)
@@ -79,10 +79,10 @@ function renderRoster(callRoster, rosterSettings)
       }
     }
 
-    worker += CR.rosterSettings.compact ? renderCompactRosterRow(callObj, multiInstance || multiBand) : renderNormalRosterRow(rosterColumns, callObj);
+    html.push(CR.rosterSettings.compact ? renderCompactRosterRow(callObj, multiInstance || multiBand) : renderNormalRosterRow(rosterColumns, callObj));
   }
 
-  worker += CR.rosterSettings.compact ? renderCompactRosterFooter() : renderNormalRosterFooter();
+  html.push(CR.rosterSettings.compact ? renderCompactRosterFooter() : renderNormalRosterFooter());
 
-  RosterTable.innerHTML = worker;
+  RosterTable.innerHTML = html.join("");
 }
