@@ -3030,10 +3030,8 @@ function reloadInfo()
 }
 
 function maidenheadFieldToBounds(qth) {
-  const grid = qth.toUpperCase();
-
-  const lo1 = (grid.charCodeAt(0) - 65) * 20 - 180;
-  const la1 = (grid.charCodeAt(1) - 65) * 10 - 90;
+  const lo1 = ((qth.charCodeAt(0) & 0xDF) - 65) * 20 - 180;
+  const la1 = ((qth.charCodeAt(1) & 0xDF) - 65) * 10 - 90;
 
   return {
     la1,
@@ -3043,13 +3041,12 @@ function maidenheadFieldToBounds(qth) {
   };
 }
 
-function squareToCenter(qth)
-{
-  let LL = maidenheadToBounds(qth, true);
-  let obj = {};
-  obj.a = LL.la2 - (LL.la2 - LL.la1) / 2;
-  obj.o = LL.lo2 - (LL.lo2 - LL.lo1) / 2;
-  return obj;
+function squareToCenter(qth) {
+  const LL = maidenheadToBounds(qth, true);
+  return {
+    a: (LL.la1 + LL.la2) * 0.5,
+    o: (LL.lo1 + LL.lo2) * 0.5
+  };
 }
 
 // Pre-computed constants
