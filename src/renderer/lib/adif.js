@@ -1,6 +1,7 @@
 // GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
+const { webUtils } = require('electron');
 
 GT.confSrcNames = {
   C: "Clublog",
@@ -2100,8 +2101,8 @@ function sendLotwLogEntry(report, callsignFile, gridFile)
       {
         if (stderr.indexOf("Final Status: Success") < 0)
         {
-          logError("TQSL: " + stderr);
           addLastTraffic("<font style='color:orange'>Fail log to TQSL<br/>Queued for retry</font>");
+          logError("TQSL: " + stderr);
         }
         else
         {

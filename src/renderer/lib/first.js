@@ -8,13 +8,17 @@ const dns = require("node:dns");
 const path = require("path");
 const fs = require("fs");
 const process = require("process");
-const { webUtils } = require('electron');
 
 const originalConsole = {
   log: console.log.bind(console),
   error: console.error.bind(console),
   warn: console.warn.bind(console)
 };
+
+function logError(...args)
+{
+  sendToElectron("log", args);
+}
 
 function serializeForLog(value)
 {
