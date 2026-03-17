@@ -78,7 +78,7 @@ function parseAdifBufferFast(buffer, onRecord) {
       continue;
     }
 
-    if (parts.length > 1 && GT.strictAdif[fieldName] !== undefined) {
+    if (parts.length > 1 && fieldName in GT.strictAdif) {
       const fieldLength = parseInt(parts[1], 10);
       if (!isNaN(fieldLength)) {
         let valueStart = endTag + 1;
