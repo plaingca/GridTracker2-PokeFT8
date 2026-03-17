@@ -5661,7 +5661,7 @@ function handleInstanceStatus(newMessage)
           LL = squareToCenter(GT.myDXGrid);
           toPoint = ol.proj.fromLonLat([LL.o, LL.a]);
         }
-        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 &&cDXcallDXCC > 0)
+        else if (GT.settings.map.qrzDxccFallback && DXcall.length > 0 && DXcallDXCC > 0)
         {
           toPoint = ol.proj.fromLonLat([GT.dxccInfo[DXcallDXCC].lon, GT.dxccInfo[DXcallDXCC].lat]);
 
