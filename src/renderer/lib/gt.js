@@ -1421,6 +1421,69 @@ function changePathValues()
   styleAllFlightPaths();
 }
 
+// Initially from https://pskreporter.info/
+// Many many thanks!!!
+function flightFeature(points, opts, layer, canAnimate) {
+  let steps = opts.steps;
+  // Map coords into lat lngs
+  let start = ol.proj.toLonLat(points[0]);
+  let end = ol.proj.toLonLat(points[1]);
+  let generator = new arc.GreatCircle({ x: start[0], y: start[1] }, { x: end[0], y: end[1] });
+  let path = generator.Arc(steps, { offset: 10 });
+
+  let line = [];
+  let geom = path.geometries;
+  let lonOff = 0;
+  let lastc = 0;
+  for (const j in geom) 
+  {
+    for (const i in geom[j].coords)
+    {
+      const c = geom[j].coords[i];
+      if (isNaN(c[0])) continue;
+      // wrapped?
+      if (Math.abs(lastc - c[0]) > 270) (c[0] < lastc) ? lonOff += 360 : lonOff -= 360;
+      lastc = c[0];
+      line.push(ol.proj.fromLonLat([ lastc + lonOff, c[1]]));
+    }
+  }
+  if (line.length == 0) line.push(ol.proj.fromLonLat(start));
+
+  let dash = [];
+  let dashOff = 0;
+  if (canAnimate == true && GT.settings.map.animate == true)
+  {
+    dash = GT.flightPathLineDash;
+    dashOff = GT.flightPathTotal - GT.flightPathOffset;
+  }
+
+  let featureArrow = new ol.Feature(new ol.geom.Point(line[0]));
+  let feature = new ol.Feature({ geometry: new ol.geom.LineString(line), prop: 'flight' });
+
+  if (GT.useTransform)
+  {
+    featureArrow.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
+    feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
+  }
+
+  feature.setStyle(new ol.style.Style({ stroke: new ol.style.Stroke({ color: opts.color, width: opts.weight, lineDash: dash, lineDashOffset:dashOff}) }));
+
+  let stroke = new ol.style.Stroke({color: opts.color, width: opts.weight});
+  let thisStyle =  new ol.style.Style({
+   image: new ol.style.Circle({
+                stroke: stroke,
+                radius: 3
+                })
+    });
+
+  featureArrow.setStyle(thisStyle);
+  feature.Arrow = featureArrow;
+
+  GT.layerSources[layer].addFeature(featureArrow);
+  GT.layerSources[layer].addFeature(feature);
+  return feature;
+}
+
 function styleAllFlightPaths()
 {
   for (let i = GT.flightPaths.length - 1; i >= 0; i--)
@@ -3680,83 +3743,69 @@ function removeFlightPathsAndDimSquares()
 
 GT.isAnimating = false;
 
-function setAnimate(enabled)
-{
-  if (enabled && GT.isAnimating == false)
-  {
+function setAnimate(enabled) {
+  if (enabled && !GT.isAnimating) {
     GT.isAnimating = true;
     requestAnimationFrame(animatePaths);
+  } else if (!enabled) {
+    GT.isAnimating = false;
   }
-  if (enabled == false) GT.isAnimating = false;
 }
 
-function animatePaths()
-{
-  if (GT.settings.map.animate == false)
-  {
+function animatePaths() {
+  // 1. Exit early if animations are disabled globally or the loop was stopped
+  if (!GT.settings.map.animate || !GT.isAnimating) {
     GT.isAnimating = false;
     return;
   } 
 
-  GT.animateFrame++;
-  GT.animateFrame %= GT.settings.map.animateSpeed;
+  // 2. Cache pointers
+  const paths = GT.flightPaths;
+  const pathsLen = paths.length;
+  const txPath = GT.transmitFlightPath;
+  const dazzle = GT.dazzleGrid;
 
-  let requestAnimation = false;
-
-  if (GT.animateFrame > 0) 
-  {
-    setAnimate(false);
-    if (GT.flightPaths.length > 0 || GT.transmitFlightPath || GT.dazzleGrid)
-    {
-      setAnimate(true);
-    }
+  // 3. Stop loop automatically if there is absolutely nothing to animate
+  if (pathsLen === 0 && !txPath && !dazzle) {
+    GT.isAnimating = false;
     return;
   }
 
-  GT.flightPathOffset += 1;
-  GT.flightPathOffset %= GT.flightPathTotal;
+  // 4. Queue the next frame immediately (Best practice for smooth rAF timing)
+  requestAnimationFrame(animatePaths);
 
-  let targetOffset = GT.flightPathTotal - GT.flightPathOffset;
-  let featureStyle = null;
-  let featureStroke = null;
-  for (let i = 0; i < GT.flightPaths.length; i++)
-  {
-    if (GT.flightPaths[i].isShapeFlight == 0)
-    {
-      featureStyle = GT.flightPaths[i].getStyle();
-      featureStroke = featureStyle.getStroke();
-      featureStroke.setLineDashOffset(targetOffset);
-      GT.flightPaths[i].setStyle(featureStyle);
-      requestAnimation = true;
+  // 5. Handle frame skipping (Speed Control)
+  GT.animateFrame++;
+  GT.animateFrame %= GT.settings.map.animateSpeed;
+  if (GT.animateFrame > 0) return; // Skip updating visuals this frame
+
+  // 6. Calculate the new line dash offset
+  GT.flightPathOffset++;
+  GT.flightPathOffset %= GT.flightPathTotal;
+  const targetOffset = GT.flightPathTotal - GT.flightPathOffset;
+
+  // 7. Update flight paths
+  for (let i = 0; i < pathsLen; i++) {
+    const path = paths[i];
+    if (path.isShapeFlight === 0) {
+      // Mutate the stroke directly
+      path.getStyle().getStroke().setLineDashOffset(targetOffset);
+      // Tell OpenLayers to re-render, avoiding the heavy setStyle() teardown
+      path.changed();
     }
   }
 
-  if (GT.transmitFlightPath != null)
-  {
-    let featureStyle = GT.transmitFlightPath.getStyle();
-    let featureStroke = featureStyle.getStroke();
-
-    featureStroke.setLineDashOffset(targetOffset);
-
-    featureStyle.setStroke(featureStroke);
-    GT.transmitFlightPath.setStyle(featureStyle);
-    requestAnimation = true;
+  // 8. Update transmit path
+  if (txPath) {
+    txPath.getStyle().getStroke().setLineDashOffset(targetOffset);
+    txPath.changed();
   }
 
-  if (GT.dazzleGrid != null)
-  {
-    let featureStyle = GT.dazzleGrid.getStyle();
-    let featureStroke = featureStyle.getStroke();
-
-    featureStroke.setLineDashOffset(targetOffset);
-
-    featureStyle.setStroke(featureStroke);
-    GT.dazzleGrid.setStyle(featureStyle);
-    requestAnimation = true;
+  // 9. Update dazzle grid
+  if (dazzle) {
+    dazzle.getStyle().getStroke().setLineDashOffset(targetOffset);
+    dazzle.changed();
   }
-
-  setAnimate(false);
-  if (requestAnimation) setAnimate(requestAnimation);
 }
 
 function removePaths()
@@ -3776,15 +3825,22 @@ function fadePaths()
 function dimGridsquare()
 {
   if (gridDecay.value == 0) return;
-  for (let i in GT.liveGrids)
+  
+  const liveGridKeys = Object.keys(GT.liveGrids);
+  for (let idx = 0; idx < liveGridKeys.length; idx++)
   {
-    dimFunction(GT.liveGrids[i]);
+    const i = liveGridKeys[idx];
+    const liveGrid = GT.liveGrids[i];
+    
+    dimFunction(liveGrid);
 
-    if (GT.timeNow - GT.liveGrids[i].age >= gridDecay.value && GT.liveGrids[i].rectangle.locked == false)
+    if (GT.timeNow - liveGrid.age >= gridDecay.value && liveGrid.rectangle.locked == false)
     {
       // Walk the rectangles DEcall's and remove them from GT.liveCallsigns
-      for (let CallIsKey in GT.liveGrids[i].rectangle.liveHash)
+      const liveHashKeys = Object.keys(liveGrid.rectangle.liveHash);
+      for (let hIdx = 0; hIdx < liveHashKeys.length; hIdx++)
       {
+        const CallIsKey = liveHashKeys[hIdx];
         if (CallIsKey in GT.liveCallsigns)
         {
           let dxcc = GT.liveCallsigns[CallIsKey].dxcc;
@@ -3796,16 +3852,18 @@ function dimGridsquare()
           delete GT.liveCallsigns[CallIsKey];
         }
       }
-      if (GT.liveGrids[i].rectangle.pin != null)
+      
+      if (liveGrid.rectangle.pin != null)
       {
-        if (GT.layerSources.livePins.hasFeature(GT.liveGrids[i].rectangle.pin))
+        if (GT.layerSources.livePins.hasFeature(liveGrid.rectangle.pin))
         {
-          GT.layerSources.livePins.removeFeature(GT.liveGrids[i].rectangle.pin);
+          GT.layerSources.livePins.removeFeature(liveGrid.rectangle.pin);
         }
       }
-      if (GT.layerSources.live.hasFeature(GT.liveGrids[i].rectangle))
+      
+      if (GT.layerSources.live.hasFeature(liveGrid.rectangle))
       {
-        GT.layerSources.live.removeFeature(GT.liveGrids[i].rectangle);
+        GT.layerSources.live.removeFeature(liveGrid.rectangle);
 
         if (GT.settings.app.gridViewMode == 3 && i in GT.qsoGrids)
         {
@@ -8508,21 +8566,25 @@ function renderStatsBox()
 
     scoreSection = "QSO";
 
-    for (let i in GT.QSOhash)
+    const qsoKeys = Object.keys(GT.QSOhash);
+    for (let idx = 0; idx < qsoKeys.length; idx++)
     {
-      let finalGrid = GT.QSOhash[i].grid;
-      let didConfirm = GT.QSOhash[i].confirmed;
-      let band = GT.QSOhash[i].band;
-      let mode = GT.QSOhash[i].mode;
-      let state = GT.QSOhash[i].state;
-      let cont = GT.QSOhash[i].cont;
-      let finalDxcc = GT.QSOhash[i].dxcc;
-      let cnty = GT.QSOhash[i].cnty;
-      let ituz = GT.QSOhash[i].ituz;
-      let cqz = GT.QSOhash[i].cqz;
-      let wpx = GT.QSOhash[i].px;
-      let call = GT.QSOhash[i].DXcall;
-      let who = GT.QSOhash[i].DEcall;
+      const i = qsoKeys[idx];
+      const qsoObj = GT.QSOhash[i];
+      
+      let finalGrid = qsoObj.grid;
+      let didConfirm = qsoObj.confirmed;
+      let band = qsoObj.band;
+      let mode = qsoObj.mode;
+      let state = qsoObj.state;
+      let cont = qsoObj.cont;
+      let finalDxcc = qsoObj.dxcc;
+      let cnty = qsoObj.cnty;
+      let ituz = qsoObj.ituz;
+      let cqz = qsoObj.cqz;
+      let wpx = qsoObj.px;
+      let call = qsoObj.DXcall;
+      let who = qsoObj.DEcall;
       let type = getTypeFromMode(mode);
 
       if (!(who in callData)) callData[who] = newStatObject();
@@ -8531,8 +8593,8 @@ function renderStatsBox()
 
       details.callsigns[call] = ~~details.callsigns[call] + 1;
 
-      if (GT.QSOhash[i].time < details.oldest) { details.oldest = GT.QSOhash[i].time; }
-      if (GT.QSOhash[i].time > details.newest) { details.newest = GT.QSOhash[i].time; }
+      if (qsoObj.time < details.oldest) { details.oldest = qsoObj.time; }
+      if (qsoObj.time > details.newest) { details.newest = qsoObj.time; }
 
       workObject(modet.Mixed, true, band, mode, type, didConfirm);
 
@@ -8756,80 +8818,100 @@ function renderStatsBox()
 
     scoreSection = "Stats";
 
-    let stats = {};
-    let output = {};
+    const stats = {
+      DXCC: dxccInfo,
+      GRID: gridData,
+      CQ: cqZones,
+      ITU: ituZones,
+      WAC: wacZones,
+      WAS: wasZones,
+      WACP: wacpZones,
+      USC: countyData,
+      WPX: wpxData,
+      WRFA: callData
+    };
 
-    dxccInfo.order = 1;
-    stats.DXCC = dxccInfo;
-    stats.GRID = gridData;
-    stats.CQ = cqZones;
-    stats.ITU = ituZones;
-    stats.WAC = wacZones;
-    stats.WAS = wasZones;
-    stats.WACP = wacpZones;
-    stats.USC = countyData;
-    stats.WPX = wpxData;
-    stats.WRFA = callData;
+    const output = {};
+    const statKeys = Object.keys(stats);
 
-    for (i in stats)
+    for (let sIdx = 0; sIdx < statKeys.length; sIdx++)
     {
-      output[i] = newStatCountObject();
-
-      for (let key in stats[i])
+      const statName = statKeys[sIdx];
+      const currentStat = stats[statName];
+      const outObj = output[statName] = newStatCountObject();
+      
+      const subKeys = Object.keys(currentStat);
+      
+      for (let kIdx = 0; kIdx < subKeys.length; kIdx++)
       {
-        if (stats[i][key].worked)
+        const key = subKeys[kIdx];
+        const statItem = currentStat[key];
+
+        if (statItem.worked)
         {
-          output[i].worked++;
-          if (stats[i][key].worked > output[i].worked_high)
+          outObj.worked++;
+          if (statItem.worked > outObj.worked_high)
           {
-            output[i].worked_high = stats[i][key].worked;
-            output[i].worked_high_key = key;
+            outObj.worked_high = statItem.worked;
+            outObj.worked_high_key = key;
           }
         }
-        if (stats[i][key].confirmed)
+        if (statItem.confirmed)
         {
-          output[i].confirmed++;
-          if (stats[i][key].confirmed > output[i].confirmed_high)
+          outObj.confirmed++;
+          if (statItem.confirmed > outObj.confirmed_high)
           {
-            output[i].confirmed_high = stats[i][key].confirmed;
-            output[i].confirmed_high_key = key;
+            outObj.confirmed_high = statItem.confirmed;
+            outObj.confirmed_high_key = key;
           }
         }
 
-        for (let band in stats[i][key].worked_bands)
+        // V8 Fast Array Loops
+        const wBands = Object.keys(statItem.worked_bands);
+        for (let bIdx = 0; bIdx < wBands.length; bIdx++)
         {
-          output[i].worked_bands[band] = ~~output[i].worked_bands[band] + 1;
+          const band = wBands[bIdx];
+          outObj.worked_bands[band] = ~~outObj.worked_bands[band] + 1;
         }
 
-        for (let band in stats[i][key].confirmed_bands)
+        const cBands = Object.keys(statItem.confirmed_bands);
+        for (let bIdx = 0; bIdx < cBands.length; bIdx++)
         {
-          output[i].confirmed_bands[band] = ~~output[i].confirmed_bands[band] + 1;
+          const band = cBands[bIdx];
+          outObj.confirmed_bands[band] = ~~outObj.confirmed_bands[band] + 1;
         }
 
-        for (let mode in stats[i][key].worked_modes)
+        const wModes = Object.keys(statItem.worked_modes);
+        for (let mIdx = 0; mIdx < wModes.length; mIdx++)
         {
-          output[i].worked_modes[mode] = ~~output[i].worked_modes[mode] + 1;
+          const mode = wModes[mIdx];
+          outObj.worked_modes[mode] = ~~outObj.worked_modes[mode] + 1;
         }
 
-        for (let mode in stats[i][key].confirmed_modes)
+        const cModes = Object.keys(statItem.confirmed_modes);
+        for (let mIdx = 0; mIdx < cModes.length; mIdx++)
         {
-          output[i].confirmed_modes[mode] = ~~output[i].confirmed_modes[mode] + 1;
+          const mode = cModes[mIdx];
+          outObj.confirmed_modes[mode] = ~~outObj.confirmed_modes[mode] + 1;
         }
 
-        for (let type in stats[i][key].worked_types)
+        const wTypes = Object.keys(statItem.worked_types);
+        for (let tIdx = 0; tIdx < wTypes.length; tIdx++)
         {
-          output[i].worked_types[type] = ~~output[i].worked_types[type] + 1;
+          const type = wTypes[tIdx];
+          outObj.worked_types[type] = ~~outObj.worked_types[type] + 1;
         }
 
-        for (let type in stats[i][key].confirmed_types)
+        const cTypes = Object.keys(statItem.confirmed_types);
+        for (let tIdx = 0; tIdx < cTypes.length; tIdx++)
         {
-          output[i].confirmed_types[type] = ~~output[i].confirmed_types[type] + 1;
+          const type = cTypes[tIdx];
+          outObj.confirmed_types[type] = ~~outObj.confirmed_types[type] + 1;
         }
       }
 
-      stats[i] = null;
+      stats[statName] = null; // Free pointer memory early
     }
-
     scoreSection = "Modes";
 
     output.MIXED = modet.Mixed;
@@ -8838,225 +8920,143 @@ function renderStatsBox()
     output.CW = modet.CW;
     output.Other = modet.Other;
 
-    for (let i in output)
+    // V8-Friendly Array loop instead of for...in
+    const outKeys = Object.keys(output);
+    for (let i = 0; i < outKeys.length; i++)
     {
-      output[i].worked_band_count = Object.keys(output[i].worked_bands).length;
-      output[i].confirmed_band_count = Object.keys(
-        output[i].confirmed_bands
-      ).length;
-      output[i].worked_mode_count = Object.keys(output[i].worked_modes).length;
-      output[i].confirmed_mode_count = Object.keys(
-        output[i].confirmed_modes
-      ).length;
-      output[i].worked_type_count = Object.keys(output[i].worked_types).length;
-      output[i].confirmed_type_count = Object.keys(
-        output[i].confirmed_types
-      ).length;
+      const out = output[outKeys[i]];
+      out.worked_band_count = Object.keys(out.worked_bands).length;
+      out.confirmed_band_count = Object.keys(out.confirmed_bands).length;
+      out.worked_mode_count = Object.keys(out.worked_modes).length;
+      out.confirmed_mode_count = Object.keys(out.confirmed_modes).length;
+      out.worked_type_count = Object.keys(out.worked_types).length;
+      out.confirmed_type_count = Object.keys(out.confirmed_types).length;
     }
 
-    let TypeNames = {
-      0: ["MIXED", I18N("gt.typeNames.Mixed"), ""],
-      1: ["DIGITAL", I18N("gt.typeNames.Digital"), ""],
-      2: ["PHONE", I18N("gt.typeNames.Phone"), ""],
-      3: ["CW", I18N("gt.typeNames.CW"), ""],
-      4: ["Other", I18N("gt.typeNames.Other"), ""]
-    };
+    // Converted to native Arrays instead of numeric-key Objects
+    const TypeNames = [
+      ["MIXED", I18N("gt.typeNames.Mixed"), ""],
+      ["DIGITAL", I18N("gt.typeNames.Digital"), ""],
+      ["PHONE", I18N("gt.typeNames.Phone"), ""],
+      ["CW", I18N("gt.typeNames.CW"), ""],
+      ["Other", I18N("gt.typeNames.Other"), ""]
+    ];
 
-    let AwardNames = {
-      0: ["WRFA", I18N("gt.awardNames.WRFA"), "WRFA", "yellow"],
-      1: ["GRID", I18N("gt.awardNames.Grid"), "GSA", "cyan"],
-      2: ["DXCC", I18N("gt.awardNames.DXCC"), "DXWA", "orange"],
-      3: ["CQ", I18N("gt.awardNames.CQ"), "WAZ", "lightgreen"],
-      4: ["ITU", I18N("gt.awardNames.ITU"), "ITUz", "#DD44DD"],
-      5: ["WAC", I18N("gt.awardNames.WAC"), "WAC", "cyan"],
-      6: ["WAS", I18N("gt.awardNames.WAS"), "WAS", "lightblue"],
-      7: ["USC", I18N("gt.awardNames.USC"), "USA-CA", "orange"],
-      8: ["WPX", I18N("gt.awardNames.WPX"), "WPX", "yellow"],
-      9: ["WACP", "CA Provinces", "WACP", "lightblue"]
-    };
+    const AwardNames = [
+      ["WRFA", I18N("gt.awardNames.WRFA"), "WRFA", "yellow"],
+      ["GRID", I18N("gt.awardNames.Grid"), "GSA", "cyan"],
+      ["DXCC", I18N("gt.awardNames.DXCC"), "DXWA", "orange"],
+      ["CQ", I18N("gt.awardNames.CQ"), "WAZ", "lightgreen"],
+      ["ITU", I18N("gt.awardNames.ITU"), "ITUz", "#DD44DD"],
+      ["WAC", I18N("gt.awardNames.WAC"), "WAC", "cyan"],
+      ["WAS", I18N("gt.awardNames.WAS"), "WAS", "lightblue"],
+      ["USC", I18N("gt.awardNames.USC"), "USA-CA", "orange"],
+      ["WPX", I18N("gt.awardNames.WPX"), "WPX", "yellow"],
+      ["WACP", "CA Provinces", "WACP", "lightblue"]
+    ];
 
-    html.push("<font color='cyan'>");
-    html.push("<h1>" + I18N("gt.logbook.title") + "</h1>");
-    html.push("<table style='display:inline-table;margin:5px;' class='darkTable'>");
+    const callsignsCount = Object.keys(details.callsigns).length;
+    const callsignsList = Object.keys(details.callsigns).sort().join(", ");
+    const distUnitStr = distanceUnit.value.toLowerCase();
 
-    let ws = "";
-    if (Object.keys(details.callsigns).length > 1) ws = "s";
-    html.push(
-      "<tr><td>Callsign" +
-      ws +
-      "</td><td style='color:yellow' ><b>" +
-      Object.keys(details.callsigns).sort().join(", ") +
-      "</b></td></tr>");
-    html.push(
-      "<tr><td>" + I18N("gt.logbook.firstContact") + "</td><td style='color:white' >" +
-      userTimeString(details.oldest * 1000) +
-      "</td></tr>");
-    html.push(
-      "<tr><td>" + I18N("gt.logbook.lastContact") + "</td><td style='color:white' >" +
-      userTimeString(details.newest * 1000) +
-      "</td></tr>");
-    html.push("</table>");
-    html.push("<br>");
-    html.push("<h1>" + I18N("gt.logbook.scoreCard") + "</h1>");
-    html.push("<table style='display:inline-table;margin:5px;' class='darkTable'>");
-    html.push("<tr><th>" + I18N("gt.logbook.topScore") + "</th>" + "<th style='color:yellow'>" + I18N("gt.logbook.worked") + "</th>" + "<th style='color:lightgreen'>" + I18N("gt.logbook.confirmed") + "</th></tr>");
+    // Template Literals drastically improve HTML readability
+    html.push(`<font color='cyan'>`);
+    html.push(`<h1>${I18N("gt.logbook.title")}</h1>`);
+    html.push(`<table style='display:inline-table;margin:5px;' class='darkTable'>`);
+    
+    html.push(`<tr><td>Callsign${callsignsCount > 1 ? "s" : ""}</td><td style='color:yellow'><b>${callsignsList}</b></td></tr>`);
+    html.push(`<tr><td>${I18N("gt.logbook.firstContact")}</td><td style='color:white'>${userTimeString(details.oldest * 1000)}</td></tr>`);
+    html.push(`<tr><td>${I18N("gt.logbook.lastContact")}</td><td style='color:white'>${userTimeString(details.newest * 1000)}</td></tr>`);
+    
+    html.push(`</table><br>`);
+    
+    html.push(`<h1>${I18N("gt.logbook.scoreCard")}</h1>`);
+    html.push(`<table style='display:inline-table;margin:5px;' class='darkTable'>`);
+    html.push(`<tr><th>${I18N("gt.logbook.topScore")}</th><th style='color:yellow'>${I18N("gt.logbook.worked")}</th><th style='color:lightgreen'>${I18N("gt.logbook.confirmed")}</th></tr>`);
 
-    for (let key in AwardNames)
+    for (let i = 0; i < AwardNames.length; i++)
     {
-      scoreSection = "Award " + AwardNames[key][1];
-      let infoObject = output[AwardNames[key][0]];
-      html.push("<tr><td style='color:white'>" + AwardNames[key][1] + "</td>");
-      html.push(
-        "<td style='color:" +
-        AwardNames[key][3] +
-        "'>" +
-        infoObject.worked_high_key +
-        "<font color='white'> (" +
-        infoObject.worked_high +
-        ")</font></td>");
-
-      if (infoObject.confirmed_high_key)
+      const [awdId, awdLabel, awdCode, color] = AwardNames[i];
+      scoreSection = "Award " + awdLabel;
+      
+      const info = output[awdId];
+      
+      let confirmedHtml = `<td></td>`;
+      if (info.confirmed_high_key)
       {
-        html.push(
-          "<td style='color:" +
-          AwardNames[key][3] +
-          "'>" +
-          infoObject.confirmed_high_key +
-          "<font color='white'> (" +
-          infoObject.confirmed_high +
-          ")</font></td>");
+        confirmedHtml = `<td style='color:${color}'>${info.confirmed_high_key}<font color='white'> (${info.confirmed_high})</font></td>`;
       }
-      else html.push("<td></td>");
 
-      html.push("</tr>");
+      html.push(`<tr><td style='color:white'>${awdLabel}</td>` +
+                `<td style='color:${color}'>${info.worked_high_key}<font color='white'> (${info.worked_high})</font></td>` +
+                confirmedHtml +
+                `</tr>`);
     }
+
+    // Helper to format Distance Cells cleanly
+    const buildDistCell = (distObj, unitColor, isConfirmed) => {
+      const hash = isConfirmed ? distObj.confirmed_hash : distObj.worked_hash;
+      const val = isConfirmed ? distObj.confirmed_unit : distObj.worked_unit;
+      
+      let res = `<td style='color:${unitColor}'>${val} ${distUnitStr}`;
+      
+      // Pointer cache avoids slow "in" prototype lookups
+      const qso = hash ? GT.QSOhash[hash] : null; 
+      if (qso && (!isConfirmed || val > 0)) {
+        res += `<font style='color:yellow'> ${qso.DEcall}</font><font style='color:orange'> ${qso.grid}</font>`;
+      } else if (isConfirmed) {
+        return `<td></td>`;
+      }
+      
+      return res + `</td>`;
+    };
 
     scoreSection = "Long Distance";
-
-    html.push("<tr><td style='color:white'>" + I18N("gt.score.LongDist") + "</td>");
-    html.push(
-      "<td style='color:lightgreen'>" +
-      long_distance.worked_unit +
-      " " +
-      distanceUnit.value.toLowerCase());
-    if (long_distance.worked_hash && long_distance.worked_hash.length > 0 && long_distance.worked_hash in GT.QSOhash)
-    {
-      html.push(
-        "<font style='color:yellow' > " +
-        GT.QSOhash[long_distance.worked_hash].DEcall +
-        "</font>");
-      html.push(
-        "<font style='color:orange' > " +
-        GT.QSOhash[long_distance.worked_hash].grid +
-        "</font>");
-    }
-    html.push("</td>");
-
-    if (long_distance.confirmed_hash && long_distance.confirmed_hash.length > 0 && long_distance.confirmed_unit > 0 && long_distance.confirmed_hash in GT.QSOhash)
-    {
-      html.push(
-        "<td style='color:lightgreen'>" +
-        long_distance.confirmed_unit +
-        " " +
-        distanceUnit.value.toLowerCase());
-      html.push(
-        "<font style='color:yellow' > " +
-        GT.QSOhash[long_distance.confirmed_hash].DEcall +
-        "</font>");
-      html.push(
-        "<font style='color:orange' > " +
-        GT.QSOhash[long_distance.confirmed_hash].grid +
-        "</font></td>");
-    }
-    else html.push("<td></td>");
+    html.push(`<tr><td style='color:white'>${I18N("gt.score.LongDist")}</td>`);
+    html.push(buildDistCell(long_distance, "lightgreen", false));
+    html.push(buildDistCell(long_distance, "lightgreen", true));
+    html.push(`</tr>`);
 
     scoreSection = "Short Distance";
+    html.push(`<tr><td style='color:white'>${I18N("gt.score.ShortDist")}</td>`);
+    html.push(buildDistCell(short_distance, "lightblue", false));
+    html.push(buildDistCell(short_distance, "lightblue", true));
+    html.push(`</tr>`);
 
-    html.push("<tr><td style='color:white' >" + I18N("gt.score.ShortDist") + "</td>");
-    html.push(
-      "<td style='color:lightblue'>" +
-      short_distance.worked_unit +
-      " " +
-      distanceUnit.value.toLowerCase());
-    if (short_distance.worked_hash && short_distance.worked_hash.length > 0 && short_distance.worked_hash in GT.QSOhash)
-    {
-      html.push(
-        "<font style='color:yellow' > " +
-        GT.QSOhash[short_distance.worked_hash].DEcall +
-        "</font>");
-      html.push(
-        "<font style='color:orange' > " +
-        GT.QSOhash[short_distance.worked_hash].grid +
-        "</font>");
-    }
-    html.push("</td>");
-
-    if (short_distance.confirmed_hash && short_distance.confirmed_hash.length > 0 && short_distance.confirmed_unit > 0 && short_distance.confirmed_hash in GT.QSOhash)
-    {
-      html.push(
-        "<td style='color:lightblue'>" +
-        short_distance.confirmed_unit +
-        " " +
-        distanceUnit.value.toLowerCase());
-      html.push(
-        "<font style='color:yellow' > " +
-        GT.QSOhash[short_distance.confirmed_hash].DEcall +
-        "</font>");
-      html.push(
-        "<font style='color:orange' > " +
-        GT.QSOhash[short_distance.confirmed_hash].grid +
-        "</font></td>");
-    }
-    else html.push("<td></td>");
-
-    html.push("</tr>");
-    html.push("</table>");
-    html.push("<br>");
+    html.push(`</table><br>`);
 
     scoreSection = "DX Marathon";
-
     html.push(getDXMarathon());
 
-    html.push("<h1>" + I18N("gt.AwardTypes") + "</h1>");
-
+    html.push(`<h1>${I18N("gt.AwardTypes")}</h1>`);
     scoreSection = "Award Types";
-    for (let key in AwardNames)
+    for (let i = 0; i < AwardNames.length; i++)
     {
-      html.push( createStatTable(
-        AwardNames[key][1],
-        output[AwardNames[key][0]],
-        AwardNames[key][2]
-      ));
+      const [awdId, awdLabel, awdCode] = AwardNames[i];
+      html.push(createStatTable(awdLabel, output[awdId], awdCode));
     }
 
-    html.push("<br>");
+    html.push(`<br>`);
 
+    html.push(`<h1>${I18N("gt.ModeTypes")}</h1>`);
     scoreSection = "Mode Types";
-
-    html.push("<h1>" + I18N("gt.ModeTypes") + "</h1>");
-    for (let key in TypeNames)
+    for (let i = 0; i < TypeNames.length; i++)
     {
-      html.push( createStatTable(
-        TypeNames[key][1],
-        output[TypeNames[key][0]],
-        TypeNames[key][2]
-      ));
+      const [typeId, typeLabel, typeCode] = TypeNames[i];
+      html.push(createStatTable(typeLabel, output[typeId], typeCode));
     }
 
-    html.push("<br>");
+    html.push(`<br>`);
 
-    html.push("<h1>" + I18N("gt.Distances") + "</h1>");
+    html.push(`<h1>${I18N("gt.Distances")}</h1>`);
     scoreSection = "Distances";
     html.push(createDistanceTable(long_distance, I18N("gt.LongestDist")));
     html.push(createDistanceTable(short_distance, I18N("gt.ShortestDist")));
-    html.push("<br>");
+    html.push(`<br>`);
   }
   catch (e)
   {
-    html.push(
-      "<br> In Section: " +
-      scoreSection +
-      "<br>" + I18N("gt.scorecardError"));
+    html.push(`<br> In Section: ${scoreSection}<br>${I18N("gt.scorecardError")}`);
   }
 
   setStatsDiv("statViewDiv", html.join(""));
@@ -9417,18 +9417,23 @@ function validateMapBandAndMode(band, mode)
 
 function redrawLiveGrids(honorAge = true)
 {
-  for (let i in GT.liveCallsigns)
+  const callKeys = Object.keys(GT.liveCallsigns);
+  for (let idx = 0; idx < callKeys.length; idx++)
   {
-    if (GT.settings.app.gridViewMode != 2 && validateMapBandAndMode(GT.liveCallsigns[i].band, GT.liveCallsigns[i].mode) && (honorAge == false || (honorAge == true && GT.timeNow - GT.liveCallsigns[i].age <= gridDecay.value)))
+    const i = callKeys[idx];
+    const call = GT.liveCallsigns[i];
+    if (GT.settings.app.gridViewMode != 2 && validateMapBandAndMode(call.band, call.mode) && (honorAge == false || (honorAge == true && GT.timeNow - call.age <= gridDecay.value)))
     {
-      qthToBox(GT.liveCallsigns[i].grid, GT.liveCallsigns[i].DEcall, false, false, GT.liveCallsigns[i].DXcall, GT.liveCallsigns[i].band, GT.liveCallsigns[i].wspr, i, false);
+      qthToBox(call.grid, call.DEcall, false, false, call.DXcall, call.band, call.wspr, i, false);
     }
   }
+  
   if (honorAge == false)
   {
-    for (let i in GT.liveGrids)
+    const gridKeys = Object.keys(GT.liveGrids);
+    for (let idx = 0; idx < gridKeys.length; idx++)
     {
-      GT.liveGrids[i].age = GT.timeNow;
+      GT.liveGrids[gridKeys[idx]].age = GT.timeNow;
     }
   }
   else
@@ -9446,52 +9451,41 @@ function redrawGrids()
   GT.QSLcount = 0;
   GT.QSOcount = 0;
 
-  for (let i in GT.QSOhash)
+  const qsoKeys = Object.keys(GT.QSOhash);
+  for (let idx = 0; idx < qsoKeys.length; idx++)
   {
-    let finalGrid = GT.QSOhash[i].grid;
-    let worked = GT.QSOhash[i].worked;
-    let didConfirm = GT.QSOhash[i].confirmed;
-    let band = GT.QSOhash[i].band;
-    let mode = GT.QSOhash[i].mode;
+    const i = qsoKeys[idx];
+    const qsoObj = GT.QSOhash[i];
+    
+    let finalGrid = qsoObj.grid;
+    let worked = qsoObj.worked;
+    let didConfirm = qsoObj.confirmed;
+    let band = qsoObj.band;
+    let mode = qsoObj.mode;
+    
     GT.QSOcount++;
     if (didConfirm) GT.QSLcount++;
 
-    if (validateMapBandAndMode(GT.QSOhash[i].band, GT.QSOhash[i].mode) && validatePropMode(GT.QSOhash[i].propMode))
+    if (validateMapBandAndMode(band, mode) && validatePropMode(qsoObj.propMode))
     {
       if (GT.settings.app.gridViewMode > 1)
       {
         if (finalGrid.length > 0)
         {
-          qthToQsoBox(
-            GT.QSOhash[i].grid,
-            i,
-            false,
-            GT.QSOhash[i].DXcall,
-            GT.QSOhash[i].worked,
-            GT.QSOhash[i].confirmed,
-            GT.QSOhash[i].band
-          );
+          qthToQsoBox(finalGrid, i, false, qsoObj.DXcall, worked, didConfirm, band);
         }
-        for (let vucc in GT.QSOhash[i].vucc_grids)
+        for (let vuccIdx = 0; vuccIdx < qsoObj.vucc_grids.length; vuccIdx++)
         {
-          qthToQsoBox(
-            GT.QSOhash[i].vucc_grids[vucc],
-            i,
-            false,
-            GT.QSOhash[i].DXcall,
-            GT.QSOhash[i].worked,
-            GT.QSOhash[i].confirmed,
-            GT.QSOhash[i].band
-          );
+          qthToQsoBox(qsoObj.vucc_grids[vuccIdx], i, false, qsoObj.DXcall, worked, didConfirm, band);
         }
       }
 
-      let state = GT.QSOhash[i].state;
-      let cont = GT.QSOhash[i].cont;
-      let finalDxcc = GT.QSOhash[i].dxcc;
-      let cnty = GT.QSOhash[i].cnty;
-      let ituz = GT.QSOhash[i].ituz;
-      let cqz = GT.QSOhash[i].cqz;
+      let state = qsoObj.state;
+      let cont = qsoObj.cont;
+      let finalDxcc = qsoObj.dxcc;
+      let cnty = qsoObj.cnty;
+      let ituz = qsoObj.ituz;
+      let cqz = qsoObj.cqz;
 
       if (state != null && isKnownCallsignDXCC(finalDxcc))
       {
@@ -9552,6 +9546,7 @@ function redrawGrids()
           }
         }
       }
+      
       if (cont != null)
       {
         if (cont in GT.shapeData)
@@ -9649,9 +9644,9 @@ function redrawGrids()
         }
       }
 
-      for (let key in GT.QSOhash[i].vucc_grids)
+      for (let vIdx = 0; vIdx < qsoObj.vucc_grids.length; vIdx++)
       {
-        let grid = GT.QSOhash[i].vucc_grids[key].substr(0, 4);
+        let grid = qsoObj.vucc_grids[vIdx].substr(0, 4);
         if (grid in GT.us48Data)
         {
           GT.us48Data[grid].worked ||= worked;
@@ -9672,44 +9667,48 @@ function redrawGrids()
     }
   }
 
-  for (let layer in GT.viewInfo)
+  const viewKeys = Object.keys(GT.viewInfo);
+  for (let vIdx = 0; vIdx < viewKeys.length; vIdx++)
   {
+    let layer = viewKeys[vIdx];
     let search = GT[GT.viewInfo[layer][0]];
-    let worked = (confirmed = 0);
+    let worked = 0;
+    let confirmed = 0;
+    
+    const searchKeys = Object.keys(search);
 
     if (layer == 0)
     {
-      for (let key in search)
+      for (let sIdx = 0; sIdx < searchKeys.length; sIdx++)
       {
+        const key = searchKeys[sIdx];
         if (search[key].rectangle.worked) worked++;
         if (search[key].rectangle.confirmed) confirmed++;
       }
-      GT.viewInfo[layer][2] = worked;
-      GT.viewInfo[layer][3] = confirmed;
     }
     else if (layer == 5)
     {
-      for (let key in search)
+      for (let sIdx = 0; sIdx < searchKeys.length; sIdx++)
       {
+        const key = searchKeys[sIdx];
         if (search[key].geo != "deleted")
         {
           if (search[key].worked) worked++;
           if (search[key].confirmed) confirmed++;
         }
       }
-      GT.viewInfo[layer][2] = worked;
-      GT.viewInfo[layer][3] = confirmed;
     }
     else
     {
-      for (let key in search)
+      for (let sIdx = 0; sIdx < searchKeys.length; sIdx++)
       {
+        const key = searchKeys[sIdx];
         if (search[key].worked) worked++;
         if (search[key].confirmed) confirmed++;
       }
-      GT.viewInfo[layer][2] = worked;
-      GT.viewInfo[layer][3] = confirmed;
     }
+    GT.viewInfo[layer][2] = worked;
+    GT.viewInfo[layer][3] = confirmed;
   }
 
   redrawLiveGrids(false);
