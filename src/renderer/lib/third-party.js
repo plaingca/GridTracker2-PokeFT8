@@ -98,6 +98,97 @@ if (typeof module != 'undefined' && module.exports) {
     window['MyCircle'] = MyCircle;
 }
 
+
+// Initially from https://pskreporter.info/
+// Many many thanks!!!
+// --- 1. THE UPDATED FLIGHT FEATURE W/ SHARED STYLES ---
+function flightFeature(points, opts, layer, canAnimate) {
+  let steps = opts.steps;
+  let start = ol.proj.toLonLat(points[0]);
+  let end = ol.proj.toLonLat(points[1]);
+  let generator = new arc.GreatCircle({ x: start[0], y: start[1] }, { x: end[0], y: end[1] });
+  let path = generator.Arc(steps, { offset: 10 });
+
+  let line = [];
+  let geom = path.geometries;
+  let lonOff = 0;
+  let lastc = 0;
+  for (const j in geom) {
+    for (const i in geom[j].coords) {
+      const c = geom[j].coords[i];
+      if (isNaN(c[0])) continue;
+      if (Math.abs(lastc - c[0]) > 270) (c[0] < lastc) ? lonOff += 360 : lonOff -= 360;
+      lastc = c[0];
+      line.push(ol.proj.fromLonLat([ lastc + lonOff, c[1]]));
+    }
+  }
+  if (line.length == 0) line.push(ol.proj.fromLonLat(start));
+
+  let dash = [];
+  let dashOff = 0;
+  if (canAnimate == true && GT.settings.map.animate == true) {
+    dash = GT.flightPathLineDash;
+    dashOff = GT.flightPathTotal - GT.flightPathOffset;
+  }
+
+  let featureArrow = new ol.Feature(new ol.geom.Point(line[0]));
+  let feature = new ol.Feature({ geometry: new ol.geom.LineString(line), prop: 'flight' });
+
+  if (GT.useTransform) {
+    featureArrow.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
+    feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
+  }
+
+  // INITIALIZE SHARED STYLES CACHE ONCE
+  if (!GT.sharedStyles) {
+    GT.sharedStyles = {
+      flight: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      flightArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
+      qrz: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      qrzArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
+      transmit: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      transmitArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) })
+    };
+  }
+
+  let lineStyle, arrowStyle;
+
+  // ROUTE TO THE CORRECT SHARED STYLE (O(1) Memory footprint!)
+  if (layer === "flight" || layer === "transmit") {
+    if (layer === "transmit") {
+      lineStyle = GT.sharedStyles.transmit;
+      arrowStyle = GT.sharedStyles.transmitArrow;
+    } else if (opts.isQRZ === true) {
+      lineStyle = GT.sharedStyles.qrz;
+      arrowStyle = GT.sharedStyles.qrzArrow;
+    } else {
+      lineStyle = GT.sharedStyles.flight;
+      arrowStyle = GT.sharedStyles.flightArrow;
+    }
+
+    // Ensure shared style is up to date with the latest color/width
+    lineStyle.getStroke().setColor(opts.color);
+    lineStyle.getStroke().setWidth(opts.weight);
+    lineStyle.getStroke().setLineDash(dash);
+    lineStyle.getStroke().setLineDashOffset(dashOff);
+
+    arrowStyle.getImage().getStroke().setColor(opts.color);
+    arrowStyle.getImage().getStroke().setWidth(opts.weight);
+  } else {
+    // FALLBACK for unique spots (pskHop, etc. whose colors vary wildly per-feature)
+    lineStyle = new ol.style.Style({ stroke: new ol.style.Stroke({ color: opts.color, width: opts.weight, lineDash: dash, lineDashOffset:dashOff}) });
+    arrowStyle = new ol.style.Style({ image: new ol.style.Circle({ stroke: new ol.style.Stroke({color: opts.color, width: opts.weight}), radius: 3 }) });
+  }
+
+  feature.setStyle(lineStyle);
+  featureArrow.setStyle(arrowStyle);
+  feature.Arrow = featureArrow;
+
+  GT.layerSources[layer].addFeature(featureArrow);
+  GT.layerSources[layer].addFeature(feature);
+  return feature;
+}
+
 /**
  * XML2jsobj v1.0
  * Converts XML to a JavaScript object
