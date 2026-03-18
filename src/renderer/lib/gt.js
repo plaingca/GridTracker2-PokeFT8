@@ -1423,9 +1423,9 @@ function changePathValues()
 
 // Initially from https://pskreporter.info/
 // Many many thanks!!!
+// --- 1. THE UPDATED FLIGHT FEATURE W/ SHARED STYLES ---
 function flightFeature(points, opts, layer, canAnimate) {
   let steps = opts.steps;
-  // Map coords into lat lngs
   let start = ol.proj.toLonLat(points[0]);
   let end = ol.proj.toLonLat(points[1]);
   let generator = new arc.GreatCircle({ x: start[0], y: start[1] }, { x: end[0], y: end[1] });
@@ -1435,13 +1435,10 @@ function flightFeature(points, opts, layer, canAnimate) {
   let geom = path.geometries;
   let lonOff = 0;
   let lastc = 0;
-  for (const j in geom) 
-  {
-    for (const i in geom[j].coords)
-    {
+  for (const j in geom) {
+    for (const i in geom[j].coords) {
       const c = geom[j].coords[i];
       if (isNaN(c[0])) continue;
-      // wrapped?
       if (Math.abs(lastc - c[0]) > 270) (c[0] < lastc) ? lonOff += 360 : lonOff -= 360;
       lastc = c[0];
       line.push(ol.proj.fromLonLat([ lastc + lonOff, c[1]]));
@@ -1451,8 +1448,7 @@ function flightFeature(points, opts, layer, canAnimate) {
 
   let dash = [];
   let dashOff = 0;
-  if (canAnimate == true && GT.settings.map.animate == true)
-  {
+  if (canAnimate == true && GT.settings.map.animate == true) {
     dash = GT.flightPathLineDash;
     dashOff = GT.flightPathTotal - GT.flightPathOffset;
   }
@@ -1460,23 +1456,54 @@ function flightFeature(points, opts, layer, canAnimate) {
   let featureArrow = new ol.Feature(new ol.geom.Point(line[0]));
   let feature = new ol.Feature({ geometry: new ol.geom.LineString(line), prop: 'flight' });
 
-  if (GT.useTransform)
-  {
+  if (GT.useTransform) {
     featureArrow.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
     feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
   }
 
-  feature.setStyle(new ol.style.Style({ stroke: new ol.style.Stroke({ color: opts.color, width: opts.weight, lineDash: dash, lineDashOffset:dashOff}) }));
+  // INITIALIZE SHARED STYLES CACHE ONCE
+  if (!GT.sharedStyles) {
+    GT.sharedStyles = {
+      flight: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      flightArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
+      qrz: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      qrzArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
+      transmit: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
+      transmitArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) })
+    };
+  }
 
-  let stroke = new ol.style.Stroke({color: opts.color, width: opts.weight});
-  let thisStyle =  new ol.style.Style({
-   image: new ol.style.Circle({
-                stroke: stroke,
-                radius: 3
-                })
-    });
+  let lineStyle, arrowStyle;
 
-  featureArrow.setStyle(thisStyle);
+  // ROUTE TO THE CORRECT SHARED STYLE (O(1) Memory footprint!)
+  if (layer === "flight" || layer === "transmit") {
+    if (layer === "transmit") {
+      lineStyle = GT.sharedStyles.transmit;
+      arrowStyle = GT.sharedStyles.transmitArrow;
+    } else if (opts.isQRZ === true) {
+      lineStyle = GT.sharedStyles.qrz;
+      arrowStyle = GT.sharedStyles.qrzArrow;
+    } else {
+      lineStyle = GT.sharedStyles.flight;
+      arrowStyle = GT.sharedStyles.flightArrow;
+    }
+
+    // Ensure shared style is up to date with the latest color/width
+    lineStyle.getStroke().setColor(opts.color);
+    lineStyle.getStroke().setWidth(opts.weight);
+    lineStyle.getStroke().setLineDash(dash);
+    lineStyle.getStroke().setLineDashOffset(dashOff);
+
+    arrowStyle.getImage().getStroke().setColor(opts.color);
+    arrowStyle.getImage().getStroke().setWidth(opts.weight);
+  } else {
+    // FALLBACK for unique spots (pskHop, etc. whose colors vary wildly per-feature)
+    lineStyle = new ol.style.Style({ stroke: new ol.style.Stroke({ color: opts.color, width: opts.weight, lineDash: dash, lineDashOffset:dashOff}) });
+    arrowStyle = new ol.style.Style({ image: new ol.style.Circle({ stroke: new ol.style.Stroke({color: opts.color, width: opts.weight}), radius: 3 }) });
+  }
+
+  feature.setStyle(lineStyle);
+  featureArrow.setStyle(arrowStyle);
   feature.Arrow = featureArrow;
 
   GT.layerSources[layer].addFeature(featureArrow);
@@ -1484,83 +1511,66 @@ function flightFeature(points, opts, layer, canAnimate) {
   return feature;
 }
 
-function styleAllFlightPaths()
-{
-  for (let i = GT.flightPaths.length - 1; i >= 0; i--)
-  {
-    let featureStyle = GT.flightPaths[i].getStyle();
-    let featureStroke = featureStyle.getStroke();
 
-    let color = GT.flightPaths[i].isQRZ ? getQrzPathColor() : getPathColor();
-    let width = GT.flightPaths[i].isQRZ ? qrzPathWidthValue.value : pathWidthValue.value;
+// --- 2. THE UPDATED STYLE UPDATER (No Loops for standard flights!) ---
+function styleAllFlightPaths() {
+  if (!GT.sharedStyles) return;
 
-    if (width == 0)
-    {
-      if ("Arrow" in GT.flightPaths[i]) { GT.layerSources.flight.removeFeature(GT.flightPaths[i].Arrow); }
-      GT.layerSources.flight.removeFeature(GT.flightPaths[i]);
-      delete GT.flightPaths[i];
-      GT.flightPaths[i] = null;
+  let colorNormal = getPathColor();
+  let widthNormal = pathWidthValue.value;
+  let colorQRZ = getQrzPathColor();
+  let widthQRZ = qrzPathWidthValue.value;
 
-      GT.flightPaths.splice(i, 1);
-      continue;
-    }
-
-    featureStroke.setWidth(width);
-
-    if (GT.flightPaths[i].isShapeFlight == 0) featureStroke.setColor(color);
-
-    featureStyle.setStroke(featureStroke);
-    GT.flightPaths[i].setStyle(featureStyle);
-
-    if ("Arrow" in GT.flightPaths[i])
-    {
-      let stroke = new ol.style.Stroke({
-        color: color,
-        width: width
-      });
-      let thisStle = new ol.style.Style({
-        image: new ol.style.Circle({
-          stroke: stroke,
-          radius: 3
-        })
-      });
-      GT.flightPaths[i].Arrow.setStyle(thisStle);
-    }
-  }
-  if (GT.transmitFlightPath != null)
-  {
-    let featureStyle = GT.transmitFlightPath.getStyle();
-    let featureStroke = featureStyle.getStroke();
-
-    if (qrzPathWidthValue.value == 0)
-    {
-      GT.layerSources.transmit.clear();
-      GT.transmitFlightPath = null;
-    }
-    else
-    {
-      featureStroke.setWidth(qrzPathWidthValue.value);
-      featureStroke.setColor(getQrzPathColor());
-      featureStyle.setStroke(featureStroke);
-      GT.transmitFlightPath.setStyle(featureStyle);
-
-      if ("Arrow" in GT.transmitFlightPath)
-      {
-        let stroke = new ol.style.Stroke({
-          color: getQrzPathColor(),
-          width: qrzPathWidthValue.value
-        });
-        let thisStle = new ol.style.Style({
-          image: new ol.style.Circle({
-            stroke: stroke,
-            radius: 3
-          })
-        });
-        GT.transmitFlightPath.Arrow.setStyle(thisStle);
+  // 1. Remove paths ONLY if their stroke width changed to 0
+  if (widthNormal == 0 || widthQRZ == 0) {
+    for (let i = GT.flightPaths.length - 1; i >= 0; i--) {
+      let path = GT.flightPaths[i];
+      if ((path.isQRZ && widthQRZ == 0) || (!path.isQRZ && widthNormal == 0)) {
+        if ("Arrow" in path) GT.layerSources.flight.removeFeature(path.Arrow);
+        GT.layerSources.flight.removeFeature(path);
+        GT.flightPaths.splice(i, 1);
       }
     }
   }
+
+  // 2. Instantly update all lines via the shared styles!
+  if (widthNormal > 0) {
+    GT.sharedStyles.flight.getStroke().setWidth(widthNormal);
+    GT.sharedStyles.flight.getStroke().setColor(colorNormal);
+    GT.sharedStyles.flightArrow.getImage().getStroke().setWidth(widthNormal);
+    GT.sharedStyles.flightArrow.getImage().getStroke().setColor(colorNormal);
+  }
+
+  if (widthQRZ > 0) {
+    GT.sharedStyles.qrz.getStroke().setWidth(widthQRZ);
+    GT.sharedStyles.qrz.getStroke().setColor(colorQRZ);
+    GT.sharedStyles.qrzArrow.getImage().getStroke().setWidth(widthQRZ);
+    GT.sharedStyles.qrzArrow.getImage().getStroke().setColor(colorQRZ);
+
+    GT.sharedStyles.transmit.getStroke().setWidth(widthQRZ);
+    GT.sharedStyles.transmit.getStroke().setColor(colorQRZ);
+    GT.sharedStyles.transmitArrow.getImage().getStroke().setWidth(widthQRZ);
+    GT.sharedStyles.transmitArrow.getImage().getStroke().setColor(colorQRZ);
+  }
+  
+  // 3. Update Shape Flights (Polygons)
+  for (let i = GT.flightPaths.length - 1; i >= 0; i--) {
+    if (GT.flightPaths[i].isShapeFlight === 1) {
+      let fStyle = GT.flightPaths[i].getStyle();
+      let fStroke = fStyle.getStroke();
+      fStroke.setWidth(GT.flightPaths[i].isQRZ ? widthQRZ : widthNormal);
+      fStroke.setColor(GT.flightPaths[i].isQRZ ? colorQRZ : colorNormal);
+      GT.flightPaths[i].setStyle(fStyle);
+    }
+  }
+
+  // CRITICAL FIX: Tell the layers the styles changed!
+  GT.layerSources.flight.changed();
+  GT.layerSources.transmit.changed();
+
+  if (GT.map) GT.map.render();
 }
+
 
 function compareCallsignTime(a, b)
 {
@@ -3657,60 +3667,44 @@ function toggleAllGrids()
   drawAllGrids();
 }
 
-function changeAnimate()
-{
+// --- 4. THE UPDATED ANIMATION TOGGLE ---
+function changeAnimate() {
   GT.settings.map.animate = animateValue.checked;
   
   let dash = [];
   let dashOff = 0;
-  if (GT.settings.map.animate == true)
-  {
+  if (GT.settings.map.animate == true) {
     dash = GT.flightPathLineDash;
     dashOff = GT.flightPathTotal - GT.flightPathOffset;
   }
 
-  for (let i = GT.flightPaths.length - 1; i >= 0; i--)
-  {
-    if (GT.flightPaths[i].isShapeFlight == 0)
-    {
-      let featureStyle = GT.flightPaths[i].getStyle();
-      let featureStroke = featureStyle.getStroke();
-
-      featureStroke.setLineDash(dash);
-      featureStroke.setLineDashOffset(dashOff);
-
-      featureStyle.setStroke(featureStroke);
-      GT.flightPaths[i].setStyle(featureStyle);
-    }
-  }
-  if (GT.transmitFlightPath != null)
-  {
-    let featureStyle = GT.transmitFlightPath.getStyle();
-    let featureStroke = featureStyle.getStroke();
-
-    featureStroke.setLineDash(dash);
-    featureStroke.setLineDashOffset(dashOff);
-
-    featureStyle.setStroke(featureStroke);
-    GT.transmitFlightPath.setStyle(featureStyle);
+  // Update Shared Styles instantly
+  if (GT.sharedStyles) {
+    GT.sharedStyles.flight.getStroke().setLineDash(dash);
+    GT.sharedStyles.flight.getStroke().setLineDashOffset(dashOff);
+    GT.sharedStyles.qrz.getStroke().setLineDash(dash);
+    GT.sharedStyles.qrz.getStroke().setLineDashOffset(dashOff);
+    GT.sharedStyles.transmit.getStroke().setLineDash(dash);
+    GT.sharedStyles.transmit.getStroke().setLineDashOffset(dashOff);
+    
+    // CRITICAL FIX: Tell the layers the styles changed!
+    GT.layerSources.flight.changed();
+    GT.layerSources.transmit.changed();
   }
 
-  if (GT.dazzleGrid != null)
-  {
-    let featureStyle = GT.dazzleGrid.getStyle();
-    let featureStroke = featureStyle.getStroke();
-
-    featureStroke.setLineDash(dash);
-    featureStroke.setLineDashOffset(dashOff);
-
-    featureStyle.setStroke(featureStroke);
-    GT.dazzleGrid.setStyle(featureStyle);
+  if (GT.dazzleGrid != null) {
+    let fStyle = GT.dazzleGrid.getStyle();
+    let fStroke = fStyle.getStroke();
+    fStroke.setLineDash(dash);
+    fStroke.setLineDashOffset(dashOff);
+    GT.dazzleGrid.setStyle(fStyle);
   }
 
-  if (GT.settings.map.animate)
-  {
+  if (GT.settings.map.animate) {
     setAnimate(true);
   }
+  
+  if (GT.map) GT.map.render();
 }
 
 function changeAnimateSpeedValue()
@@ -3741,6 +3735,7 @@ function removeFlightPathsAndDimSquares()
   }
 }
 
+// --- 3. THE UPDATED RAF ANIMATION LOOP (No Loop Required!) ---
 GT.isAnimating = false;
 
 function setAnimate(enabled) {
@@ -3753,60 +3748,63 @@ function setAnimate(enabled) {
 }
 
 function animatePaths() {
-  // 1. Exit early if animations are disabled globally or the loop was stopped
   if (!GT.settings.map.animate || !GT.isAnimating) {
     GT.isAnimating = false;
     return;
   } 
 
-  // 2. Cache pointers
-  const paths = GT.flightPaths;
-  const pathsLen = paths.length;
+  const pathsLen = GT.flightPaths.length;
   const txPath = GT.transmitFlightPath;
   const dazzle = GT.dazzleGrid;
 
-  // 3. Stop loop automatically if there is absolutely nothing to animate
   if (pathsLen === 0 && !txPath && !dazzle) {
     GT.isAnimating = false;
     return;
   }
 
-  // 4. Queue the next frame immediately (Best practice for smooth rAF timing)
   requestAnimationFrame(animatePaths);
 
-  // 5. Handle frame skipping (Speed Control)
-  GT.animateFrame++;
-  GT.animateFrame %= GT.settings.map.animateSpeed;
-  if (GT.animateFrame > 0) return; // Skip updating visuals this frame
+  if (GT.settings.map.animateSpeed > 1)
+  {
+    GT.animateFrame++;
+    GT.animateFrame %= GT.settings.map.animateSpeed;
+    if (GT.animateFrame > 0) return; 
+  }
 
-  // 6. Calculate the new line dash offset
   GT.flightPathOffset++;
   GT.flightPathOffset %= GT.flightPathTotal;
   const targetOffset = GT.flightPathTotal - GT.flightPathOffset;
 
-  // 7. Update flight paths
-  for (let i = 0; i < pathsLen; i++) {
-    const path = paths[i];
-    if (path.isShapeFlight === 0) {
-      // Mutate the stroke directly
-      path.getStyle().getStroke().setLineDashOffset(targetOffset);
-      // Tell OpenLayers to re-render, avoiding the heavy setStyle() teardown
-      path.changed();
+  let requestRedraw = false;
+
+  // 1. Instantly Animate ALL flight paths via shared style modification
+  if (GT.sharedStyles) {
+    if (pathsLen > 0) {
+      GT.sharedStyles.flight.getStroke().setLineDashOffset(targetOffset);
+      GT.sharedStyles.qrz.getStroke().setLineDashOffset(targetOffset);
+      GT.layerSources.flight.changed(); 
+
+      requestRedraw = true;
+    }
+    if (txPath) {
+      GT.sharedStyles.transmit.getStroke().setLineDashOffset(targetOffset);
+      GT.layerSources.transmit.changed();
+      requestRedraw = true;
     }
   }
 
-  // 8. Update transmit path
-  if (txPath) {
-    txPath.getStyle().getStroke().setLineDashOffset(targetOffset);
-    txPath.changed();
-  }
-
-  // 9. Update dazzle grid
+  // 2. Animate Dazzle Grid
   if (dazzle) {
     dazzle.getStyle().getStroke().setLineDashOffset(targetOffset);
-    dazzle.changed();
+    dazzle.changed(); 
+    requestRedraw = true;
+  }
+
+  if (requestRedraw && GT.map) {
+    GT.map.render(); 
   }
 }
+
 
 function removePaths()
 {
@@ -6273,7 +6271,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
                     weight: strokeWeight,
                     color: strokeColor,
                     steps: 75,
-                    zIndex: 90
+                    zIndex: 90,
+                    isQRZ: isQRZ
                   },
                   "flight",
                   true
@@ -6311,7 +6310,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
                   weight: strokeWeight,
                   color: strokeColor,
                   steps: 75,
-                  zIndex: 90
+                  zIndex: 90,
+                  isQRZ: isQRZ
                 },
                 "flight",
                 true
@@ -6410,7 +6410,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
                   weight: strokeWeight,
                   color: strokeColor,
                   steps: 75,
-                  zIndex: 90
+                  zIndex: 90,
+                  isQRZ: false
                 },
                 "flight",
                 true
