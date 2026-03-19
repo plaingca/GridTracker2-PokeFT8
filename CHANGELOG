@@ -203,6 +203,11 @@ Map:
   Pin Mode: 
   Fixed missing 630m pins
 
+Stats:
+  Logbook:
+    Fixed multiple sorting and rendering issues
+
+    
 ### Fixed
 
 
