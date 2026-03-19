@@ -257,7 +257,6 @@ function onZoomControlDown(event)
   }
   if (event.ctrlKey || event.altKey)
   {
-
     if (event.code in g_zoomKeys)
     {
       g_zoomKeys[event.code](event);
@@ -267,7 +266,7 @@ function onZoomControlDown(event)
     }
     else if (event.key in g_zoomKeys)
     {
-      g_zoomKeys[event.code](event);
+      g_zoomKeys[event.key](event);
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -331,8 +330,7 @@ function clamp(num, min, max) {
 
 function setAndSaveZoom()
 {
-  s_zoomLevel = clamp(s_zoomLevel, -5, 8);
-  s_zoomLevel = parseFloat(s_zoomLevel.toFixed(1));
+  s_zoomLevel = Math.round(clamp(s_zoomLevel, -5, 8) * 10) / 10;
   electron.webFrame.setZoomLevel(s_zoomLevel);
   electron.ipcRenderer.send("saveZoom", s_zoomLevel);
 }
