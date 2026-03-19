@@ -224,348 +224,323 @@ function timeNowSec()
   return parseInt(Date.now() / 1000);
 }
 
-function initQSOdata()
-{
-  GT.tracker = {};
-  GT.tracker.worked = {};
-  GT.tracker.confirmed = {};
-
-  GT.tracker.worked.call = {};
-  GT.tracker.worked.grid = {};
-  // GT.tracker.worked.field = {};
-  GT.tracker.worked.dxcc = {};
-  GT.tracker.worked.cqz = {};
-  GT.tracker.worked.dxm = {};
-  GT.tracker.worked.ituz = {};
-  GT.tracker.worked.state = {};
-  GT.tracker.worked.px = {};
-  GT.tracker.worked.cnty = {};
-  GT.tracker.worked.cont = {};
-  GT.tracker.worked.pota = {};
-
-  GT.tracker.confirmed.call = {};
-  GT.tracker.confirmed.grid = {};
-  // GT.tracker.confirmed.field = {};
-  GT.tracker.confirmed.dxcc = {};
-  GT.tracker.confirmed.cqz = {};
-  GT.tracker.confirmed.dxm = {};
-  GT.tracker.confirmed.ituz = {};
-  GT.tracker.confirmed.state = {};
-  GT.tracker.confirmed.px = {};
-  GT.tracker.confirmed.cnty = {};
-  GT.tracker.confirmed.cont = {};
-  GT.tracker.confirmed.pota = {};
-}
-
 const K_15_DAYS_IN_SECONDS = 1296000;
 
-function trackQSO(details, currentYear, currentDay, currentSecond)
-{
-  let qsoDate = new Date(1970, 0, 1); qsoDate.setSeconds(details.time);
-  let isCurrentYear = (qsoDate.getUTCFullYear() == currentYear);
-  let isCurrentDay = (parseInt(details.time / 86400) == currentDay);
-  let fourGrid = details.grid.substring(0, 4);
-  let isDigi = details.digital;
-  let isPhone = details.phone;
+function initQSOdata() {
+  // V8 OPTIMIZATION: Initializing the entire object structure literally 
+  // establishes the Hidden Classes immediately, preventing V8 from having 
+  // to recompile the object shape 24 separate times.
+  GT.tracker = {
+    worked: {
+      call: {}, grid: {}, dxcc: {}, cqz: {}, dxm: {},
+      ituz: {}, state: {}, px: {}, cnty: {}, cont: {}, pota: {}
+    },
+    confirmed: {
+      call: {}, grid: {}, dxcc: {}, cqz: {}, dxm: {},
+      ituz: {}, state: {}, px: {}, cnty: {}, cont: {}, pota: {}
+    }
+  };
+}
 
-  if (details.DEcall.length == 3 && details.DEcall.charAt(0) != 'A' && details.DEcall.charAt(2) != 'X' && isKnownCallsignUS(details.dxcc) && currentSecond - details.time > K_15_DAYS_IN_SECONDS)
-  {
+function trackQSO(details, currentYear, currentDay, currentSecond) {
+  // V8 OPTIMIZATION: Destructuring locals once avoids repeated object property lookups
+  const { 
+    DEcall, band, mode, time, digital, phone, grid, 
+    dxcc, px, cont, state, cnty, ituz, cqz, hash, confirmed, pota 
+  } = details;
+
+  // V8 OPTIMIZATION: 'new Date(ms)' is native and much faster than creating a 1970 date and calling setSeconds
+  const qsoDate = new Date(time * 1000);
+  const isCurrentYear = (qsoDate.getUTCFullYear() === currentYear);
+  
+  // V8 MATH OPTIMIZATION: ~~ is a bitwise NOT-NOT, which does native C++ integer truncation. 
+  // parseInt() forces V8 to convert the float to a string, then parse it back to an int!
+  const isCurrentDay = (~~(time / 86400) === currentDay);
+
+  // V8 CHARCODE OPTIMIZATION: charCodeAt bypasses string allocations 
+  if (
+    DEcall.length === 3 &&
+    DEcall.charCodeAt(0) !== 65 && // 'A'
+    DEcall.charCodeAt(2) !== 88 && // 'X'
+    isKnownCallsignUS(dxcc) &&
+    (currentSecond - time) > K_15_DAYS_IN_SECONDS
+  ) {
     // Any 1x1 QSO in the US over 15 days is not considered worked for hunting purposes
     return;
   }
 
-  GT.tracker.worked.call[details.DEcall + details.band + details.mode] = true;
-  GT.tracker.worked.call[details.DEcall] = true;
-  GT.tracker.worked.call[details.DEcall + details.mode] = true;
-  GT.tracker.worked.call[details.DEcall + details.band] = true;
+  // CACHE LOCAL REFERENCES: Prevents looking up 'GT -> tracker -> worked -> call' dozens of times
+  const worked = GT.tracker.worked;
+  
+  // PRE-COMPUTE STRINGS: Prevent allocating the exact same strings multiple times
+  const bandMode = band + mode;
+  const bandDg = band + "dg";
+  const bandPh = band + "ph";
 
-  if (isDigi == true)
-  {
-    GT.tracker.worked.call[details.DEcall + "dg"] = true;
-    GT.tracker.worked.call[details.DEcall + details.band + "dg"] = true;
+  // --- WORKED LOGIC ---
+  const wCall = worked.call;
+  wCall[DEcall + bandMode] = true;
+  wCall[DEcall] = true;
+  wCall[DEcall + mode] = true;
+  wCall[DEcall + band] = true;
+  
+  if (digital) {
+    wCall[DEcall + "dg"] = true;
+    wCall[DEcall + bandDg] = true;
   }
 
-  if (fourGrid != "")
-  {
-    GT.tracker.worked.grid[fourGrid] = true;
-    GT.tracker.worked.grid[fourGrid + details.mode] = true;
-    GT.tracker.worked.grid[fourGrid + details.band] = true;
-    GT.tracker.worked.grid[fourGrid + details.band + details.mode] = true;
+  // Safer check, and .slice() is implemented natively in V8 as a zero-copy slice
+  if (grid && grid.length >= 4) {
+    const wGrid = worked.grid;
+    const fourGrid = grid.slice(0, 4); 
+    wGrid[fourGrid] = true;
+    wGrid[fourGrid + mode] = true;
+    wGrid[fourGrid + band] = true;
+    wGrid[fourGrid + bandMode] = true;
 
-    /* let field = fourGrid.substring(0, 2);
-
-    GT.tracker.worked.field[field] = true;
-    GT.tracker.worked.field[field + details.mode] = true;
-    GT.tracker.worked.field[field + details.band] = true;
-    GT.tracker.worked.field[field + details.band + details.mode] = true; */
-
-    if (isDigi == true)
-    {
-      GT.tracker.worked.grid[fourGrid + "dg"] = true;
-      GT.tracker.worked.grid[fourGrid + details.band + "dg"] = true;
-
-      /* GT.tracker.worked.field[field + "dg"] = true;
-      GT.tracker.worked.field[field + details.band + "dg"] = true; */
-    }
-  }
-
-  if (details.ituz)
-  {
-    GT.tracker.worked.ituz[details.ituz + "|" + details.band + details.mode] = true;
-    GT.tracker.worked.ituz[details.ituz + "|"] = true;
-    GT.tracker.worked.ituz[details.ituz + "|" + details.mode] = true;
-    GT.tracker.worked.ituz[details.ituz + "|" + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.worked.ituz[details.ituz + "|dg"] = true;
-      GT.tracker.worked.ituz[details.ituz + "|" + details.band + "dg"] = true;
+    if (digital) {
+      wGrid[fourGrid + "dg"] = true;
+      wGrid[fourGrid + bandDg] = true;
     }
   }
 
-  if (details.cqz)
-  {
-    GT.tracker.worked.cqz[details.cqz + "|" + details.band + details.mode] = true;
-    GT.tracker.worked.cqz[details.cqz + "|"] = true;
-    GT.tracker.worked.cqz[details.cqz + "|" + details.mode] = true;
-    GT.tracker.worked.cqz[details.cqz + "|" + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.worked.cqz[details.cqz + "|dg"] = true;
-      GT.tracker.worked.cqz[details.cqz + "|" + details.band + "dg"] = true;
-    }
-    if (isCurrentYear)
-    {
-      GT.tracker.worked.dxm[`${details.cqz}z${currentYear}`] = true;
+  if (ituz) {
+    const wItuz = worked.ituz;
+    const iBase = ituz + "|"; // Coerces natively, faster than String(ituz)
+    wItuz[iBase + bandMode] = true;
+    wItuz[iBase] = true;
+    wItuz[iBase + mode] = true;
+    wItuz[iBase + band] = true;
+    if (digital) {
+      wItuz[iBase + "dg"] = true;
+      wItuz[iBase + bandDg] = true;
     }
   }
 
-  if (details.dxcc > 0)
-  {
-    var sDXCC = String(details.dxcc);
-    GT.tracker.worked.dxcc[sDXCC + "|" + details.band + details.mode] = true;
-    GT.tracker.worked.dxcc[sDXCC + "|"] = true;
-    GT.tracker.worked.dxcc[sDXCC + "|" + details.mode] = true;
-    GT.tracker.worked.dxcc[sDXCC + "|" + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.worked.dxcc[sDXCC + "|dg"] = true;
-      GT.tracker.worked.dxcc[sDXCC + "|" + details.band + "dg"] = true;
+  if (cqz) {
+    const wCqz = worked.cqz;
+    const cBase = cqz + "|";
+    wCqz[cBase + bandMode] = true;
+    wCqz[cBase] = true;
+    wCqz[cBase + mode] = true;
+    wCqz[cBase + band] = true;
+    if (digital) {
+      wCqz[cBase + "dg"] = true;
+      wCqz[cBase + bandDg] = true;
     }
-    if (isPhone == true)
-    {
-      GT.tracker.worked.dxcc[sDXCC + "|ph"] = true;
-      GT.tracker.worked.dxcc[sDXCC + "|" + details.band + "ph"] = true;
-    }
-    if (isCurrentYear)
-    {
-      GT.tracker.worked.dxm[`${sDXCC}c${currentYear}`] = true;
+    if (isCurrentYear) {
+      worked.dxm[`${cqz}z${currentYear}`] = true;
     }
   }
 
-  if (details.px)
-  {
-    GT.tracker.worked.px[details.px + details.band + details.mode] = true;
-    // store the last one
-    GT.tracker.worked.px[details.px] = details.hash;
-    GT.tracker.worked.px[details.px + details.mode] = true;
-    GT.tracker.worked.px[details.px + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.worked.px[details.px + "dg"] = true;
-      GT.tracker.worked.px[details.px + details.band + "dg"] = true;
+  if (dxcc > 0) {
+    const wDxcc = worked.dxcc;
+    const dBase = dxcc + "|";
+    wDxcc[dBase + bandMode] = true;
+    wDxcc[dBase] = true;
+    wDxcc[dBase + mode] = true;
+    wDxcc[dBase + band] = true;
+    if (digital) {
+      wDxcc[dBase + "dg"] = true;
+      wDxcc[dBase + bandDg] = true;
     }
-    if (isPhone == true)
-    {
-      GT.tracker.worked.px[details.px + "ph"] = true;
-      GT.tracker.worked.px[details.px + details.band + "ph"] = true;
+    if (phone) {
+      wDxcc[dBase + "ph"] = true;
+      wDxcc[dBase + bandPh] = true;
     }
-  }
-
-  if (details.cont)
-  {
-    GT.tracker.worked.cont[details.cont + details.band + details.mode] = true;
-    // store the last one
-    GT.tracker.worked.cont[details.cont] = details.hash;
-    GT.tracker.worked.cont[details.cont + details.mode] = true;
-    GT.tracker.worked.cont[details.cont + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.worked.cont[details.cont + "dg"] = true;
-      GT.tracker.worked.cont[details.cont + details.band + "dg"] = true;
+    if (isCurrentYear) {
+      worked.dxm[`${dxcc}c${currentYear}`] = true;
     }
   }
 
-  if (details.state)
-  {
-    GT.tracker.worked.state[details.state] = true;
-    GT.tracker.worked.state[details.state + details.mode] = true;
-    GT.tracker.worked.state[details.state + details.band] = true;
-    GT.tracker.worked.state[details.state + details.band + details.mode] = true;
-
-    if (isDigi)
-    {
-      GT.tracker.worked.state[details.state + "dg"] =
-      GT.tracker.worked.state[details.state + details.band + "dg"] = true;
+  if (px) {
+    const wPx = worked.px;
+    wPx[px + bandMode] = true;
+    wPx[px] = hash;
+    wPx[px + mode] = true;
+    wPx[px + band] = true;
+    if (digital) {
+      wPx[px + "dg"] = true;
+      wPx[px + bandDg] = true;
+    }
+    if (phone) {
+      wPx[px + "ph"] = true;
+      wPx[px + bandPh] = true;
     }
   }
 
-  if (details.cnty)
-  {
-    GT.tracker.worked.cnty[details.cnty] = true;
-    GT.tracker.worked.cnty[details.cnty + details.mode] = true;
-    GT.tracker.worked.cnty[details.cnty + details.band] = true;
-    GT.tracker.worked.cnty[details.cnty + details.band + details.mode] = true;
-
-    if (isDigi)
-    {
-      GT.tracker.worked.cnty[details.cnty + "dg"] = true;
-      GT.tracker.worked.cnty[details.cnty + details.band + "dg"] = true;
+  if (cont) {
+    const wCont = worked.cont;
+    wCont[cont + bandMode] = true;
+    wCont[cont] = hash;
+    wCont[cont + mode] = true;
+    wCont[cont + band] = true;
+    if (digital) {
+      wCont[cont + "dg"] = true;
+      wCont[cont + bandDg] = true;
     }
   }
 
-  if (details.pota)
-  {
-    let day = String(currentDay);
-    let potas = details.pota.split(",");
-    for (let x in potas)
-    {
-      let pota = potas[x].trim();
-
-      if (isCurrentDay)
-      {
-        GT.tracker.worked.pota[day + "." + details.DEcall + "." + pota + "." + details.band + details.mode] = true;
-        GT.tracker.worked.pota[day + "." + pota + "." + details.band + details.mode] = true;
-      }
-      GT.tracker.worked.pota[pota] = true;
+  if (state) {
+    const wState = worked.state;
+    wState[state] = true;
+    wState[state + mode] = true;
+    wState[state + band] = true;
+    wState[state + bandMode] = true;
+    if (digital) {
+      wState[state + "dg"] = true;
+      wState[state + bandDg] = true;
     }
   }
 
-  if (details.confirmed == true)
-  {
-    GT.tracker.confirmed.call[details.DEcall + details.band + details.mode] = true;
-    GT.tracker.confirmed.call[details.DEcall] = true;
-    GT.tracker.confirmed.call[details.DEcall + details.mode] = true;
-    GT.tracker.confirmed.call[details.DEcall + details.band] = true;
-    if (isDigi == true)
-    {
-      GT.tracker.confirmed.call[details.DEcall + "dg"] = true;
-      GT.tracker.confirmed.call[details.DEcall + details.band + "dg"] = true;
+  if (cnty) {
+    const wCnty = worked.cnty;
+    wCnty[cnty] = true;
+    wCnty[cnty + mode] = true;
+    wCnty[cnty + band] = true;
+    wCnty[cnty + bandMode] = true;
+    if (digital) {
+      wCnty[cnty + "dg"] = true;
+      wCnty[cnty + bandDg] = true;
+    }
+  }
+
+  if (pota) {
+    const wPota = worked.pota;
+    const sDay = "" + currentDay;
+    const potasList = pota.split(",");
+    const len = potasList.length;
+    
+    // V8 OPTIMIZATION: 'for...in' loops check prototypes and are terrible for arrays. 
+    for (let i = 0; i < len; i++) {
+      const p = potasList[i].trim();
+      if (isCurrentDay) {
+        wPota[`${sDay}.${DEcall}.${p}.${bandMode}`] = true;
+        wPota[`${sDay}.${p}.${bandMode}`] = true;
+      }
+      wPota[p] = true;
+    }
+  }
+
+  // --- CONFIRMED LOGIC ---
+  if (confirmed) {
+    const confirmed = GT.tracker.confirmed;
+
+    const cCall = confirmed.call;
+    cCall[DEcall + bandMode] = true;
+    cCall[DEcall] = true;
+    cCall[DEcall + mode] = true;
+    cCall[DEcall + band] = true;
+    if (digital) {
+      cCall[DEcall + "dg"] = true;
+      cCall[DEcall + bandDg] = true;
     }
 
-    if (fourGrid != "")
-    {
-      GT.tracker.confirmed.grid[fourGrid + details.band + details.mode] = true;
-      GT.tracker.confirmed.grid[fourGrid] = true;
-      GT.tracker.confirmed.grid[fourGrid + details.mode] = true;
-      GT.tracker.confirmed.grid[fourGrid + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.grid[fourGrid + "dg"] = true;
-        GT.tracker.confirmed.grid[fourGrid + details.band + "dg"] = true;
-      }
-    }
-    if (details.ituz && details.ituz.length > 0)
-    {
-      GT.tracker.confirmed.ituz[details.ituz + "|" + details.band + details.mode] = true;
-      GT.tracker.confirmed.ituz[details.ituz + "|"] = true;
-      GT.tracker.confirmed.ituz[details.ituz + "|" + details.mode] = true;
-      GT.tracker.confirmed.ituz[details.ituz + "|" + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.ituz[details.ituz + "|dg"] = true;
-        GT.tracker.confirmed.ituz[details.ituz + "|" + details.band + "dg"] = true;
-      }
-    }
-    if (details.cqz && details.cqz.length > 0)
-    {
-      GT.tracker.confirmed.cqz[details.cqz + "|" + details.band + details.mode] = true;
-      GT.tracker.confirmed.cqz[details.cqz + "|"] = true;
-      GT.tracker.confirmed.cqz[details.cqz + "|" + details.mode] = true;
-      GT.tracker.confirmed.cqz[details.cqz + "|" + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.cqz[details.cqz + "|dg"] = true;
-        GT.tracker.confirmed.cqz[details.cqz + "|" + details.band + "dg"] = true;
-      }
-    }
-
-    if (details.dxcc > 0)
-    {
-      var sDXCC = String(details.dxcc);
-      GT.tracker.confirmed.dxcc[sDXCC + "|" + details.band + details.mode] = true;
-      GT.tracker.confirmed.dxcc[sDXCC + "|"] = true;
-      GT.tracker.confirmed.dxcc[sDXCC + "|" + details.mode] = true;
-      GT.tracker.confirmed.dxcc[sDXCC + "|" + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.dxcc[sDXCC + "|dg"] = true;
-        GT.tracker.confirmed.dxcc[sDXCC + "|" + details.band + "dg"] = true;
-      }
-      if (isPhone == true)
-      {
-        GT.tracker.confirmed.dxcc[sDXCC + "|ph"] = true;
-        GT.tracker.confirmed.dxcc[sDXCC + "|" + details.band + "ph"] = true;
+    if (grid && grid.length >= 4) {
+      const cGrid = confirmed.grid;
+      const fourGrid = grid.slice(0, 4);
+      cGrid[fourGrid + bandMode] = true;
+      cGrid[fourGrid] = true;
+      cGrid[fourGrid + mode] = true;
+      cGrid[fourGrid + band] = true;
+      if (digital) {
+        cGrid[fourGrid + "dg"] = true;
+        cGrid[fourGrid + bandDg] = true;
       }
     }
 
-    if (details.state)
-    {
-      GT.tracker.confirmed.state[details.state] = true;
-      GT.tracker.confirmed.state[details.state + details.mode] = true;
-      GT.tracker.confirmed.state[details.state + details.band] = true;
-      GT.tracker.confirmed.state[details.state + details.band + details.mode] = true;
-
-      if (isDigi)
-      {
-        GT.tracker.confirmed.state[details.state + "dg"] = true;
-        GT.tracker.confirmed.state[details.state + details.band + "dg"] = true;
+    if (ituz) {
+      const cItuz = confirmed.ituz;
+      const iBase = ituz + "|";
+      cItuz[iBase + bandMode] = true;
+      cItuz[iBase] = true;
+      cItuz[iBase + mode] = true;
+      cItuz[iBase + band] = true;
+      if (digital) {
+        cItuz[iBase + "dg"] = true;
+        cItuz[iBase + bandDg] = true;
       }
     }
 
-    if (details.cnty)
-    {
-      GT.tracker.confirmed.cnty[details.cnty] = true;
-      GT.tracker.confirmed.cnty[details.cnty + details.mode] = true;
-      GT.tracker.confirmed.cnty[details.cnty + details.band] = true;
-      GT.tracker.confirmed.cnty[details.cnty + details.band + details.mode] = true;
-
-      if (isDigi)
-      {
-        GT.tracker.confirmed.cnty[details.cnty + "dg"] = true;
-        GT.tracker.confirmed.cnty[details.cnty + details.band + "dg"] = true;
+    if (cqz) {
+      const cCqz = confirmed.cqz;
+      const cBase = cqz + "|";
+      cCqz[cBase + bandMode] = true;
+      cCqz[cBase] = true;
+      cCqz[cBase + mode] = true;
+      cCqz[cBase + band] = true;
+      if (digital) {
+        cCqz[cBase + "dg"] = true;
+        cCqz[cBase + bandDg] = true;
       }
     }
 
-    if (details.px)
-    {
-      GT.tracker.confirmed.px[details.px + details.band + details.mode] = true;
-      // store the last one
-      GT.tracker.confirmed.px[details.px] = details.hash;
-      GT.tracker.confirmed.px[details.px + details.mode] = true;
-      GT.tracker.confirmed.px[details.px + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.px[details.px + "dg"] = true;
-        GT.tracker.confirmed.px[details.px + details.band + "dg"] = true;
+    if (dxcc > 0) {
+      const cDxcc = confirmed.dxcc;
+      const dBase = dxcc + "|";
+      cDxcc[dBase + bandMode] = true;
+      cDxcc[dBase] = true;
+      cDxcc[dBase + mode] = true;
+      cDxcc[dBase + band] = true;
+      if (digital) {
+        cDxcc[dBase + "dg"] = true;
+        cDxcc[dBase + bandDg] = true;
       }
-      if (isPhone == true)
-      {
-        GT.tracker.confirmed.px[details.px + "ph"] = true;
-        GT.tracker.confirmed.px[details.px + details.band + "ph"] = true;
+      if (phone) {
+        cDxcc[dBase + "ph"] = true;
+        cDxcc[dBase + bandPh] = true;
       }
     }
 
-    if (details.cont)
-    {
-      GT.tracker.confirmed.cont[details.cont + details.band + details.mode] = true;
-      // store the last one
-      GT.tracker.confirmed.cont[details.cont] = details.hash;
-      GT.tracker.confirmed.cont[details.cont + details.mode] = true;
-      GT.tracker.confirmed.cont[details.cont + details.band] = true;
-      if (isDigi == true)
-      {
-        GT.tracker.confirmed.cont[details.cont + "dg"] = true;
-        GT.tracker.confirmed.cont[details.cont + details.band + "dg"] = true;
+    if (state) {
+      const cState = confirmed.state;
+      cState[state] = true;
+      cState[state + mode] = true;
+      cState[state + band] = true;
+      cState[state + bandMode] = true;
+      if (digital) {
+        cState[state + "dg"] = true;
+        cState[state + bandDg] = true;
+      }
+    }
+
+    if (cnty) {
+      const cCnty = confirmed.cnty;
+      cCnty[cnty] = true;
+      cCnty[cnty + mode] = true;
+      cCnty[cnty + band] = true;
+      cCnty[cnty + bandMode] = true;
+      if (digital) {
+        cCnty[cnty + "dg"] = true;
+        cCnty[cnty + bandDg] = true;
+      }
+    }
+
+    if (px) {
+      const cPx = confirmed.px;
+      cPx[px + bandMode] = true;
+      cPx[px] = hash;
+      cPx[px + mode] = true;
+      cPx[px + band] = true;
+      if (digital) {
+        cPx[px + "dg"] = true;
+        cPx[px + bandDg] = true;
+      }
+      if (phone) {
+        cPx[px + "ph"] = true;
+        cPx[px + bandPh] = true;
+      }
+    }
+
+    if (cont) {
+      const cCont = confirmed.cont;
+      cCont[cont + bandMode] = true;
+      cCont[cont] = hash;
+      cCont[cont + mode] = true;
+      cCont[cont + band] = true;
+      if (digital) {
+        cCont[cont + "dg"] = true;
+        cCont[cont + bandDg] = true;
       }
     }
   }
