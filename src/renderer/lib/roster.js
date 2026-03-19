@@ -369,7 +369,7 @@ function updateInstances()
   if (GT.instanceCount > 1)
   {
     let instances = GT.instances;
-    const html = [];
+    let html = [];
     let keys = Object.keys(instances).sort();
     for (const key in keys)
     {
@@ -524,7 +524,7 @@ function addAwardTracker(sponsor, name, enabled)
 
 function updateAwardList(target = null)
 {
-  const html = ["<table id='awardTable' class='awardTableCSS' >"];
+  let html = ["<table id='awardTable' class='awardTableCSS' >"];
   html.push("<tr>");
   html.push("<th align='left'>Name</th><th>Award</th><th>Track</th><th></th>");
   html.push("</tr>");
@@ -1252,7 +1252,7 @@ function closeSettings()
 
 function renderIgnoresTab()
 {
-  const html = [];
+  let html = [];
   let clearString = "<th>none</th>";
   if (Object.keys(CR.ignoredCalls).length > 0)
   {
@@ -3343,7 +3343,7 @@ function renderWatchersTab()
 
   if (Object.keys(CR.watchers).length > 0)
   {
-    const html = ["<div id='watcherTable'><table class='darkTable' align=center><tr>"];
+    let html = ["<div id='watcherTable'><table class='darkTable' align=center><tr>"];
     
     for (column in CR.watcherColumns)
     {

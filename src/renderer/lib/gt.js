@@ -5343,7 +5343,7 @@ function handleInstanceStatus(newMessage)
         updateCountStats();
 
         if (bandChange || modeChange) reloadInfo();
-        const html = [];
+        let html = [];
 
         html.push("<div  style='vertical-align:top;display:inline-block;margin-right:8px;'>");
         html.push("<table class='darkTable' align=center>");
@@ -6599,7 +6599,7 @@ function importSettings(contents)
 
 function showCallsignBox()
 {
-  const html = [
+  let html = [
     `<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bold'>${I18N("gt.callsignBox.title")}</div><br>`
   ];
 
@@ -7444,7 +7444,7 @@ function keysThatContain(obj, text)
 
 function showZonesBox()
 {
-  const html = [getCurrentBandModeHTML()];
+  let html = [getCurrentBandModeHTML()];
 
   html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.CQZoneBox.Worked") + "</b><br>");
   html.push(displayItemList(GT.cqZones, "#FFA500"));
@@ -7463,7 +7463,7 @@ function showZonesBox()
 
 function showWASPlusBox()
 {
-  const html = [getCurrentBandModeHTML()];
+  let html = [getCurrentBandModeHTML()];
 
   html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAS") + "</b><br>");
   html.push(displayItemList(GT.wasZones, "#00DDDD"));
@@ -7554,7 +7554,7 @@ function displayItemList(table, color)
 
 function showDXCCsBox()
 {
-  const html = [getBandSlots(), getCurrentBandModeHTML()];
+  let html = [getBandSlots(), getCurrentBandModeHTML()];
   let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter || "";
   let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode : GT.settings.app.gtModeFilter || "";
 
@@ -7637,7 +7637,7 @@ function showWPXBox()
       </div>`;
   };
 
-  const html = [
+  let html = [
     getCurrentBandModeHTML(),
     renderTable(I18N("gt.WPXBox.worked"), List),
     renderTable(I18N("gt.WPXBox.confirmed"), ListConfirmed),
@@ -7963,7 +7963,7 @@ function workObject(obj, count, band, mode, type, didConfirm)
 
 function renderStatsBox()
 {
-  const html = [];
+  let html = [];
   let scoreSection = "Initial";
   try
   {
@@ -9031,7 +9031,7 @@ function renderBandActivity()
 {
   if (GT.settings.app.oamsBandActivity == false) return;
 
-  const buffer = [];
+  let buffer = [];
   if (typeof GT.settings.bandActivity.lines[GT.settings.app.myMode] != "undefined" || GT.oamsBandActivityData != null)
   {
     let lines = (GT.settings.app.myMode in GT.settings.bandActivity.lines) ? GT.settings.bandActivity.lines[GT.settings.app.myMode] : [];
@@ -12065,7 +12065,7 @@ function continueWithLookup(callsign, gridPass)
     }
     else
     {
-      const html = ["<center>" + I18N("gt.callookDX1") +
+      let html = ["<center>" + I18N("gt.callookDX1") +
           "<br>" + I18N("gt.callookDX2") +
           "<br>" + I18N("gt.callookDX3") + "<br>"];
       html.push(

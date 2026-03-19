@@ -18,7 +18,7 @@ function renderCompactRosterRow(callObj, showBand)
   let onClick = " onClick='initiateQso(\"" + callObj.hash + "\")' id='" + callObj.hash + "' title='" + title + "' ";
   let wholeClick = (CR.isCompactCounty ? "" : onClick);
   let callsignClick = (CR.isCompactCounty ? onClick : "");
-  const html = ["<div class='compact' " + wholeClick + " >"];
+  let html = ["<div class='compact' " + wholeClick + " >"];
   html.push("<div class='compactCallsign' " + callsignClick + " name='Callsign' " + callObj.style.call + " >" + formatCallsign(callObj.DEcallHTML || callObj.DEcall) + bandView + "</div>");
   html.push("<div class='compactData'>");
   html.push(renderEntryForColumn(CR.rosterSettings.compactEntity, callObj, "div"));

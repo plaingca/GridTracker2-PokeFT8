@@ -666,7 +666,7 @@ function mouseOutPark(feature)
 
 function createParkTipTable(toolElement)
 {
-  const html = [];
+  let html = [];
   var key = toolElement.key;
   var now = Date.now();
 

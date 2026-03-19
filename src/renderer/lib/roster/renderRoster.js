@@ -55,7 +55,7 @@ function renderRoster(callRoster, rosterSettings)
     sortCallList(visibleCallList, CR.rosterSettings.sortColumn, CR.rosterSettings.sortReverse);
   }
 
-  const html = [CR.rosterSettings.compact ? renderCompactRosterHeaders() : renderNormalRosterHeaders(rosterColumns)];
+  let html = [CR.rosterSettings.compact ? renderCompactRosterHeaders() : renderNormalRosterHeaders(rosterColumns)];
 
   // Third loop: render all rows
   for (const x in visibleCallList)

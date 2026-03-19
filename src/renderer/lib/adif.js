@@ -2015,7 +2015,7 @@ function testTrustedQSL(test)
   }
   else
   {
-    const html = [];
+    let html = [];
     if (GT.settings.trustedQsl.binaryFileValid == false)
     { html.push("Invalid tqsl executable<br>"); }
     if (GT.settings.trustedQsl.stationFileValid == false)

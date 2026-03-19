@@ -428,7 +428,7 @@ function displayAlertPopUp(what, message, target)
 {
   if (GT.alertWindowInitialized == false) return;
 
-  const html = [];
+  let html = [];
   let acount = 0;
 
   if (Object.keys(GT.settings.customAlerts).length > 0)
@@ -575,7 +575,7 @@ GT.alertRepeatOptions["3"] = "Inf(Session)";
 
 function displayAlerts()
 {
-  const html = [];
+  let html = [];
 
   if (Object.keys(GT.settings.customAlerts).length > 0)
   {
