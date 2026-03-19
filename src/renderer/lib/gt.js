@@ -583,7 +583,7 @@ GT.sortFunction = [
 GT.lastSortIndex = 4;
 GT.qsoPages = 1;
 GT.qsoPage = 0;
-GT.lastSortType = 0;
+GT.lastSortType = 1;
 GT.searchWB = "";
 GT.gridSearch = "";
 GT.potaSearch = "";
@@ -1849,7 +1849,7 @@ function reloadFromQslAuthorityChanged()
 
 function updateLogbook()
 {
-  showWorkedBox(0, 0, true);
+  renderLogbookView();
 }
 
 function openStatsWindow(show = true)
@@ -6597,7 +6597,7 @@ function importSettings(contents)
   }
 }
 
-function showCallsignBox(redraw)
+function showCallsignBox()
 {
   const html = [
     `<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bold'>${I18N("gt.callsignBox.title")}</div><br>`
@@ -6882,7 +6882,7 @@ function resetSearch()
   GT.lastSortIndex = 4;
   GT.qsoPages = 1;
   GT.qsoPage = 0;
-  GT.lastSortType = 2;
+  GT.lastSortType = 1;
   GT.searchWB = "";
   GT.gridSearch = "";
   GT.stateSearch = "";
@@ -6897,91 +6897,91 @@ function resetSearch()
   GT.lastSearchSelection = null;
 }
 
-function showWorkedByCall(callsign, event)
+function renderLogbookByCall(callsign, event)
 {
   event.preventDefault();
 
   resetSearch();
   GT.searchWB = callsign;
   if (event.shiftKey == true) GT.filterQSL = "true";
-  openInfoTab("qsobox", "workedBoxDiv", showWorkedBox);
+  openInfoTab("qsobox", "workedBoxDiv", renderLogbookView);
 }
 
-function showWorkedSearchChanged(object, index)
+function renderLogbookSearchChanged(object, index)
 {
   ValidateCallsign(object, null);
   GT.searchWB = object.value.toUpperCase();
   GT.lastSearchSelection = object.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
-function showWorkedSearchState(object, index)
+function renderLogbookSearchState(object, index)
 {
   ValidateCallsign(object, null);
   GT.stateSearch = object.value.toUpperCase();
   GT.lastSearchSelection = object.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
-function showWorkedSearchCnty(object, index)
+function renderLogbookSearchCnty(object, index)
 {
   ValidateCallsign(object, null);
   GT.cntySearch = object.value.toUpperCase();
   GT.lastSearchSelection = object.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
-function showWorkedSearchPOTA(object, index)
+function renderLogbookSearchPOTA(object, index)
 {
   ValidateCallsign(object, null);
   GT.potaSearch = object.value.toUpperCase();
   GT.lastSearchSelection = object.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
-function showWorkedSearchGrid(object, index)
+function renderLogbookSearchGrid(object, index)
 {
   ValidateCallsign(object, null);
   GT.gridSearch = object.value.toUpperCase();
   GT.lastSearchSelection = object.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
 function filterBandFunction(event, index)
 {
   GT.filterBand = this.value;
   GT.lastSearchSelection = this.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
 function filterModeFunction(event, index)
 {
   GT.filterMode = this.value;
   GT.lastSearchSelection = this.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
 function filterDxccFunction(event, index)
 {
   GT.filterDxcc = this.value;
   GT.lastSearchSelection = this.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
 function filterQSLFunction(event, index)
 {
   GT.filterQSL = this.value;
   GT.lastSearchSelection = this.id;
-  showWorkedBox(index, 0);
+  renderLogbookView(index, 0);
 }
 
 function changeZday(element)
 {
   GT.Zday = element.checked;
-  showWorkedBox();
+  renderLogbookView();
 }
 
-function showWorkedBox(sortIndex, nextPage, redraw)
+function renderLogbookView(sortIndex = null, nextPage = 0)
 {
   try
   {
@@ -7038,13 +7038,26 @@ function showWorkedBox(sortIndex, nextPage, redraw)
 
     if (mySort == null)
     {
-      if (typeof GT.lastSortIndex == "undefined" || GT.lastSortIndex == null)
-      {
-        GT.lastSortIndex = 4;
-        GT.lastSortType = 2;
-      }
       mySort = GT.lastSortIndex;
     }
+    else
+    {
+      if (mySort == GT.lastSortIndex)
+      {
+        if (nextPage == 0) 
+        {
+          GT.lastSortType ^= 1;
+          GT.qsoPage = 0;
+        }
+      }
+      else
+      {
+        GT.lastSortType = 1;
+        GT.qsoPage = 0;
+      }
+    }
+
+    GT.lastSortIndex = mySort;
 
     const allList = Object.values(myObjects || {});
     const filtered = [];
@@ -7101,35 +7114,10 @@ function showWorkedBox(sortIndex, nextPage, redraw)
       filtered.push(value);
     }
 
-    if (typeof redraw == "undefined")
-    {
-      if (typeof nextPage == "undefined")
-      {
-        nextPage = 0;
-
-        if (GT.lastSortIndex != mySort)
-        {
-          GT.lastSortIndex = mySort;
-          GT.lastSortType = 1;
-        }
-        else
-        {
-          GT.lastSortType = (GT.lastSortType == 1) ? 2 : 1;
-        }
-
-        GT.qsoPage = 0;
-      }
-    }
-    else
-    {
-      mySort = GT.lastSortIndex;
-      if (mySort == null || typeof mySort == "undefined") mySort = 4;
-    }
-
-    const sortFn = GT.sortFunction[GT.lastSortIndex != null ? GT.lastSortIndex : mySort];
+    const sortFn = GT.sortFunction[GT.lastSortIndex];
     filtered.sort(function (a, b)
     {
-      return (GT.lastSortType == 1) ? sortFn(a, b) : sortFn(b, a);
+      return (GT.lastSortType == 0) ? sortFn(a, b) : sortFn(b, a);
     });
 
     const ObjectCount = filtered.length;
@@ -7143,7 +7131,7 @@ function showWorkedBox(sortIndex, nextPage, redraw)
     const endIndex = Math.min(startIndex + perPage, ObjectCount);
 
     const workHead = `<b> Entries (${ObjectCount})</b>` + 
-      (GT.qsoPages > 1 ? `<br><font style='font-size:15px;' color='cyan' onClick='window.opener.showWorkedBox(${mySort}, -1);'>&#8678;&nbsp;</font> Page ${GT.qsoPage + 1} of ${GT.qsoPages} (${endIndex - startIndex}) <font style='font-size:16px;' color='cyan' onClick='window.opener.showWorkedBox(${mySort}, 1);'>&nbsp;&#8680;</font>` : "");
+      (GT.qsoPages > 1 ? `<br><font style='font-size:15px;' color='cyan' onClick='window.opener.renderLogbookView(${mySort}, -1);'>&#8678;&nbsp;</font> Page ${GT.qsoPage + 1} of ${GT.qsoPages} (${endIndex - startIndex}) <font style='font-size:16px;' color='cyan' onClick='window.opener.renderLogbookView(${mySort}, 1);'>&nbsp;&#8680;</font>` : "");
 
     setStatsDiv("workedHeadDiv", workHead);
 
@@ -7153,36 +7141,36 @@ function showWorkedBox(sortIndex, nextPage, redraw)
 
       let tableHtml = `<table id='logTable' style='white-space:nowrap;overflow:auto;overflow-x:hidden;' class='darkTable' align=center>
         <tr>
-          <th><input type='text' id='searchWB' style='margin:0px' class='inputTextValue' value='${GT.searchWB}' size='8' oninput='window.opener.showWorkedSearchChanged(this);' />${clearBtn(GT.searchWB, "searchWB", "showWorkedSearchChanged")}</th>
-          <th><input type='text' id='searchGrid' style='margin:0px' class='inputTextValue' value='${GT.gridSearch}' size='6' oninput='window.opener.showWorkedSearchGrid(this);' />${clearBtn(GT.gridSearch, "searchGrid", "showWorkedSearchGrid")}</th>
+          <th><input type='text' id='searchWB' style='margin:0px' class='inputTextValue' value='${GT.searchWB}' size='8' oninput='window.opener.renderLogbookSearchChanged(this);' />${clearBtn(GT.searchWB, "searchWB", "renderLogbookSearchChanged")}</th>
+          <th><input type='text' id='searchGrid' style='margin:0px' class='inputTextValue' value='${GT.gridSearch}' size='6' oninput='window.opener.renderLogbookSearchGrid(this);' />${clearBtn(GT.gridSearch, "searchGrid", "renderLogbookSearchGrid")}</th>
           <th><div id='bandFilterDiv'></div></th>
           <th><div id='modeFilterDiv'></div></th>
           <th><div id='qslFilterDiv'></div></th>
           <th></th>
           <th></th>
           ${GT.filterDxcc !== 0 
-            ? `<th style='border-right:none;'><div id='dxccFilterDiv'></div></th><th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc=0;window.opener.showWorkedBox();' src='img/trash_24x48.png' style='width:30px;margin:0px;padding:0px;margin-bottom:-4px;cursor:pointer' /></th>`
-            : `<th colspan='1'><div id='dxccFilterDiv'></div></th>`
+            ? `<th style='border-right:none;'><div id='dxccFilterDiv'></div></th><th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc=0;window.opener.renderLogbookView();' src='img/trash_24x48.png' style='width:30px;margin:0px;padding:0px;margin-bottom:-4px;cursor:pointer' /></th>`
+            : `<th colspan='2'><div id='dxccFilterDiv'></div></th>`
           }
-          <th><input type='text' id='searchState' style='margin:0px' class='inputTextValue' value='${GT.stateSearch}' size='3' oninput='window.opener.showWorkedSearchState(this);' />${clearBtn(GT.stateSearch, "searchState", "showWorkedSearchState")}</th>
-          <th><input type='text' id='searchCnty' style='margin:0px' class='inputTextValue' value='${GT.cntySearch}' size='4' oninput='window.opener.showWorkedSearchCnty(this);' />${clearBtn(GT.cntySearch, "searchCnty", "showWorkedSearchCnty")}</th>
-          ${GT.settings.app.potaFeatureEnabled ? `<th><input type='text' id='searchPOTA' style='margin:0px' class='inputTextValue' value='${GT.potaSearch}' size='4' oninput='window.opener.showWorkedSearchPOTA(this);' />${clearBtn(GT.potaSearch, "searchPOTA", "showWorkedSearchPOTA")}</th>` : ""}
+          <th><input type='text' id='searchState' style='margin:0px' class='inputTextValue' value='${GT.stateSearch}' size='3' oninput='window.opener.renderLogbookSearchState(this);' />${clearBtn(GT.stateSearch, "searchState", "renderLogbookSearchState")}</th>
+          <th><input type='text' id='searchCnty' style='margin:0px' class='inputTextValue' value='${GT.cntySearch}' size='4' oninput='window.opener.renderLogbookSearchCnty(this);' />${clearBtn(GT.cntySearch, "searchCnty", "renderLogbookSearchCnty")}</th>
+          ${GT.settings.app.potaFeatureEnabled ? `<th><input type='text' id='searchPOTA' style='margin:0px' class='inputTextValue' value='${GT.potaSearch}' size='4' oninput='window.opener.renderLogbookSearchPOTA(this);' />${clearBtn(GT.potaSearch, "searchPOTA", "renderLogbookSearchPOTA")}</th>` : ""}
           <th><label>${I18N("gt.Zday")}</label>&nbsp;<input type='checkbox' id='Zday' ${GT.Zday ? "checked" : ""} onclick='window.opener.changeZday(Zday)'/></th>
         </tr>
         <tr>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(0);'>${I18N("gt.qsoPage.Station")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(1);'>${I18N("gt.qsoPage.Grid")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(5);'>${I18N("gt.qsoPage.Band")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(2);'>${I18N("gt.qsoPage.Mode")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(6);'>${I18N("gt.qsoPage.QSL")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(0);'>${I18N("gt.qsoPage.Station")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(1);'>${I18N("gt.qsoPage.Grid")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(5);'>${I18N("gt.qsoPage.Band")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(2);'>${I18N("gt.qsoPage.Mode")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(6);'>${I18N("gt.qsoPage.QSL")}</th>
           <th align=center>${I18N("gt.qsoPage.Sent")}</th>
           <th align=center>${I18N("gt.qsoPage.Rcvd")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>${I18N("gt.qsoPage.DXCC")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(3);'>${I18N("gt.qsoPage.Flag")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(8);'>${I18N("roster.secondary.wanted.state")}</th>
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(9);'>${I18N("roster.secondary.wanted.county")}</th>
-          ${GT.settings.app.potaFeatureEnabled ? `<th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(7);'>POTA</th>` : ""}
-          <th style='cursor:pointer;' align=center onclick='window.opener.showWorkedBox(4);'>${I18N("gt.qsoPage.When")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(3);'>${I18N("gt.qsoPage.DXCC")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(3);'>${I18N("gt.qsoPage.Flag")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(8);'>${I18N("roster.secondary.wanted.state")}</th>
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(9);'>${I18N("roster.secondary.wanted.county")}</th>
+          ${GT.settings.app.potaFeatureEnabled ? `<th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(7);'>POTA</th>` : ""}
+          <th style='cursor:pointer;' align=center onclick='window.opener.renderLogbookView(4);'>${I18N("gt.qsoPage.When")}</th>
           ${GT.settings.callsignLookups.lotwUseEnable ? `<th>${I18N("gt.qsoPage.LoTW")}</th>` : ""}
           ${GT.settings.callsignLookups.eqslUseEnable ? `<th>${I18N("gt.qsoPage.eQSL")}</th>` : ""}
           ${GT.settings.callsignLookups.oqrsUseEnable ? `<th>${I18N("gt.qsoPage.OQRS")}</th>` : ""}
@@ -7406,7 +7394,7 @@ function searchWorked(dxcc, band, mode)
   {
     GT.filterMode = mode;
   }
-  showWorkedBox(null, 0);
+  renderLogbookView();
 }
 
 function getBandSlots()

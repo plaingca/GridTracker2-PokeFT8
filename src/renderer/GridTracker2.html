@@ -205,7 +205,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <td>
               <div id="localDXcall" style="cursor: pointer" title="Who you're calling or last called"
                 onclick="startLookup(GT.localDXcall,localDXGrid.innerHTML);"
-                oncontextmenu="showWorkedByCall(GT.localDXcall, event);">
+                oncontextmenu="renderLogbookByCall(GT.localDXcall, event);">
                 -
               </div>
             </td>
@@ -293,12 +293,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               </div>
             </td>
             <td data-i18n="quickStats.QSO.label" style="cursor: pointer"
-              onclick="resetSearch(); openInfoTab('qsobox', 'workedBoxDiv', showWorkedBox);" title="Worked Stations"
+              onclick="resetSearch(); openInfoTab('qsobox', 'workedBoxDiv', renderLogbookView);" title="Worked Stations"
               align="right">
               QSO
             </td>
             <td align="center"><div style="cursor: pointer" class="roundBorderValue"  
-              onclick="resetSearch(); openInfoTab('qsobox', 'workedBoxDiv', showWorkedBox);" title="Worked Stations">
+              onclick="resetSearch(); openInfoTab('qsobox', 'workedBoxDiv', renderLogbookView);" title="Worked Stations">
               <div id="qsoCount">0</div>
               </div>
             </td>
@@ -314,12 +314,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               </div>
             </td>
             <td data-i18n="quickStats.QSL.label" style="cursor: pointer"
-              onclick="resetSearch(); GT.filterQSL='true'; openInfoTab('qsobox', 'workedBoxDiv', showWorkedBox)"
+              onclick="resetSearch(); GT.filterQSL='true'; openInfoTab('qsobox', 'workedBoxDiv', renderLogbookView)"
               title="Show Confirmed List" align="right">
               QSL
             </td>
             <td><div style="cursor: pointer" class="roundBorderValue" 
-              onclick="resetSearch(); GT.filterQSL='true'; openInfoTab('qsobox', 'workedBoxDiv', showWorkedBox)"
+              onclick="resetSearch(); GT.filterQSL='true'; openInfoTab('qsobox', 'workedBoxDiv', renderLogbookView)"
               title="Show Confirmed List" align="center">
               <div id="qslCount">0</div>
             </div></td>

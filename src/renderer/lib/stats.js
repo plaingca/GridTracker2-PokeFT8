@@ -120,14 +120,14 @@ function validateCallByElement(elementString)
 
 function init()
 {
-  openInfoTab(qsobox, "workedBoxDiv", "showWorkedBox");
+  openInfoTab(qsobox, "workedBoxDiv", "renderLogbookView");
   loadChildWindowI18n();
   registerCutAndPasteContextMenu();
 }
 
 function searchWorked(dxcc, band, mode)
 {
-  openInfoTab(qsobox, "workedBoxDiv", "showWorkedBox");
+  openInfoTab(qsobox, "workedBoxDiv", "renderLogbookView");
   window.opener.searchWorked(dxcc, band, mode);
 }
 
@@ -191,7 +191,7 @@ function reloadInfo(bandOrMode)
 {
   if (workedBoxDiv.style.display == "block")
   {
-    window.opener.showWorkedBox();
+    window.opener.renderLogbookView();
   }
   if (statBoxDiv.style.display == "block")
   {
