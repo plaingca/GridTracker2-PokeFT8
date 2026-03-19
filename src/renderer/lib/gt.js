@@ -211,6 +211,8 @@ GT.flightPathOffset = 0;
 GT.flightPathLineDash = [9, 3, 3];
 GT.flightPathTotal = (9 + 3 + 3) * 2;
 
+GT.lastTimeState = -1;
+
 GT.lastMessages = [];
 GT.lastTraffic = [];
 GT.Zday = false;
@@ -3747,7 +3749,7 @@ function getCurrentBandModeHTML()
 function displayTime()
 {
   GT.timeNow = timeNowSec();
-  GT.currentDay = parseInt(GT.timeNow / 86400);
+  GT.currentDay = ~~(GT.timeNow / 86400);
   GT.currentYear = new Date().getUTCFullYear();
 
   if (menuDiv.className == "menuDivStart" && GT.menuShowing == true)
@@ -3763,20 +3765,24 @@ function displayTime()
   {
     let since = GT.timeNow - GT.lastTimeSinceMessageInSeconds;
     secondsAgoMsg.innerHTML = toDHMS(since);
-    if (since > 17 && since < 122)
-    {
-      secondsAgoMsg.style.backgroundColor = "yellow";
-      secondsAgoMsg.style.color = "#000";
-    }
-    else if (since > 121)
-    {
-      secondsAgoMsg.style.backgroundColor = "orange";
-      secondsAgoMsg.style.color = "#000";
-    }
-    else
-    {
-      secondsAgoMsg.style.backgroundColor = "blue";
-      secondsAgoMsg.style.color = "#FF0";
+    let targetState = 0;
+    if (since > 121) targetState = 2; // Orange
+    else if (since > 17) targetState = 1; // Yellow
+    // 0 is Blue
+
+    // ONLY touch the DOM if the state category actually changed
+    if (GT.lastTimeState !== targetState) {
+      GT.lastTimeState = targetState;
+      if (targetState === 2) {
+        secondsAgoMsg.style.backgroundColor = "orange";
+        secondsAgoMsg.style.color = "#000";
+      } else if (targetState === 1) {
+        secondsAgoMsg.style.backgroundColor = "yellow";
+        secondsAgoMsg.style.color = "#000";
+      } else {
+        secondsAgoMsg.style.backgroundColor = "blue";
+        secondsAgoMsg.style.color = "#FF0";
+      }
     }
   }
   else secondsAgoMsg.innerHTML = "<b>Never</b>";
@@ -4257,25 +4263,26 @@ function mouseDownEvent(event)
   {
     features = features.reverse();
     let finalGridFeature = null;
-    for (let index in features)
+    for (let i = 0; i < features.length; i++)
     {
-      if (!(features[index].values_.prop in GT.hoverFunctors)) continue;
-      if (features[index].size == 6)
+      const feature = features[i];
+      if (!(feature.values_.prop in GT.hoverFunctors)) continue;
+      if (feature.size == 6)
       {
-        finalGridFeature = features[index];
+        finalGridFeature = feature;
       }
-      if (features[index].size == 4 && finalGridFeature == null)
+      if (feature.size == 4 && finalGridFeature == null)
       {
-        finalGridFeature = features[index];
+        finalGridFeature = feature;
       }
-      if (features[index].size == 1)
+      if (feature.size == 1)
       {
-        leftClickGtFlag(features[index]);
+        leftClickGtFlag(feature);
         shouldReturn = true;
       }
-      if (features[index].size == 22)
+      if (feature.size == 22)
       {
-        leftClickPota(features[index].key);
+        leftClickPota(feature.key);
         shouldReturn = true;
       }
     }
@@ -4466,8 +4473,8 @@ function mapMoveEvent(event)
       }
       else
       {
-        let dist = parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL[1], LL[0]) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase();
-        let azim = parseInt(MyCircle.bearing(GT.myLat, GT.myLon, LL[1], LL[0])) + "&deg;";
+        let dist = ~~(MyCircle.distance(GT.myLat, GT.myLon, LL[1], LL[0]) * MyCircle.validateRadius(distanceUnit.value)) + distanceUnit.value.toLowerCase();
+        let azim = ~~(MyCircle.bearing(GT.myLat, GT.myLon, LL[1], LL[0])) + "&deg;";
         let gg = latLonToGridSquare(LL[1], LL[0], 6);
         mouseTrackDiv.innerHTML = LL[1].toFixed(3) + ", " + LL[0].toFixed(3) + " " + dist + " " + azim + " " + gg;
       }
@@ -4476,33 +4483,34 @@ function mapMoveEvent(event)
 
   let noFeature = true;
   let features = GT.map.getFeaturesAtPixel(mousePosition);
-  if (features != null && features.length > 0)
+  if (features && features.length > 0)
   {
-    for (let index in features)
+    for (let i = 0; i < features.length; i++)
     {
-      if (!(features[index].values_.prop in GT.hoverFunctors)) continue;
+      const feature = features[i];
+      const prop = feature.values_.prop;
+      if (!prop || !(prop in GT.hoverFunctors)) continue;
+      
       if (GT.lastHover.feature)
       {
-        if (features[index] != GT.lastHover.feature)
+        if (feature !== GT.lastHover.feature)
         {
           GT.lastHover.functor.out(GT.lastHover.feature);
           GT.lastHover.feature = null;
         }
         else
         {
-          // feature is still up.
-          GT.hoverFunctors[features[index].values_.prop].move(features[index]);
+          GT.hoverFunctors[prop].move(feature);
           noFeature = false;
           break;
         }
       }
       if (GT.lastHover.feature == null)
       {
-        if (GT.hoverFunctors[features[index].values_.prop].hover(features[index], true))
+        if (GT.hoverFunctors[prop].hover(feature, true))
         {
-          // feature was displayed.
-          GT.lastHover.feature = features[index];
-          GT.lastHover.functor = GT.hoverFunctors[features[index].values_.prop];
+          GT.lastHover.feature = feature;
+          GT.lastHover.functor = GT.hoverFunctors[prop];
           noFeature = false;
           break;
         }
@@ -5595,7 +5603,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
   {
     newF = newMessage.DF;
   }
-  let theTimeStamp = timeNowSec() - (timeNowSec() % 86400) + parseInt(newMessage.TM / 1000);
+
+  let theTimeStamp = timeNowSec() - (timeNowSec() % 86400) + ~~(newMessage.TM / 1000);
 
   let theMessage = useReformedMessage ? reformedMessage : newMessage.Msg;
 
@@ -9743,51 +9752,39 @@ function loadMaidenHeadData()
 
   for (let key in GT.dxccInfo)
   {
-    GT.dxccToAltName[GT.dxccInfo[key].dxcc] = GT.dxccInfo[key].name;
-    GT.dxccToADIFName[GT.dxccInfo[key].dxcc] = GT.dxccInfo[key].aname;
-    GT.altNameToDXCC[GT.dxccInfo[key].name] = GT.dxccInfo[key].dxcc;
-    GT.dxccToCountryCode[GT.dxccInfo[key].dxcc] = GT.dxccInfo[key].cc;
+    const info = GT.dxccInfo[key]; // Cache the pointer!
 
-    for (let x = 0; x < GT.dxccInfo[key].prefix.length; x++)
-    {
-      GT.prefixToDXCC[GT.dxccInfo[key].prefix[x]] = key;
+    GT.dxccToAltName[info.dxcc] = info.name;
+    GT.dxccToADIFName[info.dxcc] = info.aname;
+    GT.altNameToDXCC[info.name] = info.dxcc;
+    GT.dxccToCountryCode[info.dxcc] = info.cc;
+
+    for (let i = 0; i < info.prefix.length; i++) {
+      GT.prefixToDXCC[info.prefix[i]] = key;
     }
-    delete GT.dxccInfo[key].prefix;
+    info.prefix = undefined; // Nullifies reference for GC without destroying V8 Hidden Class
 
-    for (let x = 0; x < GT.dxccInfo[key].direct.length; x++)
-    {
-      GT.directCallToDXCC[GT.dxccInfo[key].direct[x]] = GT.dxccInfo[key].dxcc;
+    for (let i = 0; i < info.direct.length; i++) {
+      GT.directCallToDXCC[info.direct[i]] = info.dxcc;
     }
-    delete GT.dxccInfo[key].direct;
+    info.direct = undefined;
 
-    for (let val in GT.dxccInfo[key].prefixCQ)
-    {
-      GT.prefixToCQzone[val] = GT.dxccInfo[key].prefixCQ[val];
-    }
-    delete GT.dxccInfo[key].prefixCQ;
+    for (let val in info.prefixCQ) GT.prefixToCQzone[val] = info.prefixCQ[val];
+    info.prefixCQ = undefined;
 
-    for (let val in GT.dxccInfo[key].prefixITU)
-    {
-      GT.prefixToITUzone[val] = GT.dxccInfo[key].prefixITU[val];
-    }
-    delete GT.dxccInfo[key].prefixITU;
+    for (let val in info.prefixITU) GT.prefixToITUzone[val] = info.prefixITU[val];
+    info.prefixITU = undefined;
 
-    for (let val in GT.dxccInfo[key].directCQ)
-    {
-      GT.directCallToCQzone[val] = GT.dxccInfo[key].directCQ[val];
-    }
-    delete GT.dxccInfo[key].directCQ;
+    for (let val in info.directCQ) GT.directCallToCQzone[val] = info.directCQ[val];
+    info.directCQ = undefined;
 
-    for (let val in GT.dxccInfo[key].directITU)
-    {
-      GT.directCallToITUzone[val] = GT.dxccInfo[key].directITU[val];
-    }
-    delete GT.dxccInfo[key].directITU;
+    for (let val in info.directITU) GT.directCallToITUzone[val] = info.directITU[val];
+    info.directITU = undefined;
 
-    for (let x = 0; x < GT.dxccInfo[key].mh.length; x++)
+    for (let x = 0; x < info.mh.length; x++)
     {
-      if (!(GT.dxccInfo[key].mh[x] in GT.gridToDXCC)) { GT.gridToDXCC[GT.dxccInfo[key].mh[x]] = Array(); }
-      GT.gridToDXCC[GT.dxccInfo[key].mh[x]].push(GT.dxccInfo[key].dxcc);
+      if (!(info.mh[x] in GT.gridToDXCC)) { GT.gridToDXCC[info.mh[x]] = Array(); }
+      GT.gridToDXCC[info.mh[x]].push(info.dxcc);
     }
   }
 
@@ -12908,13 +12905,15 @@ function searchLogForCallsign(call)
     })
     .sort(GT.settings.app.myBandCompare);
 
-  const html = [];
+  let html = [];
+  const ack = GT.acknowledgedCalls[call];
 
-  if (call in GT.acknowledgedCalls)
-  {
-    html = ["<h3>" + I18N("gt.lookup.acks") + " " + formatCallsign(call) + " <img class='lookupAckBadge' src='" + GT.acknowledgedCalls[call].badge + "'> " + GT.acknowledgedCalls[call].message + "</h3>"];
+  // If 'ack' exists, populate the HTML array using a single-allocation template literal
+  if (ack) {
+    html = [
+      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="${ack.badge}"> ${ack.message}</h3>`
+    ];
   }
-
   let work = {};
   let conf = {};
   let lastTime = 0;
