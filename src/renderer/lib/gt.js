@@ -1118,9 +1118,9 @@ function applyQSOs(task)
 // V8 OPTIMIZATION: Rigid Object Constructor for Live Callsigns
 // Guarantees a single Hidden Class (Memory Shape) for massive V8 speedups.
 // =========================================================================
-function LiveCallsign(hash, DEcall, DXcall, grid, mode, band, msg, dxcc, time) {
+function LiveCallsign(DEcall, DXcall, grid, mode, band, msg, dxcc, time) {
   // 1. Core identifiers
-  this.hash = hash;
+  this.hash = null;
   this.DEcall = DEcall;
   this.DXcall = DXcall;
   this.grid = grid;
@@ -1220,7 +1220,7 @@ function addLiveCallsign(
   if (callsign == null)
   {
     // Pass finalDXcall to DEcall, and finalDEcall to DXcall (matching original parameter swap)
-    let newCallsign = new LiveCallsign(hash, finalDXcall, finalDEcall, finalGrid, mode, band, finalMsg, finalDxcc, finalTime);
+    let newCallsign = new LiveCallsign(finalDXcall, finalDEcall, finalGrid, mode, band, finalMsg, finalDxcc, finalTime);
     newCallsign.wspr = wspr;
 
     if (finalDxcc > -1)
@@ -1735,6 +1735,8 @@ function insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callObj
     GT.rosterUpdateTimer = null;
   }
 
+  if (newMessage.SP == 7 ) hash += msgDXcallsign;
+
   let now = timeNowSec();
   if (!(hash in GT.callRoster))
   {
@@ -1755,7 +1757,8 @@ function insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callObj
   }
 
   GT.callRoster[hash].message = newMessage;
-  GT.callRoster[hash].callObj = callObj;
+  GT.callRoster[hash].callObj = newMessage.SP == 7 ? { ...callObj } : callObj;
+  GT.callRoster[hash].callObj.hash = hash;
   GT.callRoster[hash].DXcall = msgDXcallsign;
   GT.callRoster[hash].DEcall = msgDEcallsign;
 
@@ -4804,7 +4807,6 @@ function setHomeGridsquare()
   {
     // FIX: Use the rigid constructor to preserve V8 hidden classes!
     newCallsign = new LiveCallsign(
-      hash,
       GT.settings.app.myCall, // DECall
       "Self",                 // DXCall
       GT.settings.app.myGrid,
@@ -5755,7 +5757,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     {
       let dxcc = callsignToDxcc(msgDEcallsign);
       let newCallsign = new LiveCallsign(
-        hash,
         msgDEcallsign,        // DEcall
         msgDXcallsign.trim(), // DXcall
         theirQTH,             // grid
