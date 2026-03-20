@@ -15,11 +15,6 @@ const originalConsole = {
   warn: console.warn.bind(console)
 };
 
-function logError(...args)
-{
-  sendToElectron("log", args);
-}
-
 function serializeForLog(value)
 {
   if (value instanceof Error)
@@ -146,7 +141,7 @@ try
 }
 catch (e)
 {
-  logError("Can't set dns IPv4 default order");
+  console.error("Can't set dns IPv4 default order");
 }
 
 
@@ -191,22 +186,22 @@ if (document.title.substring(0, 12).trim() == "GridTracker2")
       {
         // safety catch
         GT.settings = {  };
-        logError("Error parsing settings, defaults will be applied");
+        console.error("Error parsing settings, defaults will be applied");
       }
     }
     else
     {
       // This should happen only once for new users
       GT.settings = { };
-      logError("Could not load: " + filename);
-      logError("Defaults will be applied");
+      console.error("Could not load: " + filename);
+      console.error("Defaults will be applied");
     }
   }
   catch (e)
   {
     GT.settings = { };
-    logError("Could not load: " + filename);
-    logError("Defaults will be applied");
+    console.error("Could not load: " + filename);
+    console.error("Defaults will be applied");
   }
 }
 else

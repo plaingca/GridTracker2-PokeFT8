@@ -125,7 +125,7 @@ function loadJsonFileSafe(filePath) {
   try {
     // Replaced require() with fs.readFileSync to prevent memory leaks in Node/Electron
     if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (e) { logError(e); }
+  } catch (e) { console.error(e); }
   return {};
 }
 
@@ -310,7 +310,7 @@ function loadULSFile() {
   fs.readFile(GT.ulsFile, "utf-8", processulsCallsigns);
 }
 function processulsCallsigns(error, buffer) {
-  if (error) logError("File Read Error: " + error);
+  if (error) console.error("File Read Error: " + error);
   GT.ulsCallsigns = {};
 
   if (buffer && buffer.length > 0) {
@@ -331,24 +331,47 @@ function processulsCallsigns(error, buffer) {
 }
 
 function stateCheck() {
+  // 1. Cache deep property lookups to local variables
+  const ulsEnabled = GT.settings.callsignLookups.ulsUseEnable;
+  const cacEnabled = GT.settings.callsignLookups.cacUseEnable;
+
+  // 2. Early exit: Prevents memory allocation if neither setting is active
+  if (!ulsEnabled && !cacEnabled) return;
+
+  // 3. Cache frequently accessed global/parent objects locally
+  const cntyToCounty = GT.cntyToCounty;
+  const cacCallsigns = GT.cacCallsigns;
+
+  // 4. Allocate array ONLY if we know we are going to use it
   const hashes = Object.values(GT.QSOhash);
-  
-  if (GT.settings.callsignLookups.ulsUseEnable) {
-    for (const details of hashes) {
+  const len = hashes.length;
+
+  // 5. Single Pass Iteration using a standard for-loop 
+  // (Avoids the hidden allocation of the iterator protocol in for...of)
+  for (let i = 0; i < len; i++) {
+    const details = hashes[i];
+
+    if (ulsEnabled) {
       if (isKnownCallsignUSplus(details.dxcc)) {
-        let lookupCall = (!details.cnty || !details.state);
-        if (details.cnty && !(details.cnty in GT.cntyToCounty)) {
-          lookupCall = (details.cnty.indexOf(",") !== -1) || !(`${details.state},${details.cnty}` in GT.cntyToCounty);
+        let lookupCall = !details.cnty || !details.state;
+        
+        // 6. Replaced 'in' operator with direct undefined check (faster lookup)
+        if (details.cnty && cntyToCounty[details.cnty] === undefined) {
+          lookupCall = (details.cnty.indexOf(",") !== -1) || 
+                       (cntyToCounty[`${details.state},${details.cnty}`] === undefined);
         }
+        
         if (lookupCall) lookupKnownCallsign(details);
       }
     }
-  }
 
-  if (GT.settings.callsignLookups.cacUseEnable) {
-    for (const details of hashes) {
-      if (details.dxcc === 1 && !details.state && details.DEcall in GT.cacCallsigns) {
-        details.state = "CA-" + GT.cacCallsigns[details.DEcall];
+    if (cacEnabled) {
+      if (
+        details.dxcc === 1 && 
+        !details.state && 
+        cacCallsigns[details.DEcall] !== undefined // Replaced 'in' operator
+      ) {
+        details.state = "CA-" + cacCallsigns[details.DEcall];
       }
     }
   }
@@ -409,7 +432,7 @@ function processCtyDatVer(buffer) {
       bigctyUpdatedTd.innerHTML = "Version check";
       bigctyDetailsTd.innerHTML = "Error!";
     }
-    logError(e);
+    console.error(e);
   }
 }
 
@@ -455,7 +478,7 @@ function processCtyDat(buffer) {
       bigctyUpdatedTd.innerHTML = "Failed to parse";
       bigctyDetailsTd.innerHTML = "Error!";
     }
-    logError(e);
+    console.error(e);
   }
 }
 

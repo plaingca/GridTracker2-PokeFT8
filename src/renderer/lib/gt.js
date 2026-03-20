@@ -671,8 +671,8 @@ function saveAllSettings()
   }
   catch (e)
   {
-    logError("saveAllSettings");
-    logError(e);
+    console.error("saveAllSettings");
+    console.error(e);
   }
 }
 
@@ -1737,7 +1737,7 @@ function insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callObj
 
   if (newMessage.SP == 7 ) hash += msgDXcallsign;
 
-  let now = timeNowSec();
+  const now = timeNowSec();
   if (!(hash in GT.callRoster))
   {
     GT.callRoster[hash] = {};
@@ -6329,8 +6329,8 @@ function goProcessRoster()
     }
     catch (e)
     {
-      logError("processRoster");
-      logError(e);
+      console.error("processRoster");
+      console.error(e);
     }
   }
 }

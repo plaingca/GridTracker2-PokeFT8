@@ -34,9 +34,9 @@ GT.adifWorker.onmessage = function(event)
     {
       GT.adifWorkerCallbacks[event.data.type](event.data);
     }
-    else logError("adifWorkerCallback: unknown event type : " + event.data.type);
+    else console.error("adifWorkerCallback: unknown event type : " + event.data.type);
   }
-  else logError("adifWorkerCallback: no event type");
+  else console.error("adifWorkerCallback: no event type");
 };
 
 function initAdifWorker()
@@ -63,7 +63,7 @@ function initAdifWorker()
 
 function initAdifComplete()
 {
-  // logError("Adif Worker Initialized");
+  // console.error("Adif Worker Initialized");
 }
 
 function clearAdifWorkerQSO(clearFiles, nextFunc = null)
@@ -96,7 +96,7 @@ function onAdiLoadComplete(rawAdiBuffer, nextFunc = null, liveLog = false)
 
   if (typeof rawAdiBuffer == "object")
   {
-    logError("ADIF buffer is an object!");
+    console.error("ADIF buffer is an object!");
     return;
   }
   else task.rawAdiBuffer = rawAdiBuffer;
@@ -122,7 +122,7 @@ function tryNextTask(task)
     }
     else
     {
-      logError("tryNextTask: nextFunc not a function: " + task.nextFunc);
+      console.error("tryNextTask: nextFunc not a function: " + task.nextFunc);
     }
   }
 }
@@ -149,7 +149,7 @@ function adifFilteredLiveComplete(task)
 function exceptionComplete(task)
 {
   GT.adifLogCount--;
-  logError("Expection loading last log");
+  console.error("Expection loading last log");
 
   tryNextTask(task);
 }
@@ -710,7 +710,7 @@ function loadBackupLogFiles()
   }
   catch (e)
   {
-    logError("Error trying to read directory: " + GT.qsoBackupDir);
+    console.error("Error trying to read directory: " + GT.qsoBackupDir);
   }
 }
 
@@ -1515,8 +1515,8 @@ function sendToLogger(ADIF)
   let record = parseADIFRecord(message);
   if (!("MODE" in record) || !("CALL" in record) || !("BAND" in record)) 
   {
-    logError("Invalid ADIF Record");
-    logError(message);
+    console.error("Invalid ADIF Record");
+    console.error(message);
     return;
   }
 
@@ -1714,7 +1714,7 @@ function finishSendingReport(record)
     }
     catch (e)
     {
-      logError(e);
+      console.error(e);
       addLastTraffic("<font style='color:red'>Exception GridTracker backup</font>");
     }
 
@@ -2102,7 +2102,7 @@ function sendLotwLogEntry(report, callsignFile, gridFile)
         if (stderr.indexOf("Final Status: Success") < 0)
         {
           addLastTraffic("<font style='color:orange'>Fail log to TQSL<br/>Queued for retry</font>");
-          logError("TQSL: " + stderr);
+          console.error("TQSL: " + stderr);
         }
         else
         {
@@ -2174,8 +2174,8 @@ function CloudlogSendLogResult(input)
   else 
   {
     addLastTraffic("<font style='color:red'>Fail log to Cloudlog</font><br><font style='color:orange'>See main.log for error</font>");
-    logError("Cloudlog/Wavelog response:");
-    logError(buffer);
+    console.error("Cloudlog/Wavelog response:");
+    console.error(buffer);
   }
 }
 
@@ -2346,10 +2346,10 @@ function qrzSendLogResult(buffer, flag, postData)
     {
       error = "Missing Response";
     }
-    logError("QRZ.com post data:");
-    logError(postData);
-    logError("QRZ.com response:");
-    logError(data);
+    console.error("QRZ.com post data:");
+    console.error(postData);
+    console.error("QRZ.com response:");
+    console.error(data);
   }
   else
   {
