@@ -207,7 +207,14 @@ Stats:
   Logbook:
     Fixed multiple sorting and rendering issues
 
-    
+
+Call Roster:
+  Recognize WSJT-X 'Super Fox' replies correctly when in 'Super Hound' mode
+Stats:
+  WPX/USC:
+    Fixed broken display on some systems
+
+
 ### Fixed
 
 

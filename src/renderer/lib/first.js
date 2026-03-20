@@ -17,13 +17,11 @@ const originalConsole = {
 
 function serializeForLog(value)
 {
+  // Check specifically for Error objects, not just any object with a 'name' property
   if (value instanceof Error)
   {
-    return {
-      name: value.name,
-      message: value.message,
-      stack: value.stack
-    };
+    // Return a beautifully formatted STRING, not an object
+    return `${value.name}: ${value.message}\n${value.stack || ''}`;
   }
 
   if (typeof value === "string")
@@ -33,6 +31,7 @@ function serializeForLog(value)
 
   try
   {
+    // JSON.stringify inherently returns a string
     return JSON.stringify(value, getCircularReplacer(), 2);
   }
   catch (err)
@@ -76,7 +75,7 @@ function getCircularReplacer()
   };
 }
 
-function sendToElectron(channel, parts)
+function sendToElectron(channel, ...parts)
 {
   try
   {
@@ -92,46 +91,44 @@ function sendToElectron(channel, parts)
 console.log = function (...args)
 {
   originalConsole.log(...args);
-  sendToElectron("log", args);
+  sendToElectron("log", ...args);
 };
 
 console.warn = function (...args)
 {
   originalConsole.warn(...args);
-  //sendToElectron("log", args);
+  //sendToElectron("log", ...args);
 };
 
 console.error = function (...args)
 {
   originalConsole.error(...args);
-  sendToElectron("log", args);
+  sendToElectron("log", ...args);
 };
 
 window.onerror = function (message, source, lineNumber, colno, error)
 {
-  if (error && error.stack)
+  if (source)
   {
-    sendToElectron("log", [error]);
+    const msg = `WindowError: ${message} at ${source}:${lineNumber}:${colno}`;
+    originalConsole.error(msg);
+    sendToElectron("log", msg);
   }
-  else
+  else if (error)
   {
-    sendToElectron("log", [
-      `WindowError: ${message} at ${source}:${lineNumber}:${colno}`
-    ]);
+    originalConsole.error(error);
+    sendToElectron("log", error);
   }
 };
 
 window.addEventListener("unhandledrejection", function (event)
 {
-  sendToElectron("log", [
-    "UnhandledPromiseRejection:",
-    event.reason
-  ]);
+  sendToElectron("log", "UnhandledPromiseRejection:", event.reason);
 });
 
 process.on("uncaughtException", function (error)
 {
-  sendToElectron("log", [error]);
+  sendToElectron("log", error);
 });
 
 try
