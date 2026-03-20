@@ -7609,42 +7609,98 @@ function showDXCCsBox()
 
 function showWPXBox()
 {
-  let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter || "";
-  let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode : GT.settings.app.gtModeFilter || "";
-  if (mode == "Digital") mode = "dg";
-  if (mode == "Phone") mode = "ph";
+  let worker = getCurrentBandModeHTML();
+
+  let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter.length == 0 ? "" : GT.settings.app.gtBandFilter;
+  let mode = GT.settings.app.gtModeFilter == "auto" ? GT.settings.app.myMode : GT.settings.app.gtModeFilter.length == 0 ? "" : GT.settings.app.gtModeFilter;
+
+  if (mode == "Digital") { mode = "dg"; }
+  if (mode == "Phone") { mode = "ph"; }
 
   let modifier = String(band) + String(mode);
-  let List = [], ListConfirmed = [];
+  let worked = 0;
+  let confirmed = 0;
+  let List = {};
+  let ListConfirmed = {};
 
-  for (let key in GT.tracker.worked.px) {
-    if (typeof GT.tracker.worked.px[key] == "string" && key + modifier in GT.tracker.worked.px) List.push(key);
+  for (let key in GT.tracker.worked.px)
+  {
+    if (typeof GT.tracker.worked.px[key] == "string" && key + modifier in GT.tracker.worked.px)
+    {
+      List[key] = key;
+    }
   }
-  for (let key in GT.tracker.confirmed.px) {
-    if (typeof GT.tracker.confirmed.px[key] == "string" && key + modifier in GT.tracker.confirmed.px) ListConfirmed.push(key);
+
+  for (let key in GT.tracker.confirmed.px)
+  {
+    if (typeof GT.tracker.confirmed.px[key] == "string" && key + modifier in GT.tracker.confirmed.px)
+    {
+      ListConfirmed[key] = key;
+    }
   }
 
-  const renderTable = (title, list) => {
-    if (list.length === 0) return "";
-    list.sort();
-    let rows = list.map(key => `<tr><td align=left style='color:#ff0;'>${formatCallsign(key)}</td><td style='color:#0ff;'>${formatCallsign(GT.QSOhash[GT.tracker.worked.px[key]].DEcall)}</td></tr>`).join("");
-    let height = Math.min(list.length * 23 + 45, getStatsWindowHeight() - 6);
-    return `
-      <div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'>
-        <b>${title} (<font color='#fff'>${list.length}</font>)</b><br>
-        <div style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:${height}px;'>
-          <table class='darkTable' align=center>${rows}</table>
-        </div>
-      </div>`;
-  };
+  worked = Object.keys(List).length;
+  confirmed = Object.keys(ListConfirmed).length;
 
-  let html = [
-    getCurrentBandModeHTML(),
-    renderTable(I18N("gt.WPXBox.worked"), List),
-    renderTable(I18N("gt.WPXBox.confirmed"), ListConfirmed),
-    `<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>${I18N("gt.viewInfo.countyData")}</b><br>${displayItemList(GT.countyData, "orange")}</div>`
-  ];
-  setStatsDiv("wpxListDiv", html.join(""));
+  if (worked > 0)
+  {
+    worker +=
+      "<div  style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'>" +
+        "<b>" + I18N("gt.WPXBox.worked") + " (<font color='#fff'>" +
+      worked +
+      "</font>)</b><br>";
+    worker +=
+      "<div  style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:" +
+      Math.min(worked * 23 + 45, getStatsWindowHeight() - 6) +
+      "px;'><table class='darkTable' align=center>";
+    Object.keys(List)
+      .sort()
+      .forEach(function (key, i)
+      {
+        worker +=
+          "<tr><td align=left style='color:#ff0;' >" +
+          formatCallsign(key) +
+          "</td><td style='color:#0ff;'>" +
+          formatCallsign(GT.QSOhash[GT.tracker.worked.px[key]].DEcall) +
+          "</td></tr>";
+      });
+
+    worker += "</table></div>";
+    worker += "</div>";
+  }
+
+  if (confirmed > 0)
+  {
+    worker +=
+      "<div  style='vertical-align:top;display:inline-block;margin-right:16px;overflow:auto;overflow-x:hidden;color:cyan;'>" +
+        "<b>" + I18N("gt.WPXBox.confirmed") + " (<font color='#fff'>" +
+      confirmed +
+      "</font>)</b><br>";
+    worker +=
+      "<div  style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;height:" +
+      Math.min(confirmed * 23 + 45, getStatsWindowHeight() - 6) +
+      "px;'><table class='darkTable' align=center>";
+    Object.keys(ListConfirmed)
+      .sort()
+      .forEach(function (key, i)
+      {
+        worker +=
+          "<tr><td align=left style='color:#ff0;' >" +
+          formatCallsign(key) +
+          "</td><td style='color:#0ff;'>" +
+          formatCallsign(GT.QSOhash[GT.tracker.confirmed.px[key]].DEcall) +
+          "</td></tr>";
+      });
+
+    worker += "</table></div>";
+    worker += "</div>";
+  }
+
+  worker += "<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.countyData") + "</b><br>";
+  worker += displayItemList(GT.countyData, "orange");
+  worker += "</div>";
+  
+  setStatsDiv("wpxListDiv", worker);
 }
 
 function showRootInfoBox(toggle = true)
