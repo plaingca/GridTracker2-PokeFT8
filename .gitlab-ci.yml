@@ -22,6 +22,7 @@ stages:
   - build
   - upload
   - release
+  - publish
 
 win:build:
   stage: build
@@ -532,3 +533,181 @@ auto-release-main:
           link_type: other
   script:
     - echo "Release for $CI_COMMIT_TAG"
+
+update-discord:
+  image: fedora:42
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_TAG =~ '/v.*/'
+  needs:
+    - job: upload-gtserv
+      artifacts: true
+    - job: win:build
+      artifacts: true
+    - job: win7:build
+      artifacts: true
+    - job: mac:build
+      artifacts: true
+    - job: lin:build
+      artifacts: true
+    - job: arm32:build
+      artifacts: true
+    - job: arm64:build
+      artifacts: true
+    - job: win:upload
+      artifacts: true
+    - job: win7:upload
+      artifacts: true
+    - job: mac:upload
+      artifacts: true
+    - job: lin:upload
+      artifacts: true
+    - job: arm:upload
+      artifacts: true
+  before_script:
+    - |
+      dnf install npm curl-minimal ncurses -y
+  script:
+    - |
+      echo "Notifying Discord #developer-den that a release has built"
+      echo "Building basefiles"
+      BASEURL="https://download2.gridtracker.org/"
+      VER=$(node -e "console.log(require('./package.json').version)")
+      GT_BASEFILE="GridTracker2-${VER}"
+      WIN_FILE="${GT_BASEFILE}-setup.exe"
+      MAC_UNIV_FILE="${GT_BASEFILE}-universal-mac.zip"
+      MAC_DMG_FILE="${GT_BASEFILE}.dmg"
+      LIN_aarch64="${GT_BASEFILE}-aarch64"
+      LIN_amd64="${GT_BASEFILE}-amd64"
+      LIN_arm64="${GT_BASEFILE}-arm64"
+      LIN_armv7l="${GT_BASEFILE}-armv7l"
+      LIN_x64="${GT_BASEFILE}-x64"
+      LIN_x86_64="${GT_BASEFILE}-x86_64"
+      echo "Getting MD5 checksums"
+      WIN_MD5=($(md5sum dist/${WIN_FILE}))
+      MAC_UNIV_MD5=($(md5sum dist/${MAC_UNIV_FILE}))
+      MAC_DMG_MD5=($(md5sum dist/${MAC_DMG_FILE}))
+      LIN_aarch64_PACMAN_MD5=($(md5sum dist/${LIN_aarch64}.pacman))
+      LIN_aarch64_RPM_MD5=($(md5sum dist/${LIN_aarch64}.rpm))
+      LIN_amd64_DEB_MD5=($(md5sum dist/${LIN_amd64}.deb))
+      LIN_arm64_APPIMAGE_MD5=($(md5sum dist/${LIN_arm64}.AppImage))
+      LIN_arm64_APK_MD5=($(md5sum dist/${LIN_arm64}.apk))
+      LIN_arm64_DEB_MD5=($(md5sum dist/${LIN_arm64}.deb))
+      LIN_arm64_TARGZ_MD5=($(md5sum dist/${LIN_arm64}.tar.gz))
+      LIN_armv7l_APPIMAGE_MD5=($(md5sum dist/${LIN_armv7l}.AppImage))
+      LIN_armv7l_APK_MD5=($(md5sum dist/${LIN_armv7l}.apk))
+      LIN_armv7l_DEB_MD5=($(md5sum dist/${LIN_armv7l}.deb))
+      LIN_armv7l_PACMAN_MD5=($(md5sum dist/${LIN_armv7l}.pacman))
+      LIN_armv7l_RPM_MD5=($(md5sum dist/${LIN_armv7l}.rpm))
+      LIN_armv7l_TARGZ_MD5=($(md5sum dist/${LIN_armv7l}.tar.gz))
+      LIN_x64_APK_MD5=($(md5sum dist/${LIN_x64}.apk))
+      LIN_x64_PACMAN_MD5=($(md5sum dist/${LIN_x64}.pacman))
+      LIN_x64_TARGZ_MD5=($(md5sum dist/${LIN_x64}.tar.gz))
+      LIN_x86_64_APPIMAGE_MD5=($(md5sum dist/${LIN_x86_64}.AppImage))
+      LIN_x86_64_RPM_MD5=($(md5sum dist/${LIN_x86_64}.rpm))
+      echo "Building file strings"
+      WIN_STRING="**${WIN_FILE}**\nmd5: ${WIN_MD5}\n${BASEURL}${WIN_FILE}\n\n"
+      MAC_UNIV_STRING="**${MAC_UNIV_FILE}**\nMD5: ${MAC_UNIV_MD5}\n${BASEURL}${MAC_UNIV_FILE}\n\n"
+      MAC_DMG_STRING="**${MAC_DMG_FILE}**\nMD5: ${MAC_DMG_MD5}\n${BASEURL}${MAC_DMG_FILE}\n\n"
+      LIN_aarch64_PACMAN_STRING="**${LIN_aarch64}.pacman**\nMD5: ${LIN_aarch64_PACMAN_MD5}\n${BASEURL}${LIN_aarch64}.pacman\n\n"
+      LIN_aarch64_RPM_STRING="**${LIN_aarch64}.rpm**\nMD5: ${LIN_aarch64_RPM_MD5}\n${BASEURL}${LIN_aarch64}.rpm\n\n"
+      LIN_amd64_DEB_STRING="**${LIN_amd64}.deb**\nMD5: ${LIN_amd64_DEB_MD5}\n${BASEURL}${LIN_amd64}.deb\n\n"
+      LIN_arm64_APPIMAGE_STRING="**${LIN_arm64}.AppImage**\nMD5: ${LIN_arm64_APPIMAGE_MD5}\n${BASEURL}${LIN_arm64}.AppImage\n\n"
+      LIN_arm64_APK_STRING="**${LIN_arm64}.apk**\nMD5: ${LIN_arm64_APK_MD5}\n${BASEURL}${LIN_arm64}.apk\n\n"
+      LIN_arm64_DEB_STRING="**${LIN_arm64}.deb**\nMD5: ${LIN_arm64_DEB_MD5}\n${BASEURL}${LIN_arm64}.deb\n\n"
+      LIN_arm64_TARGZ_STRING="**${LIN_arm64}.tar.gz**\nMD5: ${LIN_arm64_TARGZ_MD5}\n${BASEURL}${LIN_arm64}.tar.gz\n\n"
+      LIN_arm64_APK_STRING="**${LIN_arm64}.apk**\nMD5: ${LIN_arm64_APK_MD5}\n${BASEURL}${LIN_arm64}.apk\n\n"
+      LIN_armv7l_APPIMAGE_STRING="**${LIN_armv7l}.AppImage**\nMD5: ${LIN_armv7l_APPIMAGE_MD5}\n${BASEURL}${LIN_armv7l}.AppImage\n\n"
+      LIN_armv7l_APK_STRING="**${LIN_armv7l}.apk**\nMD5: ${LIN_armv7l_APK_MD5}\n${BASEURL}${LIN_armv7l}.apk\n\n"
+      LIN_armv7l_DEB_STRING="**${LIN_armv7l}.deb**\nMD5: ${LIN_armv7l_DEB_MD5}\n${BASEURL}${LIN_armv7l}.deb\n\n"
+      LIN_armv7l_PACMAN_STRING="**${LIN_armv7l}.pacman**\nMD5: ${LIN_armv7l_PACMAN_MD5}\n${BASEURL}${LIN_armv7l}.pacman\n\n"
+      LIN_armv7l_RPM_STRING="**${LIN_armv7l}.rpm**\nMD5: ${LIN_armv7l_RPM_MD5}\n${BASEURL}${LIN_armv7l}.rpm\n\n"
+      LIN_armv7l_TARGZ_STRING="**${LIN_armv7l}.tar.gz**\nMD5: ${LIN_armv7l_TARGZ_MD5}\n${BASEURL}${LIN_armv7l}.tar.gz\n\n"
+      LIN_x64_APK_STRING="**${LIN_x64}.APK**\nMD5: ${LIN_x64_APK_MD5}\n${BASEURL}${LIN_x64}.apk\n\n"
+      LIN_x64_PACMAN_STRING="**${LIN_x64}.pacman**\nMD5: ${LIN_x64_PACMAN_MD5}\n${BASEURL}${LIN_x64}.pacman\n\n"
+      LIN_x64_TARGZ_STRING="**${LIN_x64}.tar.gz**\nMD5: ${LIN_x64_TARGZ_MD5}\n${BASEURL}${LIN_x64}.tar.gz\n\n"
+      LIN_x86_64_APPIMAGE_STRING="**${LIN_x86_64}.AppImage**\nMD5: ${LIN_x86_64_APPIMAGE_MD5}\n${BASEURL}${LIN_x86_64}.AppImage\n\n"
+      LIN_x86_64_RPM_STRING="**${LIN_x86_64}.rpm**\nMD5: ${LIN_x86_64_RPM_MD5}\n${BASEURL}${LIN_x86_64}.rpm\n\n"
+
+      curl -H "Content-Type: application/json" -X POST $DISCORD_WEBHOOK --data-binary @- << EOM
+      {
+        "content": "${CI_COMMIT_TAG_MESSAGE}",
+        "tts": false,
+        "embeds": [
+          {
+            "title": "GridTracker2 ${VER} Release Artifacts",
+            "color": 3066993,
+            "fields": [
+              {
+                "name": "Windows",
+                "value": "${WIN_STRING}",
+                "inline": false
+              },
+              {
+                "name": "macOS",
+                "value": "${MAC_DMG_STRING}${MAC_UNIV_STRING}",
+                "inline": false
+              },
+              {
+                "name": "Linux x86_64 / amd64",
+                "value": "${LIN_x86_64_APPIMAGE_STRING}${LIN_x86_64_RPM_STRING}${LIN_amd64_DEB_STRING}${LIN_x64_APK_STRING}${LIN_x64_PACMAN_STRING}${LIN_x64_TARGZ_STRING}",
+                "inline": false
+              },
+              {
+                "name": "Linux arm64 / aarch64",
+                "value": "${LIN_arm64_APPIMAGE_STRING}${LIN_arm64_APK_STRING}${LIN_arm64_DEB_STRING}${LIN_arm64_TARGZ_STRING}${LIN_aarch64_PACMAN_STRING}${LIN_aarch64_RPM_STRING}",
+                "inline": false
+              },
+              {
+                "name": "Linux armv7l",
+                "value": "${LIN_armv7l_APPIMAGE_STRING}${LIN_armv7l_APK_STRING}${LIN_armv7l_DEB_STRING}${LIN_armv7l_PACMAN_STRING}${LIN_armv7l_RPM_STRING}${LIN_armv7l_TARGZ_STRING}",
+                "inline": false
+              }
+            ]
+          }
+        ],
+        "username": "GridTracker Release Bot",
+        "avatar_url": "http://gridtracker.org/images/icons/gridtracker32.png"
+      }
+      EOM
+      echo "Discord notified"
+
+virustotal_push:
+  stage: publish
+  image: fedora:42
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^(v|test_|win_).*/'
+  before_script:
+    - |
+      dnf install node curl-minimal -y
+  script:
+    - |
+      echo "Pushing release files to VirusTotal"
+      VER=$(node -e "console.log(require('./package.json').version)")
+      BASEURL="https://download2.gridtracker.org/"
+      GT_BASEFILE="GridTracker2-${VER}"
+
+      vt_upload() {
+        local file=$1
+        local url=$2
+        echo "Downloading ${file}"
+        curl -L -o "${file}" "${url}"
+        echo "Getting VirusTotal upload URL for ${file}"
+        UPLOAD_URL=$(curl --silent --request GET \
+             --url "https://www.virustotal.com/api/v3/files/upload_url" \
+             --header "accept: application/json" \
+             --header "x-apikey: ${VT_API_KEY}" | \
+             node -e "let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).data))")
+        echo "Uploading ${file} to VirusTotal"
+        curl --request POST \
+             --url "${UPLOAD_URL}" \
+             --header "accept: application/json" \
+             --header "x-apikey: ${VT_API_KEY}" \
+             --form "file=@${file}"
+        rm -f "${file}"
+      }
+
+      vt_upload "${GT_BASEFILE}-setup.exe"       "${BASEURL}${GT_BASEFILE}-setup.exe"
+      vt_upload "${GT_BASEFILE}-win7-setup.exe"  "${BASEURL}win7/${GT_BASEFILE}-win7-setup.exe"
+      vt_upload "${GT_BASEFILE}.dmg"             "${BASEURL}${GT_BASEFILE}.dmg"
+
