@@ -5898,6 +5898,26 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     if (newMessage.NW)
     {
+      if (GT.settings.app.spottingEnable == true && newMessage.OF > 0)
+      {
+        let freq = callsign.delta + newMessage.OF;
+        const call = callsign.DEcall;
+        if (call in GT.gtCallsigns)
+        {
+          for (const cid in GT.gtCallsigns[call])
+          {
+            if (cid in GT.gtFlagPins && GT.gtFlagPins[cid].o == 1)
+            {
+              GT.spotCollector[cid] = callsign.RSTsent;
+              GT.spotDetailsCollector[cid] = [freq, callsign.mode];
+            }
+          }
+        }
+        freq = freq - (freq % k_frequencyBucket);
+        GT.decodeCollector[freq] ??= 0;
+        GT.decodeCollector[freq]++;
+      }
+
       didCustomAlert = processCustomAlertMessage(decodeWords, theMessage.substr(0, 30).trim(), callsign.band, callsign.mode);
 
       insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callsign, hash);
@@ -5913,25 +5933,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         GT.lastTraffic.unshift("<hr style='border-color:#333;margin-top:0px;margin-bottom:2px;width:80%'>");
         drawTraffic();
         lastMessageWasInfo = true;
-      }
-
-      if (GT.settings.app.spottingEnable == true && newMessage.OF > 0)
-      {
-        let freq = callsign.delta + newMessage.OF;
-        if (callsign.DEcall in GT.gtCallsigns)
-        {
-          for (const cid in GT.gtCallsigns[callsign.DEcall])
-          {
-            if (cid in GT.gtFlagPins && GT.gtFlagPins[cid].o == 1)
-            {
-              GT.spotCollector[cid] = callsign.RSTsent;
-              GT.spotDetailsCollector[cid] = [freq, callsign.mode];
-            }
-          }
-        }
-        freq = freq - (freq % k_frequencyBucket);
-        GT.decodeCollector[freq] ??= 0;
-        GT.decodeCollector[freq]++;
       }
     }
 
