@@ -214,6 +214,8 @@ Stats:
   WPX/USC:
     Fixed broken display on some systems
 
+App:
+  Fixed lockup at start if Off-Air Services and Band Activity were disabled
 
 ### Fixed
 

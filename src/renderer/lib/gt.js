@@ -1521,7 +1521,7 @@ function createTooltTipTable(toolElement)
       return "";
     }
 
-    const parts = [];
+    let parts = [];
     const dxccList = GT.gridToDXCC[qth];
     const stateList = qth in GT.gridToState ? GT.gridToState[qth] : null;
 
@@ -1563,7 +1563,7 @@ function createTooltTipTable(toolElement)
 
   function buildHeaderRow()
   {
-    const cells = [
+    let cells = [
       I18N("gt.newCallList.Call"),
       I18N("gt.newCallList.Freq"),
       I18N("gt.newCallList.Sent"),
@@ -1664,7 +1664,7 @@ function createTooltTipTable(toolElement)
     return compareCallsignTime(b, a);
   });
 
-  const rows = [];
+  let rows = [];
 
   rows.push(
     "<table id='tooltipTable' class='darkTable'>" +
@@ -7062,7 +7062,7 @@ function renderLogbookView(sortIndex = null, nextPage = 0)
     GT.lastSortIndex = mySort;
 
     const allList = Object.values(myObjects || {});
-    const filtered = [];
+    let filtered = [];
 
     for (const value of allList)
     {
@@ -7507,7 +7507,7 @@ function displayItemList(table, color)
   const workedStyle = "color:" + color + ";background-clip:content-box;box-shadow: 0 0 8px 3px inset;";
   const neededStyle = "color:#000000;background-color:" + color + ";text-shadow: 0px 0px 1px black;";
 
-  const rows = [];
+  let rows = [];
 
   rows.push(
     "<div style='color:white;vertical-align:top;display:inline-block;margin-right:8px;overflow-y:auto;overflow-x:hidden;height:" +
@@ -9165,7 +9165,7 @@ function renderBandActivity()
     for (const band in bandData)
     {
       let blockMyBand = (band == GT.settings.app.myBand) ? " class='myBand' " : "";
-      const title = [];
+      let title = [];
       let blueBarValue;
 
       if (GT.settings.app.offAirServicesEnable == true && GT.settings.app.oamsBandActivity == true)
