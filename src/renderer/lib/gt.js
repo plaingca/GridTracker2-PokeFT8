@@ -7401,26 +7401,45 @@ function searchWorked(dxcc, band, mode)
 
 function getBandSlots()
 {
-  let bands = (GT.myDXCC in GT.callsignDatabaseUSplus) ? GT.us_bands : GT.non_us_bands;
-  let bSlots = { Mixed: 0, Phone: 0, Digital: 0 };
+  const bands = (GT.myDXCC in GT.callsignDatabaseUSplus) ? GT.us_bands : GT.non_us_bands;
+  const bSlots = { Mixed: 0, Phone: 0, Digital: 0, CW: 0 };
   bands.forEach(b => bSlots[b] = 0);
-  
-  for (const key in GT.dxccInfo) {
-    if (GT.dxccInfo[key].geo != "deleted" && key + "|" in GT.tracker.confirmed.dxcc) {
+
+  const confirmed = GT.tracker.confirmed.dxcc;
+
+  for (const [key, info] of Object.entries(GT.dxccInfo)) {
+    const baseKey = `${key}|`;
+
+    if (info.geo !== "deleted" && baseKey in confirmed) {
       bSlots.Mixed++;
-      if (key + "|dg" in GT.tracker.confirmed.dxcc) bSlots.Digital++;
-      if (key + "|ph" in GT.tracker.confirmed.dxcc) bSlots.Phone++;
-      bands.forEach(b => { if (key + "|" + b in GT.tracker.confirmed.dxcc) bSlots[b]++; });
+      if (`${baseKey}dg` in confirmed) bSlots.Digital++;
+      if (`${baseKey}ph` in confirmed) bSlots.Phone++;
+      if (`${baseKey}CW` in confirmed) bSlots.CW++;
+      
+      bands.forEach(b => { 
+        if (`${baseKey}${b}` in confirmed) bSlots[b]++; 
+      });
     }
   }
 
-  let total = bands.reduce((acc, b) => acc + bSlots[b], 0);
+  const total = bands.reduce((acc, b) => acc + bSlots[b], 0);
 
-  return `<table class='darkTable' align=center>
-    <tr><th colspan="${bands.length + 4}">Confirmed Band Slots</th></tr>
-    <tr><th>Mixed</th><th>Phone</th><th>Digital</th>${bands.map(b => `<th><font color="${GT.pskColors[b]}">${b}</font></th>`).join("")}<th>Total</th></tr>
-    <tr><td>${bSlots.Mixed}</td><td>${bSlots.Phone}</td><td>${bSlots.Digital}</td>${bands.map(b => `<td>${bSlots[b]}</td>`).join("")}<td>${total}</td></tr>
-  </table><br>`;
+  const bandHeaders = bands.map(b => `<th><span style="color: #${GT.pskColors[b]}">${b}</span></th>`).join("");
+  const bandData = bands.map(b => `<td>${bSlots[b]}</td>`).join("");
+
+  return `
+    <table class="darkTable" style="margin: 0 auto;">
+      <tr>
+        <th colspan="${bands.length + 5}">Confirmed Band Slots</th>
+      </tr>
+      <tr>
+        <th>Mixed</th><th>Phone</th><th>Digital</th><th>CW</th>${bandHeaders}<th>Total</th>
+      </tr>
+      <tr>
+        <td>${bSlots.Mixed}</td><td>${bSlots.Phone}</td><td>${bSlots.Digital}</td><td>${bSlots.CW}</td>${bandData}<td>${total}</td>
+      </tr>
+    </table><br>
+  `;
 }
 
 function getDXMarathon()
@@ -7588,7 +7607,7 @@ function showDXCCsBox()
       </tr>`;
     }).join("");
 
-    let height = Math.min(list.length * 23, getStatsWindowHeight() - 70);
+    let height = Math.min((list.length+2) * 23, getStatsWindowHeight() - 70);
     return `
       <div style='vertical-align:top;display:inline-block;margin-right:5px;overflow:auto;overflow-x:hidden;height:${height}px;'>
         <table class='darkTable' align=center>

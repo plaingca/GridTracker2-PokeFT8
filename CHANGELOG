@@ -217,6 +217,11 @@ Stats:
 App:
   Fixed lockup at start if Off-Air Services and Band Activity were disabled
 
+Stats:
+  DXCCs:
+    Confirmed Band Slots:
+      Added CW count
+      
 ### Fixed
 
 
