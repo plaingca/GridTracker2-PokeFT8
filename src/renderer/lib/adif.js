@@ -1714,8 +1714,8 @@ function finishSendingReport(record)
     }
     catch (e)
     {
-      console.error(e);
       addLastTraffic("<font style='color:red'>Exception GridTracker backup</font>");
+      console.error(e);
     }
 
     try
@@ -1725,6 +1725,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception QRZ Log</font>");
+      console.error(e);
     }
 
     try
@@ -1734,6 +1735,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception ClubLog Log</font>");
+      console.error(e);
     }
 
     try
@@ -1743,6 +1745,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception HrdLog.net Log</font>");
+      console.error(e);
     }
 
     try
@@ -1752,6 +1755,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception Cloudlog Log</font>");
+      console.error(e);
     }
 
     if (GT.settings.acLog.enable == true && GT.settings.acLog.port > 0 && GT.settings.acLog.ip.length > 4)
@@ -1764,6 +1768,7 @@ function finishSendingReport(record)
       catch (e)
       {
         addLastTraffic("<font style='color:red'>Exception N3FJP Log</font>");
+        console.error(e);
       }
     }
 
@@ -1793,6 +1798,7 @@ function finishSendingReport(record)
       catch (e)
       {
         addLastTraffic("<font style='color:red'>Exception DXKeeper Log</font>");
+        console.error(e);
       }
     }
 
@@ -1806,6 +1812,7 @@ function finishSendingReport(record)
       catch (e)
       {
         addLastTraffic("<font style='color:red'>Exception HRD Log</font>");
+        console.error(e);
       }
     }
 
@@ -1816,6 +1823,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception LoTW Log</font>");
+      console.error(e);
     }
 
     try
@@ -1825,6 +1833,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception HamCQ Log</font>");
+      console.error(e);
     }
 
     if (logeQSLQSOCheckBox.checked == true && (nicknameeQSLCheckBox.checked == false || (nicknameeQSLCheckBox.checked == true && eQSLNickname.value.trim().length > 0)))
@@ -1847,6 +1856,7 @@ function finishSendingReport(record)
       catch (e)
       {
         addLastTraffic("<font style='color:red'>Exception eQSL Log</font>");
+        console.error(e);
       }
     }
 
@@ -1857,6 +1867,7 @@ function finishSendingReport(record)
     catch (e)
     {
       addLastTraffic("<font style='color:red'>Exception Alert Log</font>");
+      console.error(e);
     }
 
     if (lookupCloseLog.checked == true)
@@ -1868,6 +1879,7 @@ function finishSendingReport(record)
       catch (e)
       {
         addLastTraffic("<font style='color:red'>Exception Hide Lookup</font>");
+        console.error(e);
       }
     }
   }
@@ -3240,12 +3252,6 @@ function sendHRDLogbookEntry(report, port, address)
   let items = Object.assign({}, report);
 
   items.FREQ = items.FREQ.split(".").join("");
-
-  // HRD Log doesn't accept unicode
-  if (items.NAME && containsDoubleByte(items.NAME))
-  {
-    delete items.NAME;
-  }
 
   for (let item in items)
   {

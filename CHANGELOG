@@ -221,6 +221,9 @@ Stats:
   DXCCs:
     Confirmed Band Slots:
       Added CW count
+Logging:
+  HRD Logbook <- v6.8.x
+    Fixed bug preventing logging
       
 ### Fixed
 
