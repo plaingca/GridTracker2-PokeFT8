@@ -11859,6 +11859,7 @@ function updateWsjtxListener(port)
         newMessage.ConfName = r.remaining() > 0 ? r.utf8() : null;
         newMessage.TxMessage = r.remaining() > 0 ? r.utf8() : null;
 
+        if (instance.status && newMessage.SopMode != instance.status.SopMode) GT.callRoster = {};
         instance.oldStatus = instance.status;
         instance.status = newMessage;
         instance.valid = true;
