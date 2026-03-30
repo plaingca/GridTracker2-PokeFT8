@@ -5906,16 +5906,30 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     if (newMessage.NW)
     {
-      if (GT.settings.app.spottingEnable && newMessage.OF > 0) {
+      if (GT.settings.app.spottingEnable === true && newMessage.OF > 0) {
+        
         const instanceHash = GT.instances[newMessage.instance].instanceHash;
         const call = callsign.DEcall;
-        if (call in GT.gtCallsigns) {
-          console.log(call);
-          GT.spotCollector[instanceHash] ??= new Map();
-          GT.spotCollector[instanceHash].set(call,`${callsign.RSTsent}|${callsign.delta + newMessage.OF}`);
+        if (GT.gtCallsigns[call] !== undefined) {
+          const spotColl = GT.spotCollector;
+          let spotMap = spotColl[instanceHash];
+
+          if (spotMap === undefined) {
+            spotMap = new Map();
+            spotColl[instanceHash] = spotMap;
+          }
+
+          spotMap.set(call, callsign.RSTsent + "|" + (callsign.delta + newMessage.OF));
         }
 
-        GT.decodeCollector[instanceHash] = (GT.decodeCollector[instanceHash] ?? 0) + 1;
+        const decodeColl = GT.decodeCollector;
+        const currentCount = decodeColl[instanceHash];
+        // V8 optimized, i know it looks bad, but it's really not
+        if (currentCount === undefined) {
+          decodeColl[instanceHash] = 1;
+        } else {
+          decodeColl[instanceHash] = currentCount + 1;
+        }
       }
 
       didCustomAlert = processCustomAlertMessage(decodeWords, theMessage.substr(0, 30).trim(), callsign.band, callsign.mode);
@@ -8011,31 +8025,57 @@ function getTypeFromMode(mode)
   return "Other";
 }
 
-function workObject(obj, count, band, mode, type, didConfirm)
-{
+function workObject(obj, count, band, mode, type, didConfirm) {
+  // 1. Fast SMI increment
   obj.worked++;
-  obj.worked_bands[band] = ~~obj.worked_bands[band] + 1;
-  obj.worked_modes[mode] = ~~obj.worked_modes[mode] + 1;
 
-  if (!count)
-  {
-    obj.worked_types.Mixed = ~~obj.worked_modes.Mixed + 1;
+  // 2. Cache nested dictionaries
+  const wBands = obj.worked_bands;
+  const wModes = obj.worked_modes;
 
-    if (type) obj.worked_types[type] = ~~obj.worked_modes[type] + 1;
+  // 3. Fast dictionary mutation
+  const wBandVal = wBands[band];
+  wBands[band] = wBandVal === undefined ? 1 : wBandVal + 1;
+
+  const wModeVal = wModes[mode];
+  wModes[mode] = wModeVal === undefined ? 1 : wModeVal + 1;
+
+  // 5. Strict boolean check (No ToBoolean casting)
+  if (count === false) {
+    const wTypes = obj.worked_types;
+    
+    const wModeMixed = wModes.Mixed;
+    wTypes.Mixed = wModeMixed === undefined ? 1 : wModeMixed + 1;
+
+    const wModeTypeVal = wModes[type];
+    wTypes[type] = wModeTypeVal === undefined ? 1 : wModeTypeVal + 1;
   }
 
-  if (didConfirm)
-  {
+  // 6. Strict boolean pointer check (No ToBoolean casting)
+  if (didConfirm === true) {
     obj.confirmed++;
-    obj.confirmed_bands[band] = ~~obj.confirmed_bands[band] + 1;
-    obj.confirmed_modes[mode] = ~~obj.confirmed_modes[mode] + 1;
 
-    if (!count)
-    {
-      obj.confirmed_types.Mixed = ~~obj.confirmed_types.Mixed + 1;
-      if (type) obj.confirmed_types[type] = ~~obj.confirmed_types[type] + 1;
+    const cBands = obj.confirmed_bands;
+    const cModes = obj.confirmed_modes;
+
+    const cBandVal = cBands[band];
+    cBands[band] = cBandVal === undefined ? 1 : cBandVal + 1;
+
+    const cModeVal = cModes[mode];
+    cModes[mode] = cModeVal === undefined ? 1 : cModeVal + 1;
+
+    // Reuse the cached evaluation
+    if (count === false) {
+      const cTypes = obj.confirmed_types;
+      
+      const cTypeMixed = cTypes.Mixed;
+      cTypes.Mixed = cTypeMixed === undefined ? 1 : cTypeMixed + 1;
+
+      const cTypeVal = cTypes[type];
+      cTypes[type] = cTypeVal === undefined ? 1 : cTypeVal + 1;
     }
   }
+
   return obj;
 }
 
@@ -8731,20 +8771,36 @@ function redrawLiveGrids(honorAge = true)
   }
 }
 
+// Optimized for V8, it's ugly, but it's fast
 function updateZoneStats(zoneDict, zoneName, worked, didConfirm, band, mode) {
   const entry = zoneDict[zoneName];
-  if (!entry) return; // Failsafe
-
-  entry.worked ||= worked;
-  if (worked) {
-    entry.worked_bands[band] = ~~entry.worked_bands[band] + 1;
-    entry.worked_modes[mode] = ~~entry.worked_modes[mode] + 1;
+  if (entry === undefined) {
+    return;
   }
 
-  entry.confirmed ||= didConfirm;
-  if (didConfirm) {
-    entry.confirmed_bands[band] = ~~entry.confirmed_bands[band] + 1;
-    entry.confirmed_modes[mode] = ~~entry.confirmed_modes[mode] + 1;
+  if (worked === true) {
+    entry.worked = true;
+    const wBands = entry.worked_bands;
+    const wModes = entry.worked_modes;
+
+    const wBandVal = wBands[band];
+    wBands[band] = wBandVal === undefined ? 1 : wBandVal + 1;
+
+    const wModeVal = wModes[mode];
+    wModes[mode] = wModeVal === undefined ? 1 : wModeVal + 1;
+  }
+
+  if (didConfirm === true) {
+    entry.confirmed = true;
+
+    const cBands = entry.confirmed_bands;
+    const cModes = entry.confirmed_modes;
+
+    const cBandVal = cBands[band];
+    cBands[band] = cBandVal === undefined ? 1 : cBandVal + 1;
+
+    const cModeVal = cModes[mode];
+    cModes[mode] = cModeVal === undefined ? 1 : cModeVal + 1;
   }
 }
 
@@ -8947,8 +9003,8 @@ function updateGTFlagViews()
     GT.layerVectors.gtflags.setVisible(false);
     clearGtFlags();
     // Clear list
-    GT.gtFlagPins = Object()
-    GT.gtCallsigns = Object();
+    GT.gtFlagPins = {};
+    GT.gtCallsigns = {};
 
     conditionsButton.style.background = "";
     conditionsButton.innerHTML = "<img src=\"img/conditions.png\" class=\"buttonImg\" />";

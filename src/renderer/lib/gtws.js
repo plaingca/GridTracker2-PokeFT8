@@ -280,25 +280,30 @@ function gtAddCalls(jsmesg)
 }
 
 function gtRemoveCalls(jsmesg) {
+
+  const gtFlagsLayer = GT.layerSources.gtflags;
+  const gtFlagPins = GT.gtFlagPins;
+  const gtCallsigns = GT.gtCallsigns;
+
   const callkeys = jsmesg.c.split(",");
   
   for (const cid of callkeys) {
-    const pinObj = GT.gtFlagPins[cid];
+    const pinObj = gtFlagPins[cid];
     if (!pinObj) continue;
 
-    if (pinObj.pin && GT.layerSources.gtflags.hasFeature(pinObj.pin)) {
-      GT.layerSources.gtflags.removeFeature(pinObj.pin);
+    if (pinObj.pin && gtFlagsLayer.hasFeature(pinObj.pin)) {
+      gtFlagsLayer.removeFeature(pinObj.pin);
     }
     pinObj.pin = null;
-    pinObj.live = false;
+
 
     const call = pinObj.call;
-    if (GT.gtCallsigns[call]) {
-      delete GT.gtCallsigns[call][cid]; // Delete the specific CID first
+    if (gtCallsigns[call]) {
+      delete gtCallsigns[call][cid]; // Delete the specific CID first
       
       // If no more CIDs exist for this call, delete the call itself
-      if (Object.keys(GT.gtCallsigns[call]).length === 0) {
-        delete GT.gtCallsigns[call];
+      if (Object.keys(gtCallsigns[call]).length === 0) {
+        delete gtCallsigns[call];
       }
     }
 
@@ -308,8 +313,7 @@ function gtRemoveCalls(jsmesg) {
 
 function gtChatGetList()
 {
-  let msg = {t: "l"};
-  sendGtJson(JSON.stringify(msg));
+  sendGtJson(JSON.stringify({t: "l"}));
 }
 
 function redrawPins()
@@ -360,37 +364,56 @@ function makeGtPin(obj) {
   }
 }
 
-function addNewCall(cid)
-{
-  const parts = cid.split("|");
-  GT.gtFlagPins[cid] = {
-    pin: null, 
-    call: parts[0], 
-    fCall:formatCallsign(parts[0]),
-    grid: parts[3],
-    freq: 0,
-    band: parts[1],
-    mode: parts[2],
-    cid : cid,
-    dxcc: callsignToDxcc(parts[0]),
-    live: true,
-    o: true,
-    src: "GT"
-  };
-
-
-  if (!(parts[0] in GT.gtCallsigns))
-  {
-    GT.gtCallsigns[parts[0]] = {};
+class PinData {
+  constructor(call, band, mode, grid, cid, dxcc, fCall) {
+    this.pin = null; 
+    this.call = call;
+    this.fCall = fCall;
+    this.grid = grid;
+    this.freq = 0;       // SMI (Small Integer)
+    this.band = band;
+    this.mode = mode;
+    this.cid = cid;
+    this.dxcc = dxcc;
   }
+}
 
-  GT.gtCallsigns[parts[0]][cid] = true;
+function addNewCall(cid) {
+  const parts = cid.split("|");
+  const call = parts[0];
 
-  makeGtPin(GT.gtFlagPins[cid]);
+  const fCall = formatCallsign(call);
+  const dxcc = callsignToDxcc(call);
 
-  if (GT.gtFlagPins[cid].pin != null)
-  {
-    GT.layerSources.gtflags.addFeature(GT.gtFlagPins[cid].pin);
+  const pinData = new PinData(
+    call, 
+    parts[1], 
+    parts[2], 
+    parts[3], 
+    cid, 
+    dxcc, 
+    fCall
+  );
+
+  GT.gtFlagPins[cid] = pinData;
+
+  // 5. Caching the dictionary lookup.
+  // When objects are used as Maps, V8 downgrades them to "Dictionary Mode" (Hash Maps).
+  // Lookups in Dictionary Mode are slower, so we look it up exactly once.
+  let callDict = GT.gtCallsigns[call];
+  if (callDict === undefined) {
+    callDict = {};
+    GT.gtCallsigns[call] = callDict;
+  }
+  callDict[cid] = true;
+
+  makeGtPin(pinData);
+
+  // 6. Strict null check instead of Truthy check.
+  // `if (pinData.pin)` requires V8 to perform type coercion.
+  // `!== null` is a direct memory pointer comparison. It is faster.
+  if (pinData.pin !== null) {
+    GT.layerSources.gtflags.addFeature(pinData.pin);
   }
 }
 
