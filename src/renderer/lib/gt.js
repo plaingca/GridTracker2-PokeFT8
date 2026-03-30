@@ -2407,7 +2407,7 @@ function createSpotTipTable(toolElement)
       let sourceStr = "";
       if ("source" in report) {
         let color = report.source == "O" ? "cyan;font-size: larger" : "orange";
-        let fullSource = report.source == "O" ? "OAMS Realtime Network" : report.source == "M" ? "PSK-MQTT" : "PSK-Reporter";
+        let fullSource = report.source == "O" ? "GT-RTSN" : report.source == "M" ? "PSK-MQTT" : "PSK-Reporter";
         sourceStr = `<tr><td>Source</td><td style='color:${color};'>${fullSource}</font></td>`;
       }
 
