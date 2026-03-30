@@ -155,7 +155,7 @@
     "controlPanel.Timezone.hover": "显示时区图层(Ctrl+H)",
     "controlPanel.Radar.hover": "显示美国地区气象雷达图层(数字0)",
     "controlPanel.AllGrids.hover": "显示网格图层(Ctrl+B)",
-    "controlPanel.GTFlags.hover": "切换查看GridTracker在线用户(Ctrl+G)",
+    "controlPanel.GTFlags.hover": "切换 GridTracker 信号通报 ​​(Ctrl+G)",
     "controlPanel.Chat.hover": "查看离线信息",
     "settings.General.label": "常规",
     "settings.Lookups.label": "查找",

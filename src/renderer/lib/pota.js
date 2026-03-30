@@ -262,11 +262,6 @@ function potaSpotFromDecode(callObj)
     // May or may not be on screen, so try
     addParkSpotFeature(park, targetSpot);
   }
-  else
-  {
-    if (!hasCallSpot) console.log(`No call spot: ${deCall}`);
-    if (parkSpotGroup === undefined) console.log(`No park spot: ${park}`);
-  }
 }
 
 

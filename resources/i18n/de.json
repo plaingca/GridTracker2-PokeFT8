@@ -155,7 +155,7 @@
     "controlPanel.Timezone.hover": "Zeitzonen-Layer umschalten",
     "controlPanel.Radar.hover": "US-Radar-Layer umschalten",
     "controlPanel.AllGrids.hover": "Gesamt-Locator Overlay umschalten",
-    "controlPanel.GTFlags.hover": "GridTracker Benutzeranzeige umschalten",
+    "controlPanel.GTFlags.hover": "GridTracker-Spotter umschalten",
     "controlPanel.Chat.hover": "Nachrichtenfenster",
     "settings.General.label": "Allgemein",
     "settings.Lookups.label": "Nachschlagen",

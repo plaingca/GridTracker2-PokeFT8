@@ -154,7 +154,7 @@
     "controlPanel.Timezone.hover": "Livello di fuso orario",
     "controlPanel.Radar.hover": "Caricare US Radar",
     "controlPanel.AllGrids.hover": "Visualizzare tutte le griglie",
-    "controlPanel.GTFlags.hover": "Mostra gli utenti di GridTracker",
+    "controlPanel.GTFlags.hover": "Abilita/Disabilita gli spotter di GridTracker",
     "controlPanel.Chat.hover": "Finestra di messaggistica",
     "settings.General.label": "Generale",
     "settings.Lookups.label": "Ricerca",

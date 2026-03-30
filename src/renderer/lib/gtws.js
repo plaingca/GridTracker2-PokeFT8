@@ -2,20 +2,14 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-GT.lastConnectAttempt = 0;
-GT.gtEngineInterval = null;
 GT.chatRecvFunctions = {
-  uuid: gtChatSetUUID,
-  list: gtChatNewList,
-  info: gtChatUpdateCall,
-  drop: gtChatRemoveCall,
+  l: gtChatNewList,
   o: gtSpotMessage,
-  ba: bandActivityReply,
-  Kp: kpIndexMessage,
-  denied: oamsDisable
+  b: bandActivityReply,
+  k: kpIndexMessage,
+  a: gtAddCalls,
+  d: gtRemoveCalls,
 };
-
-GT.oamsDenied = false;
 
 const ChatState = {
   none: 100,
@@ -26,108 +20,85 @@ const ChatState = {
   status: 4,
   closed: 5,
   error: 6,
-  waitUUID: 7
 };
-
 
 GT.gtStateToFunction = {
   100: gtSetIdle,
   0: gtCanConnect,
   1: gtConnectChat,
   2: gtConnecting,
-  3: gtChatSendUUID,
+  3: gtChatSendVersion,
   4: gtStatusCheck,
   5: gtInError,
-  6: gtClosedSocket,
-  7: gtWaitUUID
+  6: closeGtSocket,
 };
 
+GT.oamsDenied = false;
+GT.lastConnectAttempt = 0;
+GT.gtEngineInterval = null;
 GT.gtChatSocket = null;
-GT.gtFlagPins = Object();
-GT.gtCallsigns = Object();
-
-
+GT.gtFlagPins = {};
+GT.gtCallsigns = {};
+GT.wsStatusTimer = null;
 GT.gtState = ChatState.none;
-GT.gtStatusCount = 0;
-GT.gtStatusTime = 500;
 GT.gtNeedUsersList = true;
-GT.gtUuidValid = false;
-
 GT.gtLiveStatusUpdate = false;
 GT.oamsBandActivityData = null;
+GT.lastGtStatus = "";
 
-GT.myChatId = 0;
-
-GT.gtCurrentMessageCount = 0;
-
-function gtConnectChat()
-{
-  if (GT.gtChatSocket != null)
-  {
-    // we should start over
+function gtConnectChat() {
+  if (GT.gtChatSocket != null) {
     GT.gtState = ChatState.error;
+    GT.lastGtStatus = "";
     return;
   }
 
-  let rnd = parseInt(Math.random() * 10) + 18360;
-  try
-  {
+  // Modern Math.floor and Template Literals
+  const rnd = Math.floor(Math.random() * 10) + 18470;
+  try {
     GT.gtState = ChatState.connecting;
-    GT.gtChatSocket = new WebSocket("ws://oams.space:" + rnd);
-  }
-  catch (e)
-  {
+    GT.gtChatSocket = new WebSocket(`ws://oams.space:${rnd}`);
+  } catch (e) {
     GT.gtState = ChatState.error;
     return;
   }
 
-  GT.gtChatSocket.onopen = function ()
-  {
+  GT.gtChatSocket.onopen = function () {
     GT.gtState = ChatState.connected;
+    GT.lastGtStatus = "";
+    GT.gtLiveStatusUpdate = true;
   };
 
-  GT.gtChatSocket.onmessage = function (evt)
-  {
-    if (GT.settings.app.offAirServicesEnable == true)
-    {
-      let jsmesg = false;
-      try
-      {
-        jsmesg = JSON.parse(evt.data);
-      }
-      catch (err)
-      {
-        // bad message, dumping client
-        GT.gtState = ChatState.error;
-        return;
-      }
-      if (!("type" in jsmesg))
-      {
+  GT.gtChatSocket.onmessage = function (evt) {
+    if (!GT.settings.app.offAirServicesEnable) {
+      closeGtSocket();
+      return;
+    }
+
+    try {
+      const jsmesg = JSON.parse(evt.data);
+ 
+      if (!jsmesg.t) {
         GT.gtState = ChatState.error;
         return;
       }
 
-      if (jsmesg.type in GT.chatRecvFunctions)
-      {
-        GT.chatRecvFunctions[jsmesg.type](jsmesg);
+      if (jsmesg.t in GT.chatRecvFunctions) {
+        GT.chatRecvFunctions[jsmesg.t](jsmesg);
       }
-      else
-      {
-        // Not fatal!
-        // console.log("Unknown oams message '" + jsmesg.type + "' ignoring");
-      }
+    } catch (err) {
+      // bad message, dumping client
+      GT.gtState = ChatState.error;
     }
   };
 
-  GT.gtChatSocket.onerror = function ()
-  {
+  GT.gtChatSocket.onerror = function () {
     this.close();
     GT.gtChatSocket = null;
     GT.gtState = ChatState.error;
   };
 
-  GT.gtChatSocket.onclose = function ()
-  {
+  GT.gtChatSocket.onclose = function () {
     GT.gtChatSocket = null;
     GT.gtState = ChatState.closed;
   };
@@ -140,37 +111,18 @@ function gtInError()
   closeGtSocket();
 }
 
-function gtChatSendClose()
-{
-  let msg = Object();
-  msg.type = "close";
-  msg.uuid = GT.settings.app.chatUUID;
-
-  sendGtJson(JSON.stringify(msg));
-}
-
 function closeGtSocket()
 {
   if (GT.gtChatSocket != null)
   {
-    gtChatSendClose();
-
     GT.gtChatSocket.close();
     GT.gtChatSocket = null;
   }
   
   GT.gtState = ChatState.none;
+  GT.lastGtStatus = "";
 }
 
-function gtClosedSocket()
-{
-  if (GT.gtChatSocket != null)
-  {
-    GT.gtChatSocket.close();
-    GT.gtChatSocket = null;
-  }
-  GT.gtState = ChatState.none;
-}
 
 function gtCanConnect()
 {
@@ -182,109 +134,104 @@ function gtSetIdle()
 {
   if (timeNowSec() - GT.lastConnectAttempt >= 30)
   {
-    GT.gtStatusCount = 0;
     GT.gtNeedUsersList = true;
     GT.gtState = ChatState.idle;
     GT.lastGtStatus = "";
   }
-  GT.gtUuidValid = false;
 }
 
 function gtStatusCheck()
 {
-  if (GT.gtStatusCount > 0)
+  if (GT.gtLiveStatusUpdate)
   {
-    GT.gtStatusCount--;
-  }
-  if (GT.gtStatusCount < 1 || GT.gtLiveStatusUpdate == true)
-  {
-    if (GT.gtLiveStatusUpdate == true)
-    {
-      GT.gtLiveStatusUpdate = false;
-    }
-    else
-    {
-      GT.lastGtStatus = "";
-      GT.gtStatusCount = GT.gtStatusTime;
-    }
+    GT.gtLiveStatusUpdate = false;
     gtChatSendStatus();
   }
-  if (GT.gtNeedUsersList == true)
+  if (GT.gtNeedUsersList)
   {
     GT.gtNeedUsersList = false;
     gtChatGetList();
   }
 }
 
-function sendGtJson(json, isUUIDrequest = false)
+function sendGtJson(json)
 {
-  if (GT.settings.app.offAirServicesEnable == true && GT.gtChatSocket != null)
+  if (GT.settings.app.offAirServicesEnable && GT.gtChatSocket != null)
   {
-    if (GT.gtChatSocket.readyState == WebSocket.OPEN && (isUUIDrequest || GT.gtUuidValid))
-    {
+    if (GT.gtChatSocket.readyState === WebSocket.OPEN) {
       GT.gtChatSocket.send(json);
-    }
-    else
-    {
-      if (GT.gtChatSocket.readyState == WebSocket.CLOSED)
-      {
-        GT.gtState = ChatState.closed;
-      }
+    } else if (GT.gtChatSocket.readyState === WebSocket.CLOSED) {
+      GT.gtState = ChatState.closed;
     }
   }
 }
 
-GT.lastGtStatus = "";
-
 function gtChatSendStatus()
 {
-  let msg = Object();
-  msg.type = "status";
-  msg.uuid = GT.settings.app.chatUUID;
+  let msg = {
+    t: "s",
+    i: {}
+  };
 
-  msg.call = GT.settings.app.myCall;
-  msg.grid = GT.settings.app.myRawGrid;
-  msg.freq = GT.settings.app.myRawFreq;
-  msg.mode = GT.settings.app.myMode;
-  msg.band = GT.settings.app.myBand;
-  msg.src = "GT";
-  msg.canmsg = false;
-  msg.o = GT.settings.app.spottingEnable == true ? 1 : 0;
+  for (const instance of Object.values(GT.instances))
+  {
+    if (GT.settings.app.spottingEnable && instance.open && instance.valid && instance.status && instance.instanceKey && instance.status.Band != "OOB")
+    {
+      msg.i[instance.instanceHash] = instance.instanceKey;
+    }
+  }
+
   msg = JSON.stringify(msg);
 
+  if (GT.wsStatusTimer) 
+  {
+    nodeTimers.clearTimeout(GT.wsStatusTimer);
+    GT.wsStatusTimer = null;
+  }
+
+  GT.wsStatusTimer = nodeTimers.setTimeout(sendStatusMessage, 10000, msg);
+}
+
+function sendStatusMessage(msg)
+{
   if (msg != GT.lastGtStatus)
   {
     sendGtJson(msg);
     GT.lastGtStatus = msg;
   }
+  GT.wsStatusTimer = null;
 }
 
-function gtChatSendSpots(spotsObject, detailsObject)
-{
-  let msg = Object();
-  msg.type = "o";
-  msg.uuid = GT.settings.app.chatUUID;
-  msg.o = spotsObject;
-  msg.d = detailsObject;
+function gtChatSendSpots(instancesMap) {
+  if (GT.wsStatusTimer != null) return; 
 
-  sendGtJson(JSON.stringify(msg));
+  const payloadInstances = {};
+
+  for (const [instanceHash, spotMap] of Object.entries(instancesMap)) {
+    payloadInstances[instanceHash] = Array.from(
+      spotMap, 
+      ([call, data]) => `${call}|${data}`
+    ).join(",");
+  }
+
+  sendGtJson(JSON.stringify({ t: "o", i: payloadInstances }));
 }
 
-function gtChatSendDecodes(instancesObject)
+function gtChatSendDecodes(instancesCounts)
 {
-  let msg = Object();
-  msg.type = "d";
-  msg.uuid = GT.settings.app.chatUUID;
-  msg.i = instancesObject;
-  sendGtJson(JSON.stringify(msg));
+  // Don't send decodes if have a pending instance change
+  if (GT.wsStatusTimer == null)
+  {
+    sendGtJson(JSON.stringify({ t: "d", i: instancesCounts }));
+  }
 }
 
 function oamsBandActivityCheck()
 {
-  if (GT.settings.app.oamsBandActivity == true && GT.settings.app.myGrid.length >= 4)
+  if (GT.settings.app.oamsBandActivity && GT.settings.app.myGrid.length >= 4)
   {
     let grid = GT.settings.app.myGrid.substring(0, 4).toUpperCase();
-    if (GT.settings.app.oamsBandActivityNeighbors == true)
+    if (GT.settings.app.oamsBandActivityNeighbors)
     {
       gtChatSendBandActivityRequest(squareToNeighbors(grid));
     }
@@ -297,10 +244,7 @@ function oamsBandActivityCheck()
 
 function gtChatSendBandActivityRequest(gridArray)
 {
-  let msg = Object();
-  msg.type = "ba";
-  msg.uuid = GT.settings.app.chatUUID;
-  msg.ga = gridArray;
+  let msg = { t: "b", g: gridArray };
   sendGtJson(JSON.stringify(msg));
 }
 
@@ -323,109 +267,48 @@ function oamsDisable(jsmesg)
   closeGtSocket();
 }
 
-function gtChatRemoveCall(jsmesg)
+function gtAddCalls(jsmesg)
 {
-  let id = jsmesg.id;
-  let cid = jsmesg.cid;
 
-  if (cid in GT.gtFlagPins)
-  {
-    if (id in GT.gtFlagPins[cid].ids)
-    {
-      delete GT.gtFlagPins[cid].ids[id];
-    }
-    
-    if (Object.keys(GT.gtFlagPins[cid].ids).length == 0)
-    {
-      delete GT.gtCallsigns[GT.gtFlagPins[cid].call][cid];
+  const callkeys = jsmesg.c.split(",");
 
-      if (GT.gtFlagPins[cid].pin != null)
-      {
-        // remove pin from map here
-        if (GT.layerSources.gtflags.hasFeature(GT.gtFlagPins[cid].pin))
-        { GT.layerSources.gtflags.removeFeature(GT.gtFlagPins[cid].pin); }
-        delete GT.gtFlagPins[cid].pin;
-        GT.gtFlagPins[cid].pin = null;
-      }
-      GT.gtFlagPins[cid].live = false;
-
-      if (Object.keys(GT.gtCallsigns[GT.gtFlagPins[cid].call]).length == 0)
-      {
-        delete GT.gtCallsigns[GT.gtFlagPins[cid].call];
-      }
-      delete GT.gtFlagPins[cid];    
+ for (const cid of callkeys) {
+    if (!(cid in GT.gtFlagPins)) {
+      addNewCall(cid);
     }
   }
 }
 
-function gtChatUpdateCall(jsmesg)
-{
-  let id = jsmesg.id;
-  let cid = jsmesg.cid;
+function gtRemoveCalls(jsmesg) {
+  const callkeys = jsmesg.c.split(",");
+  
+  for (const cid of callkeys) {
+    const pinObj = GT.gtFlagPins[cid];
+    if (!pinObj) continue;
 
-  if (cid in GT.gtFlagPins)
-  {
-    GT.gtFlagPins[cid].ids[id] = true;
-    // Did they move grid location?
-    if (jsmesg.grid != GT.gtFlagPins[cid].grid && GT.gtFlagPins[cid].pin != null)
-    {
-      // remove pin from map here
-      if (GT.layerSources.gtflags.hasFeature(GT.gtFlagPins[cid].pin))
-      { GT.layerSources.gtflags.removeFeature(GT.gtFlagPins[cid].pin); }
-      delete GT.gtFlagPins[cid].pin;
-      GT.gtFlagPins[cid].pin = null;
+    if (pinObj.pin && GT.layerSources.gtflags.hasFeature(pinObj.pin)) {
+      GT.layerSources.gtflags.removeFeature(pinObj.pin);
     }
-    // Changed callsign?
-    if (GT.gtFlagPins[cid].call != jsmesg.call)
-    {
-      delete GT.gtCallsigns[GT.gtFlagPins[cid].call][cid];
+    pinObj.pin = null;
+    pinObj.live = false;
+
+    const call = pinObj.call;
+    if (GT.gtCallsigns[call]) {
+      delete GT.gtCallsigns[call][cid]; // Delete the specific CID first
+      
+      // If no more CIDs exist for this call, delete the call itself
+      if (Object.keys(GT.gtCallsigns[call]).length === 0) {
+        delete GT.gtCallsigns[call];
+      }
     }
-  }
-  else
-  {
-    GT.gtFlagPins[cid] = Object();
-    GT.gtFlagPins[cid].pin = null;
-    GT.gtFlagPins[cid].ids = Object();
-    GT.gtFlagPins[cid].ids[id] = true;
-  }
 
-  GT.gtFlagPins[cid].cid = jsmesg.cid;
-  GT.gtFlagPins[cid].call = jsmesg.call;
-  GT.gtFlagPins[cid].fCall = formatCallsign(jsmesg.call);
-  GT.gtFlagPins[cid].grid = jsmesg.grid;
-  GT.gtFlagPins[cid].freq = jsmesg.freq;
-  GT.gtFlagPins[cid].band = jsmesg.band;
-  GT.gtFlagPins[cid].mode = jsmesg.mode;
-  GT.gtFlagPins[cid].src = jsmesg.src;
-
-  GT.gtFlagPins[cid].o = jsmesg.o;
-  GT.gtFlagPins[cid].dxcc = callsignToDxcc(jsmesg.call);
-  GT.gtFlagPins[cid].live = true;
-  // Make a pin here
-  if (GT.gtFlagPins[cid].pin == null)
-  {
-    makeGtPin(GT.gtFlagPins[cid]);
-    if (GT.gtFlagPins[cid].pin != null)
-    {
-      GT.layerSources.gtflags.addFeature(GT.gtFlagPins[cid].pin);
-    }
+    delete GT.gtFlagPins[cid];
   }
-
-  if (!(GT.gtFlagPins[cid].call in GT.gtCallsigns))
-  {
-    // Can happen when a user changes callsign
-    GT.gtCallsigns[GT.gtFlagPins[cid].call] = {};
-  }
-  GT.gtCallsigns[GT.gtFlagPins[cid].call][cid] = true;
-
 }
 
 function gtChatGetList()
 {
-  let msg = Object();
-  msg.type = "list";
-  msg.uuid = GT.settings.app.chatUUID;
-
+  let msg = {t: "l"};
   sendGtJson(JSON.stringify(msg));
 }
 
@@ -454,40 +337,61 @@ function redrawPins()
   }
 }
 
-function makeGtPin(obj)
-{
-  try
-  {
-    if (obj.pin)
-    {
-      if (GT.layerSources.gtflags.hasFeature(obj.pin))
-      {
+function makeGtPin(obj) {
+  try {
+    if (obj.pin) {
+      if (GT.layerSources.gtflags.hasFeature(obj.pin)) {
         GT.layerSources.gtflags.removeFeature(obj.pin);
       }
-      delete obj.pin;
       obj.pin = null;
     }
-    
-    if (obj.src != "GT") return;
-    
-    if (typeof obj.grid == "undefined" || obj.grid == null) return;
-
-    if (obj.grid.length != 4 && obj.grid.length != 6) return;
-
-    if (validateGridFromString(obj.grid) == false) return;
-
-    if (!validateMapBandAndMode(obj.band, obj.mode))
-    {
-      return;
-    }
+        
+    if (!obj.grid || (obj.grid.length !== 4 && obj.grid.length !== 6)) return;
+    if (validateGridFromString(obj.grid) === false) return;
+    if (!validateMapBandAndMode(obj.band, obj.mode)) return;
 
     let LL = squareToCenter(obj.grid);
     obj.pin = iconFeature(ol.proj.fromLonLat([LL.o, LL.a]), GT.gtFlagIcon, 100, "gtFlag");
     obj.pin.key = obj.cid;
     obj.pin.isGtFlag = true;
     obj.pin.size = 1;
+  } catch (e) {
+    console.error(`Failed to make GT Pin for ${obj?.cid}:`, e); 
   }
-  catch (e) {}
+}
+
+function addNewCall(cid)
+{
+  const parts = cid.split("|");
+  GT.gtFlagPins[cid] = {
+    pin: null, 
+    call: parts[0], 
+    fCall:formatCallsign(parts[0]),
+    grid: parts[3],
+    freq: 0,
+    band: parts[1],
+    mode: parts[2],
+    cid : cid,
+    dxcc: callsignToDxcc(parts[0]),
+    live: true,
+    o: true,
+    src: "GT"
+  };
+
+
+  if (!(parts[0] in GT.gtCallsigns))
+  {
+    GT.gtCallsigns[parts[0]] = {};
+  }
+
+  GT.gtCallsigns[parts[0]][cid] = true;
+
+  makeGtPin(GT.gtFlagPins[cid]);
+
+  if (GT.gtFlagPins[cid].pin != null)
+  {
+    GT.layerSources.gtflags.addFeature(GT.gtFlagPins[cid].pin);
+  }
 }
 
 function gtChatNewList(jsmesg)
@@ -495,55 +399,14 @@ function gtChatNewList(jsmesg)
   clearGtFlags();
 
   // starting clean if we're getting a new chat list
-  GT.gtFlagPins = Object()
-  GT.gtCallsigns = Object();
+  GT.gtFlagPins = {}
+  GT.gtCallsigns = {};
 
+  const callkeys = jsmesg.c.split(",");
 
-  for (let key in jsmesg.data.calls)
+  for (const cid of callkeys)
   {
-    let cid = jsmesg.data.cid[key];
-    let id = jsmesg.data.id[key];
-    if (id != GT.myChatId)
-    {
-      if (cid in GT.gtFlagPins)
-      {
-        GT.gtFlagPins[cid].ids[id] = true;
-      }
-      else
-      {
-        GT.gtFlagPins[cid] = Object();
-        GT.gtFlagPins[cid].ids = Object();
-        GT.gtFlagPins[cid].ids[id] = true;
-        GT.gtFlagPins[cid].pin = null;
-      }
-
-      GT.gtFlagPins[cid].call = jsmesg.data.calls[key];
-      GT.gtFlagPins[cid].fCall = formatCallsign(GT.gtFlagPins[cid].call);
-      GT.gtFlagPins[cid].grid = jsmesg.data.grid[key];
-      GT.gtFlagPins[cid].freq = jsmesg.data.freq[key];
-      GT.gtFlagPins[cid].band = jsmesg.data.band[key];
-      GT.gtFlagPins[cid].mode = jsmesg.data.mode[key];
-      GT.gtFlagPins[cid].src = jsmesg.data.src[key];
-      GT.gtFlagPins[cid].cid = cid;
-
-      GT.gtFlagPins[cid].o = jsmesg.data.o[key];
-      GT.gtFlagPins[cid].dxcc = callsignToDxcc(GT.gtFlagPins[cid].call);
-      GT.gtFlagPins[cid].live = true;
-
-      if (!(GT.gtFlagPins[cid].call in GT.gtCallsigns))
-      {
-        GT.gtCallsigns[GT.gtFlagPins[cid].call] = Object();
-      }
-
-      GT.gtCallsigns[GT.gtFlagPins[cid].call][cid] = true;
-
-      makeGtPin(GT.gtFlagPins[cid]);
-
-      if (GT.gtFlagPins[cid].pin != null)
-      {
-        GT.layerSources.gtflags.addFeature(GT.gtFlagPins[cid].pin);
-      }
-    }
+    addNewCall(cid);
   }
 
   oamsBandActivityCheck();
@@ -644,55 +507,25 @@ function PushoverReply(data, isTest)
   }
 }
 
-function gtChatSendUUID()
+function gtChatSendVersion()
 {
-  let msg = Object();
-  msg.type = "uuid";
-  if (GT.settings.app.chatUUID != "")
-  {
-    msg.uuid = GT.settings.app.chatUUID;
-  }
-  else
-  {
-    msg.uuid = null;
-  }
-
-  msg.call = GT.settings.app.myCall;
-  msg.ver = "v" + gtVersionStr;
-
-  sendGtJson(JSON.stringify(msg), true);
-  GT.gtState = ChatState.waitUUID;
-}
-
-function gtWaitUUID()
-{
-  // console.log("waiting for UUID from OAMS");
-}
-
-function gtChatSetUUID(jsmesg)
-{
-  GT.settings.app.chatUUID = jsmesg.uuid;
-  GT.myChatId = jsmesg.id;
-
-  GT.gtUuidValid = true;
-  gtChatSendStatus();
-  GT.gtLiveStatusUpdate = false;
-  GT.gtStatusCount = GT.gtStatusTime;
+  sendGtJson(JSON.stringify({t: "v", v: gtVersion, p: GT.platform}));
   GT.gtState = ChatState.status;
 }
+
 
 GT.getEngineWasRunning = false;
 
 function gtChatStateMachine()
 {
-  if (GT.settings.app.offAirServicesEnable == true && GT.settings.map.offlineMode == false && GT.settings.app.myCall.length > 2 && GT.settings.app.myCall != "NOCALL" && GT.oamsDenied == false)
+  if (GT.settings.app.offAirServicesEnable && !GT.settings.map.offlineMode && GT.settings.app.myCall.length > 2 && GT.settings.app.myCall != "NOCALL" && !GT.oamsDenied)
   {
     GT.gtStateToFunction[GT.gtState]();
     GT.getEngineWasRunning = true;
   }
   else
   {
-    if (GT.getEngineWasRunning == true)
+    if (GT.getEngineWasRunning)
     {
       GT.getEngineWasRunning = false;
       closeGtSocket();
@@ -703,25 +536,13 @@ function gtChatStateMachine()
 
 function gtSpotMessage(jsmesg)
 {
-  if (jsmesg.cid in GT.gtFlagPins)
+  if ("O" in jsmesg)
   {
-    let frequency, band, mode;
-    if (jsmesg.ex != null)
+    const parts = jsmesg.O.split("|");
+    if (parts.length == 5)
     {
-      frequency = Number(jsmesg.ex[0]);
-      band = formatBand(Number(frequency / 1000000));
-      mode = String(jsmesg.ex[1]).toUpperCase();
+      addNewOAMSSpot(parts);
     }
-    else
-    {
-      frequency = GT.gtFlagPins[jsmesg.cid].freq;
-      band = GT.gtFlagPins[jsmesg.cid].band;
-      mode = GT.gtFlagPins[jsmesg.cid].mode;
-    }
-
-    if (isNaN(frequency)) return;
-
-    addNewOAMSSpot(jsmesg.cid, jsmesg.db, frequency, band, mode);
   }
 }
 
@@ -735,7 +556,7 @@ function showGtFlags()
 {
   if (GT.settings.app.gtFlagImgSrc > 0)
   {
-    if (GT.settings.map.offlineMode == false)
+    if (!GT.settings.map.offlineMode)
     {
       redrawPins();
       GT.layerVectors.gtflags.setVisible(true);
@@ -758,7 +579,7 @@ function toggleGtMap()
   GT.settings.app.gtFlagImgSrc += 1;
   GT.settings.app.gtFlagImgSrc %= 2;
   gtFlagImg.src = GT.gtFlagImageArray[GT.settings.app.gtFlagImgSrc];
-  if (GT.spotView > 0 && GT.settings.reception.mergeSpots == false) return;
+  if (GT.spotView > 0 && !GT.settings.reception.mergeSpots) return;
   if (GT.settings.app.gtFlagImgSrc > 0)
   {
     redrawPins();

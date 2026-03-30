@@ -11,7 +11,6 @@ GT.firstRun = false;
 const p = os.platform().toLowerCase();
 GT.platform = p.startsWith("win") ? "windows" : p.includes("darwin") ? "mac" : p.includes("linux") ? "linux" : p;
 
-
 function loadAllSettings()
 {
   const userDataPath = electron.ipcRenderer.sendSync("getPath", "userData");
@@ -126,7 +125,6 @@ loadAllSettings();
 
 const gtShortVersion = "v" + gtVersionStr;
 const gtUserAgent = "GridTracker/" + gtVersionStr;
-const k_frequencyBucket = 10000;
 const backupAdifHeader = "GridTracker v" + gtVersion + " <EOH>\r\n";
 
 GT.languages = {
@@ -509,6 +507,7 @@ GT.lastStatusCallsign = {};
 GT.lastTxMessage = null;
 GT.lastMapView = null;
 GT.lastVersionInfo = null;
+GT.wsStatusTimer = null;
 GT.hoverFunctors = {};
 GT.lastHover = { feature: null, functor: null };
 
@@ -2457,11 +2456,11 @@ function createFlagTipTable(feature)
   let dist = parseInt(MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o) * MyCircle.validateRadius(distanceUnit.value));
 
   myFlagtip.innerHTML = `
-    <div style='background-color:${workColor};color:#000;font-weight:bold;font-size:18px;border:2px solid gray;margin:0px' class='roundBorder'>${formatCallsign(pin.call)}</div>
+    <div style='background-color:${workColor};color:#000;font-weight:bold;font-size:18px;border:2px solid gray;margin:0px' class='roundBorder'>${pin.fCall}</div>
     <table id='tooltipTable' class='darkTable'>
       <tr><td>DXCC</td><td style='color:orange;'>${dxccName} <font color='lightgreen'>(${GT.dxccInfo[dxcc].pp})</font></td>
       <tr><td>Grid</td><td style='color:cyan;'>${pin.grid}</td></tr>
-      <tr><td>Freq</td><td style='color:lightgreen'>${formatMhz(Number(pin.freq / 1000), 3, 3)} <font color='yellow'>(${formatBand(Number(pin.freq / 1000000))})</font></td></tr>
+      <tr><td>Band</td><td style='color:yellow'>${pin.band}</td></tr>
       <tr><td>Mode</td><td style='color:orange'>${pin.mode}</td></tr>
       <tr><td>Dist</td><td style='color:cyan'>${dist}${distanceUnit.value.toLowerCase()}</td></tr>
       <tr><td>Azim</td><td style='color:yellow'>${bearing}&deg;</td></tr>
@@ -5098,6 +5097,13 @@ function handleInstanceStatus(newMessage)
 {
   if (GT.ignoreMessages == 1) return;
 
+  const instanceKey = `${newMessage.DEcall}|${newMessage.Band}|${newMessage.MO}|${newMessage.DEgrid}`;
+  if (instanceKey != GT.instances[newMessage.instance].instanceKey)
+  {
+    GT.instances[newMessage.instance].instanceKey = instanceKey;
+    GT.gtLiveStatusUpdate = true;
+  }
+  
   if (GT.callRosterWindowInitialized)
   {
     try
@@ -5214,14 +5220,15 @@ function handleInstanceStatus(newMessage)
       addLastTraffic(msg);
       ackAlerts();
 
-      oamsBandActivityCheck();
-      GT.gtLiveStatusUpdate = true;
       GT.startingUp = false;
     }
 
     GT.settings.app.myRawFreq = newMessage.Frequency;
     frequency.innerHTML = "<font color='lightgreen'>" + formatMhz(Number(newMessage.Frequency / 1000), 3, 3) + " Hz </font><font color='yellow'>(" + GT.settings.app.myBand + ")</font>";
+    
+
     GT.settings.app.myRawCall = newMessage.DEcall.trim();
+
 
     let testGrid = newMessage.DEgrid.trim().substr(0, 6);
 
@@ -5362,9 +5369,8 @@ function handleInstanceStatus(newMessage)
 
         if (GT.settings.app.offAirServicesEnable == true && Object.keys(GT.spotCollector).length > 0)
         {
-          gtChatSendSpots(GT.spotCollector, GT.spotDetailsCollector);
+          gtChatSendSpots(GT.spotCollector);
           GT.spotCollector = {};
-          GT.spotDetailsCollector = {};
         }
       }
 
@@ -5484,7 +5490,9 @@ function reportDecodes()
 {
   if (Object.keys(GT.decodeCollector).length > 0)
   {
-    gtChatSendDecodes(GT.decodeCollector);
+    if (GT.settings.app.spottingEnable) {
+       gtChatSendDecodes(GT.decodeCollector);
+    }
     GT.decodeCollector = {};
   }
 }
@@ -5898,24 +5906,16 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     if (newMessage.NW)
     {
-      if (GT.settings.app.spottingEnable == true && newMessage.OF > 0)
-      {
-        let freq = callsign.delta + newMessage.OF;
+      if (GT.settings.app.spottingEnable && newMessage.OF > 0) {
+        const instanceHash = GT.instances[newMessage.instance].instanceHash;
         const call = callsign.DEcall;
-        if (call in GT.gtCallsigns)
-        {
-          for (const cid in GT.gtCallsigns[call])
-          {
-            if (cid in GT.gtFlagPins && GT.gtFlagPins[cid].o == 1)
-            {
-              GT.spotCollector[cid] = callsign.RSTsent;
-              GT.spotDetailsCollector[cid] = [freq, callsign.mode];
-            }
-          }
+        if (call in GT.gtCallsigns) {
+          console.log(call);
+          GT.spotCollector[instanceHash] ??= new Map();
+          GT.spotCollector[instanceHash].set(call,`${callsign.RSTsent}|${callsign.delta + newMessage.OF}`);
         }
-        freq = freq - (freq % k_frequencyBucket);
-        GT.decodeCollector[freq] ??= 0;
-        GT.decodeCollector[freq]++;
+
+        GT.decodeCollector[instanceHash] = (GT.decodeCollector[instanceHash] ?? 0) + 1;
       }
 
       didCustomAlert = processCustomAlertMessage(decodeWords, theMessage.substr(0, 30).trim(), callsign.band, callsign.mode);
@@ -6350,6 +6350,7 @@ function handleClosed(newMessage)
   {
     if (GT.instances[newMessage.Id].canRoster == true) GT.instanceCount--;
     delete GT.instances[newMessage.Id];
+    GT.gtLiveStatusUpdate = true;
   }
 
   if (!(GT.activeInstance in GT.instances))
@@ -11698,6 +11699,26 @@ function createQtReader(buffer) {
   };
 }
 
+/**
+ * Fast, Zero-GC string hashing using FNV-1a.
+ * Converts "WSJT-X - HF" into a short anonymous hex string like "a8f3b2c1"
+ */
+function hashAppString(str) {
+    if (typeof str !== 'string' || str.length === 0) return "0";
+
+    let hash = 2166136261; // FNV offset basis (0x811C9DC5)
+
+    for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        // FNV prime multiplication done via bit shifts for max speed
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    }
+
+    // `>>> 0` forces V8 to treat the result as an unsigned 32-bit integer.
+    // `.toString(16)` converts it to a clean hexadecimal string.
+    return (hash >>> 0).toString(16); 
+}
+
 function addNewInstance(instanceId)
 {
   // Instantiate all properties immediately
@@ -11707,7 +11728,9 @@ function addNewInstance(instanceId)
     crEnable: true,
     canRoster: true,
     oldStatus: null,
-    status: null
+    status: null,
+    instanceKey: null,
+    instanceHash: hashAppString(instanceId)
   };
 
   if (Object.keys(GT.instances).length > 1)
@@ -13141,49 +13164,49 @@ function loadReceptionReports()
   }
 }
 
-function SpotReport(call, band, grid, mode) {
-  this.call = call;
-  this.band = band;
-  this.grid = grid;
-  this.mode = mode;
-  this.dxcc = -1;
-  this.when = 0;
-  this.snr = 0;
-  this.freq = 0;
-  this.color = 0;
-  this.source = 0;
-  this.bearing = 0; // Pre-allocate for tooltip usage later
+class SpotReport {
+  constructor(call, band, grid, mode) {
+    this.call = call;
+    this.band = band;
+    this.grid = grid;
+    this.mode = mode;
+    this.dxcc = -1;
+    this.when = 0;
+    this.snr = 0;
+    this.freq = 0;
+    this.color = 0;
+    this.source = 0;
+    this.bearing = 0; // Pre-allocate for tooltip usage later
+  }
 }
 
-function addNewOAMSSpot(cid, db, frequency, band, mode)
-{
-  if (GT.redrawSpotsTimeout != null)
-  {
-    nodeTimers.clearTimeout(GT.redrawSpotsTimeout);
-    GT.redrawSpotsTimeout = null;
-  }
+function addNewOAMSSpot(parts) {
+  nodeTimers.clearTimeout(GT.redrawSpotsTimeout);
 
-  let report;
-  let call = GT.gtFlagPins[cid].call;
-  let grid = GT.gtFlagPins[cid].grid.substr(0, 6);
-  let hash = call + mode + band;
+  // 3. Array Destructuring makes grabbing parts much cleaner
+  const [call, rawGrid, rawDb, rawFreq, mode] = parts;
 
-  if (hash in GT.receptionReports.spots)
-  {
-    report = GT.receptionReports.spots[hash];
-  }
-  else
-  {
-    report = GT.receptionReports.spots[hash] = new SpotReport(call, band, grid, mode);
+  // 4. .substr() is deprecated in modern JS. Use .slice()
+  const grid = rawGrid.slice(0, 6); 
+  const snr = Number(rawDb);
+  const freq = Number(rawFreq);
+  const band = formatBand(freq / 1000000); // Division implies Number, no cast needed
+  const hash = `${call}${mode}${band}`;
 
-  }
+  // 5. Use the Logical Nullish Assignment (??=) we used earlier!
+  const report = GT.receptionReports.spots[hash] ??= new SpotReport(call, band, grid, mode);
 
-  report.dxcc = GT.gtFlagPins[cid].dxcc;
+  // 6. Update properties
+  report.dxcc = callsignToDxcc(call);
   report.when = timeNowSec();
-  report.snr = Number(db);
-  report.freq = frequency;
-  report.color = clamp(parseInt((parseInt(report.snr) + 25) * 9), 0, 255);
+  report.snr = snr; // Removed redundant Number() wrapper
+  report.freq = freq;
+  
+  // 7. Math.trunc() is much faster and cleaner than parseInt() for math
+  report.color = clamp(Math.trunc((Math.trunc(snr) + 25) * 9), 0, 255);
   report.source = "O";
+
+  // Restart the timer
   GT.redrawSpotsTimeout = nodeTimers.setTimeout(redrawSpots, 250);
 }
 
@@ -13642,7 +13665,7 @@ function getCurrentPredURL()
   if (GT.settings.map.predMode < 3)
   {
     timeOut = 901 * 1000;
-    where = GT.settings.map.predMode == 1 ? "https://tagloomis.com/muf/img/muf.png?" : "https://tagloomis.com/muf/img/fof2.png?";
+    where = GT.settings.map.predMode == 1 ? "https://tagloomis.com/pred/muf/img/muf.png?" : "https://tagloomis.com/pred/muf/img/fof2.png?";
     where += String(now - (now % 900));
   }
   else if (GT.settings.map.predMode == 3)
@@ -13650,12 +13673,12 @@ function getCurrentPredURL()
     timeOut = (3601 - (now % 3600)) * 1000;
     now = now + (GT.epiTimeValue * 3600);
     now = now - (now % 3600);
-    where = "https://tagloomis.com/epi/img/" + now + ".jpg";
+    where = "https://tagloomis.com/pred/epi/img/" + now + ".jpg";
   }
   else if (GT.settings.map.predMode == 4)
   {
     timeOut = 361 * 1000;
-    where = "https://tagloomis.com/auf/img/auf.png?" + String(now - (now % 360));
+    where = "https://tagloomis.com/pred/auf/img/auf.png?" + String(now - (now % 360));
   }
   if (GT.predLayerTimeout != null)
   {

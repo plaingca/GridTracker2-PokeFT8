@@ -154,7 +154,7 @@
   "controlPanel.Timezone.hover": "Alternar capa de zona horaria",
   "controlPanel.Radar.hover": "Alternar radar US",
   "controlPanel.AllGrids.hover": "Alternar todas las superposiciones de Grid",
-  "controlPanel.GTFlags.hover": "Alternar ver usuarios de GridTracker",
+  "controlPanel.GTFlags.hover": "Alternar vista de observadores de GridTracker",
   "controlPanel.Chat.hover": "Ventana de mensajería",
   "settings.General.label": "General",
   "settings.Lookups.label": "Búsquedas",

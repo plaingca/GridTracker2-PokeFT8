@@ -225,7 +225,8 @@ Logging:
   HRD Logbook <- v6.8.x
     Fixed bug preventing logging
 Call Roster:
-  Fixed issue when changing Special Operating Activity (duplicate rows)
+  Fixed issue when changing to a Special Operating Activity in WSJT-X (duplicate rows)
+
 
 ### Fixed
 

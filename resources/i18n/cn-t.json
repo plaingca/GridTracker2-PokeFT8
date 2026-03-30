@@ -155,7 +155,7 @@
     "controlPanel.Timezone.hover": "顯示時區圖層",
     "controlPanel.Radar.hover": "顯示美國地區氣象雷達圖層(數字0)",
     "controlPanel.AllGrids.hover": "顯示網格圖層(B)",
-    "controlPanel.GTFlags.hover": "切換查看GridTracker用戶",
+    "controlPanel.GTFlags.hover": "切換視圖 GridTracker 訊號觀測員",
     "controlPanel.Chat.hover": "切換查看GridTracker在線用戶(G)",
     "settings.General.label": "一般",
     "settings.Lookups.label": "尋找",
