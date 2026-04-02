@@ -155,7 +155,7 @@ function resetAlert(key)
 
 function processCustomAlertMessage(decodeWords, message, band, mode)
 {
-  if (Object.keys(GT.settings.customAlerts).length == 0)
+  if (!hasAnyKeys(GT.settings.customAlerts))
   {
     // no alerts, don't bother
     return false;
@@ -431,7 +431,7 @@ function displayAlertPopUp(what, message, target)
   let html = [];
   let acount = 0;
 
-  if (Object.keys(GT.settings.customAlerts).length > 0)
+  if (hasAnyKeys(GT.settings.customAlerts))
   {
     for (const key in GT.settings.customAlerts)
     {
@@ -577,7 +577,7 @@ function displayAlerts()
 {
   let html = [];
 
-  if (Object.keys(GT.settings.customAlerts).length > 0)
+  if (hasAnyKeys(GT.settings.customAlerts))
   {
     html.push("<div style='padding-right:8px;overflow:auto;overflow-x:hidden;height:" +
       Math.min(Object.keys(GT.settings.customAlerts).length * 24 + 23, 312) +

@@ -1803,7 +1803,7 @@ function processAward(awardName)
 
     if (obj.dxcc < 1) continue;
 
-    if (test.grid && award.rule.grid.indexOf(obj.grid.substring(0, 4)) == -1) continue;
+    if (test.grid && award.rule.grid.indexOf(obj.grid4) == -1) continue;
 
     if (test.dxcc && award.rule.dxcc.indexOf(obj.dxcc) == -1) continue;
 
@@ -2164,9 +2164,9 @@ function testAcont52band(award, obj, baseHash)
 
 function scoreAgrids(award, obj)
 {
-  if (obj.grid && obj.grid.length > 0)
+  if (obj.grid4)
   {
-    let grid = obj.grid.substring(0, 4);
+    let grid = obj.grid4;
 
     if (!(grid in award.stat)) award.stat[grid] = newAwardCountObject();
     return workAwardObject(

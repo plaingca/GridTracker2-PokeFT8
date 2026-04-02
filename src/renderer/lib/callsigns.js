@@ -222,7 +222,7 @@ function processeqslCallsigns(buffer) {
 function oqrsLoadCallsigns() {
   const needsDownload = manageServiceTimer("oqrs", oqrsDownload);
   if (!needsDownload) GT.oqrsCallsigns = loadJsonFileSafe(GT.oqrsFile);
-  if (needsDownload || Object.keys(GT.oqrsCallsigns).length === 0) oqrsDownload();
+  if (needsDownload || !hasAnyKeys(GT.oqrsCallsigns)) oqrsDownload();
 }
 function oqrsSettingsDisplay() { updateServiceUI("oqrs"); }
 function oqrsValuesChanged() { toggleService("oqrs", oqrsLoadCallsigns, oqrsSettingsDisplay); }

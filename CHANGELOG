@@ -227,6 +227,10 @@ Logging:
 Call Roster:
   Fixed issue when changing to a Special Operating Activity in WSJT-X (duplicate rows)
 
+App:
+  Rx Calls and Rx DXCC counts are now cumulative per session
+    Click 'Clear Live' to reset them
+
 
 ### Fixed
 

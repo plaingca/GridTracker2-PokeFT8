@@ -197,7 +197,11 @@ function onAdiLoadComplete(task) {
         }
 
         if (finalVucc.length > 0) qso.vucc_grids = finalVucc;
-        if (finalGrid) qso.grid = finalGrid;
+        if (finalGrid)
+        {
+          qso.grid = finalGrid;
+          qso.grid4 = finalGrid.substring(0, 4);
+        } 
         if (object.RST_SENT) qso.RSTsent = object.RST_SENT;
         if (object.RST_RCVD) qso.RSTrecv = object.RST_RCVD;
 
@@ -304,7 +308,7 @@ function onAdiLoadComplete(task) {
 const def_qso = {
   band: "", cnty: null, confirmed: false, confSrcs: {}, cont: null,
   cqz: null, DEcall: "", delta: -1, digital: false, DXcall: "", dxcc: -1,
-  grid: "", IOTA: null, ituz: null, mode: "", msg: "-", phone: false,
+  grid: "", grid4: "", IOTA: null, ituz: null, mode: "", msg: "-", phone: false,
   pota: null, propMode: "", px: null, qso: true, qual: false, RSTrecv: "",
   RSTsent: "", state: null, time: 0, vucc_grids: [], worked: true, zipcode: null,
   zone: null, hash: null
@@ -322,10 +326,9 @@ function addQSO(qso) {
   const timeMod = qso.time - ((qso.time % 60) + 30);
   const hash = unique(qso.DEcall + timeMod) + unique(qso.mode + qso.band);
   
-  let details;
+  let details = GT.QSOhash[hash];
 
-  if (hash in GT.QSOhash) {
-    details = GT.QSOhash[hash];
+  if (details !== undefined) {
     let canWrite = (details.confirmed === false || (qso.confirmed === true && (GT.appSettings.qslAuthority === "0" || GT.appSettings.qslAuthority in qso.confSrcs || !(GT.appSettings.qslAuthority in details.confSrcs))));
     
     if (GT.appSettings.qslAuthority === "1" && qso.confirmed === true) canWrite = false;
@@ -343,6 +346,8 @@ function addQSO(qso) {
     // Fast creation for new QSOs
     details = manualMerge(Object.assign({}, def_qso), qso);
     details.confSrcs = qso.confSrcs ? Object.assign({}, qso.confSrcs) : {};
+    details.hash = hash;
+    GT.QSOhash[hash] = details;    
   }
 
   if (details.dxcc < 1) details.dxcc = callsignToDxcc(details.DEcall);
@@ -356,8 +361,8 @@ function addQSO(qso) {
 
   if (details.cnty && details.confirmed === true) details.qual = true;
 
-  const fourGrid = details.grid.substr(0, 4);
-  if (details.state === null && fourGrid.length > 0 && isKnownCallsignUS(details.dxcc)) {
+  if (details.state === null && details.grid4 > 0 && isKnownCallsignUS(details.dxcc)) {
+    let fourGrid = details.grid4;
     if (fourGrid in GT.gridToState && GT.gridToState[fourGrid].length === 1) {
       details.state = GT.gridToState[fourGrid][0];
     }
@@ -366,8 +371,6 @@ function addQSO(qso) {
   if (!details.cqz) details.cqz = cqZoneFromCallsign(details.DEcall, details.dxcc);
   if (!details.ituz) details.ituz = ituZoneFromCallsign(details.DEcall, details.dxcc);
 
-  details.hash = hash;
-  GT.QSOhash[hash] = details;
   return hash;
 }
 
@@ -501,7 +504,7 @@ function parseAcLog(task)
           if (finalGrid)
           {
             qso.grid = finalGrid;
-            // qso.field = finalGrid.substring(0, 2);
+            qso.grid4 = finalGrid.substring(0, 4);
           }
   
           let finalRSTsent = (object.RSTS || null);
