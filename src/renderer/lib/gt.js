@@ -12730,7 +12730,7 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
       if (!(lookup.county.startsWith(lookup.state + ","))) { 
         lookup.county = lookup.state + "," + lookup.county;
       }
-      lookup.cnty = replaceAll(lookup.county.toUpperCase(), " ", "");
+      lookup.cnty = lookup.county.toUpperCase().replaceAll( " ", "");
     }
 
     if (lookup.cnty in GT.countyData)
