@@ -211,7 +211,7 @@ function onAdiLoadComplete(task) {
 
         if (object.PROP_MODE) qso.propMode = object.PROP_MODE.toUpperCase();
         if (object.CONT && object.CONT in GT.wacZones) qso.cont = object.CONT.toUpperCase();
-        if (object.CNTY) qso.cnty = replaceAll(object.CNTY.toUpperCase(), " ", "");
+        if (object.CNTY) qso.cnty = object.CNTY.toUpperCase().replaceAll(" ", "");
 
         let finalMode = (object.MODE || "").toUpperCase();
         const subMode = (object.SUBMODE || "").toUpperCase();
@@ -540,7 +540,7 @@ function parseAcLog(task)
 
           let finalCnty = (object.COUNTYR || null);
           // GT references internally with NO spaces, this is important 
-          if (finalCnty) qso.cnty = replaceAll(finalCnty.toUpperCase(), " ", "");
+          if (finalCnty) qso.cnty = finalCnty.toUpperCase().replaceAll(" ", "");
 
           let finalState = (object.STATE || null);
           if (finalState && qso.cnty) qso.cnty = finalState + "," + qso.cnty;

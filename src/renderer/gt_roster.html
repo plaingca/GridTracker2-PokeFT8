@@ -24,7 +24,7 @@
     <script src="./lib/protos.js" type="text/javascript"></script>
     <script src="./lib/third-party.js" type="text/javascript"></script>
     <script src="./lib/i18n.js" type="text/javascript"></script>
-    <script src="./lib/roster.js " type="text/javascript"></script>
+    <script src="./lib/roster.js" type="text/javascript"></script>
     <script src="./lib/roster/prepareRosterSettings.js" type="text/javascript"></script>
     <script src="./lib/roster/processRosterFiltering.js" type="text/javascript"></script>
     <script src="./lib/roster/processRosterHunting.js" type="text/javascript"></script>
@@ -252,7 +252,7 @@
             <th id="watcherStartDateTh">UTC</th>
             <th>End<br>Date</th>
             <th id="watcherEndDateTh">UTC</th>
-            <th id="watcherAutoDeleteTh"></thid>Auto<br>Delete</th>
+            <th id="watcherAutoDeleteTh">Auto<br>Delete</th>
             <th>Clear</th>
             <th>Save</th>
           </tr>
@@ -388,10 +388,10 @@
             <option value="CQz">CQ Zone</option>
             <option value="ITUz">ITU Zone</option>
           </select>
-          <input id="ignoreCallsignValue" type="text" class="inputTextValue"  oninput="this.value = this.value.toUpperCase()" size="10"/>
+          <input id="ignoreCallsignValue" type="text" class="inputTextValue" size="10" style="text-transform: uppercase;" />
           <input id="ignoreGridValue" type="text" class="inputTextValue"  oninput="gridInputValidate(this)" size="10"/>
           <div id ="ignoreCqDiv">
-            CQ "<input id="ignoreCqCallsignValue" type="text"  class="inputTextValue" oninput="this.value = this.value.toUpperCase()" size="4" value=""/>"
+            CQ "<input id="ignoreCqCallsignValue" type="text"  class="inputTextValue" style="text-transform: uppercase;" size="4" value=""/>"
             From
             <select id="ignoreCqDxccSelect"><option  value=-1 selected="true">All</option></select>
           </div>
@@ -401,7 +401,7 @@
           <select id="ignoreCqzSelect"></select>
           <select id="ignoreItuzSelect"></select>
           <button onclick="addNewIgnore()" class="flexButton" style="background-color: #000000;font-weight:bold;font-size:larger;color:lightgreen;">+</button>
-          <labal id="ingnoreAddResultLabel"></label>
+          <label id="ingnoreAddResultLabel"></label>
         </div>
         <div id="ignoresEditView"></div>
       </div>

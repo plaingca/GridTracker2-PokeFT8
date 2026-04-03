@@ -2261,7 +2261,7 @@ function makeTitleInfo(mapWindow)
   let workline = ` - Worked ${GT.viewInfo[GT.currentOverlay][2]} Confirmed ${GT.viewInfo[GT.currentOverlay][3]}`;
   if (GT.viewInfo[GT.currentOverlay][2] <= GT.viewInfo[GT.currentOverlay][4] && GT.viewInfo[GT.currentOverlay][4] > 0)
   {
-    end = ` Needed ${(GT.viewInfo[GT.currentOverlay][4] - GT.viewInfo[GT.currentOverlay][2])}]`;
+    end = ` Needed ${(GT.viewInfo[GT.currentOverlay][4] - GT.viewInfo[GT.currentOverlay][3])}]`;
   }
   return news + workline + end;
 }
@@ -5221,7 +5221,7 @@ function handleInstanceStatus(newMessage)
     }
 
     GT.settings.app.myRawFreq = newMessage.Frequency;
-    frequency.innerHTML = "<font color='lightgreen'>" + formatMhz(Number(newMessage.Frequency / 1000), 3, 3) + " Hz </font><font color='yellow'>(" + GT.settings.app.myBand + ")</font>";
+    frequency.innerHTML = "<font color='lightgreen'>" + formatMhz(Number(newMessage.Frequency / 1000)) + " Hz </font><font color='yellow'>(" + GT.settings.app.myBand + ")</font>";
     
 
     GT.settings.app.myRawCall = newMessage.DEcall.trim();
@@ -5603,7 +5603,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
   let newF;
   if (newMessage.OF > 0)
   {
-    newF = formatMhz(Number((newMessage.OF + newMessage.DF) / 1000), 3, 3);
+    newF = formatMhz(Number((newMessage.OF + newMessage.DF) / 1000));
   }
   else
   {
@@ -6393,7 +6393,7 @@ function handleWsjtxWSPR(newMessage)
     "-",
     Number(newMessage.SR),
     timeNowSec(),
-    "Pwr:" + newMessage.Power + " Freq:" + formatMhz(Number(newMessage.Frequency / 1000), 3, 3) + " Delta:" + Number(newMessage.DT).toFixed(2) + " Drift:" +
+    "Pwr:" + newMessage.Power + " Freq:" + formatMhz(Number(newMessage.Frequency / 1000)) + " Delta:" + Number(newMessage.DT).toFixed(2) + " Drift:" +
     newMessage.Drift,
     "WSPR",
     formatBand(Number(newMessage.Frequency / 1000000)),
@@ -6613,7 +6613,6 @@ class CallsignSession {
       this.time = callObj.time;
       this.dxcc = callObj.dxcc;
       this.geo = GT.dxccInfo[callObj.dxcc];
-      this.fCall = formatCallsign(callObj.DEcall);
       this.DEcall = callObj.DEcall;
     }
 }
@@ -6704,14 +6703,14 @@ function showCallsignBox() {
       const cqzone = callObj.cqz || "-";
       const ituzone = callObj.ituz || "-";
       const geo = callObj.geo;
-      const thisCall = callObj.fCall;
+      const thisCall =  callObj.DEcall;
       const bandColor = callObj.band in GT.pskColors ? GT.pskColors[callObj.band] : GT.pskColors.OOB;
       const age = now - callObj.time;
       let ageString = (age < 3601) ? toDHMS(age) : userTimeString(callObj.time * 1000);
 
       rowsHtml += `
         <tr>
-          <td align=left style='color:#ff0;cursor:pointer' onClick='window.opener.startLookup("${callObj.DEcall}", "${grid}");'>${thisCall}</td>
+          <td align=left style='color:#ff0;cursor:pointer' onClick='window.opener.startLookup("${callObj.DEcall}", "${grid}");'>${formatCallsign(thisCall)}</td>
           <td align=left style='color:cyan;'>${grid}</td>
           <td style='color:#${bandColor};'>${callObj.band}</td>
           <td style='color:orange;'>${geo.name}<font style='color:lightgreen;'> (${geo.pp})</font></td>
@@ -9949,7 +9948,7 @@ function loadMaidenHeadData()
     if (!(countyData[id].properties.st in GT.stateToCounty)) { GT.stateToCounty[countyData[id].properties.st] = Array(); }
     GT.stateToCounty[countyData[id].properties.st].push(id);
 
-    let cnty = countyData[id].properties.st + "," + replaceAll(countyData[id].properties.n, " ", "").toUpperCase();
+    let cnty = countyData[id].properties.st + "," + countyData[id].properties.n.replaceAll(" ", "").toUpperCase();
 
     if (!(cnty in GT.cntyToCounty)) { GT.cntyToCounty[cnty] = toProperCase(countyData[id].properties.n); }
 

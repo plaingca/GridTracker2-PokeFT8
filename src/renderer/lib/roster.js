@@ -191,23 +191,33 @@ function timeNowSec()
   return parseInt(Date.now() / 1000);
 }
 
-function hashMaker(callObj, reference)
-{
-  if (reference == LOGBOOK_LIVE_BAND_LIVE_MODE) return `${callObj.band}${callObj.mode}`;
+function hashMaker(callObj, reference) {
+  // 1. Safe extraction: Prevents crashes AND prevents "20mundefined"
+  const b = callObj?.band ?? "";
+  const m = callObj?.mode ?? "";
 
-  if (reference == LOGBOOK_AWARD_TRACKER) return `${callObj.band}${callObj.mode}`;
+  // 2. Switch statements use Strict Equality (===) and V8 Jump Tables
+  switch (reference) {
+    case LOGBOOK_LIVE_BAND_LIVE_MODE:
+    case LOGBOOK_AWARD_TRACKER:
+      return `${b}${m}`;
 
-  if (reference == LOGBOOK_LIVE_BAND_MIX_MODE) return callObj.band;
+    case LOGBOOK_LIVE_BAND_DIGI_MODE:
+      return `${b}dg`;
 
-  if (reference == LOGBOOK_LIVE_BAND_DIGI_MODE) return `${callObj.band}dg`;
+    case LOGBOOK_LIVE_BAND_MIX_MODE:
+      return b;
 
-  if (reference == LOGBOOK_MIX_BAND_LIVE_MODE) return callObj.mode;
+    case LOGBOOK_MIX_BAND_LIVE_MODE:
+      return m;
 
-  if (reference == LOGBOOK_MIX_BAND_MIX_MODE) return "";
+    case LOGBOOK_MIX_BAND_DIGI_MODE:
+      return "dg";
 
-  if (reference == LOGBOOK_MIX_BAND_DIGI_MODE) return "dg";
-
-  return "";
+    case LOGBOOK_MIX_BAND_MIX_MODE:
+    default:
+      return "";
+  }
 }
 
 function rosterInFocus()
@@ -278,20 +288,20 @@ function realtimeRoster()
   let timeCols = document.getElementsByClassName("timeCol");
   for (let x = 0; x < timeCols.length; x++)
   {
-    let id = timeCols[x].id.substring(2);
+    let id = timeCols[x].id.slice(2);
     if (id in CR.callRoster)
     {
-      timeCols[x].innerHTML = toDHMS(now - CR.callRoster[id].callObj.age);
+      timeCols[x].textContent = toDHMS(now - CR.callRoster[id].callObj.age);
     }
   }
 
   let lifeCols = document.getElementsByClassName("lifeCol");
   for (let x = 0; x < lifeCols.length; x++)
   {
-    let id = lifeCols[x].id.substring(2);
+    let id = lifeCols[x].id.slice(2);
     if (id in CR.callRoster)
     {
-      lifeCols[x].innerHTML = toDHMS(now - CR.callRoster[id].callObj.life);
+      lifeCols[x].textContent = toDHMS(now - CR.callRoster[id].callObj.life);
     }
   }
   
@@ -300,26 +310,25 @@ function realtimeRoster()
     let spotCols = document.getElementsByClassName("spotCol");
     for (let x = 0; x < spotCols.length; x++)
     {
-      let id = spotCols[x].id.substring(2);
+      let id = spotCols[x].id.slice(2);
       if (id in CR.callRoster)
       {
-        spotCols[x].innerHTML = getSpotString(CR.callRoster[id].callObj);
+        spotCols[x].textContent = getSpotString(CR.callRoster[id].callObj);
       }
     }
   }
 }
 
-function getSpotString(callObj)
-{
-  let result = "&nbsp;";
-  if (callObj.spot && callObj.spot.when > 0)
-  {
-    when = timeNowSec() - callObj.spot.when;
-    if (when <= GT.settings.reception.viewHistoryTimeSec)
-    { result = toDHM(parseInt(when)); }
-  }
-  if (result != "&nbsp;") result += " / " + callObj.spot.snr;
-  return result;
+function getSpotString(callObj) {
+  const spot = callObj.spot;
+
+  if (!spot || spot.when <= 0) return "";
+
+  const elapsed = timeNowSec() - spot.when;
+
+  if (elapsed > GT.settings.reception.viewHistoryTimeSec) return "";
+
+  return `${toDHM(elapsed)} / ${spot.snr}`;
 }
 
 function initiateQso(thisHash)
@@ -425,14 +434,6 @@ function processStatus(newMessage)
     txrxdec.style.borderColor = "orange";
     txrxdec.innerHTML = "TRANSMIT";
   }
-}
-
-function toTitleCase(str)
-{
-  return str.replace(/\w\S*/g, function (txt)
-  {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
 }
 
 function newOption(value, text)
@@ -547,7 +548,7 @@ function updateAwardList(target = null)
     let allEndorse = false;
 
     let tooltip = CR.awards[award.sponsor].awards[award.name].tooltip + " (" + CR.awards[award.sponsor].sponsor + ")\n";
-    tooltip += toTitleCase(award.test.look) + " QSO\n";
+    tooltip += toProperCase(award.test.look) + " QSO\n";
     for (const mode in award.comp.counts)
     {
       tooltip += mode + "\n";
@@ -2323,7 +2324,7 @@ function scoreApx(award, obj)
     let px = obj.px;
     if ("px" in test.rule)
     {
-      px = px.substr(0, test.rule.px[0].length);
+      px = px.slice(0, test.rule.px[0].length);
       if (test.rule.px.indexOf(px) == -1) return false;
     }
 
@@ -2347,7 +2348,7 @@ function testApx(award, obj, baseHash)
     let px = obj.px;
     if ("px" in test.rule)
     {
-      px = px.substr(0, test.rule.px[0].length);
+      px = px.slice(0, test.rule.px[0].length);
       if (test.rule.px.indexOf(px) == -1) return false;
     }
 
@@ -2549,9 +2550,9 @@ function scoreAnumsfx(award, obj)
   if (obj.px)
   {
     let test = CR.awards[award.sponsor].awards[award.name];
-    let px = obj.px.substr(0, obj.px.length - 1);
+    let px = obj.px.slice(0, -1);
     let suf = obj.DEcall.replace(px, "");
-    suf = suf.substr(0, test.rule.numsfx[0][0].length);
+    suf = suf.slice(0, test.rule.numsfx[0][0].length);
     for (const i in test.rule.numsfx)
     {
       for (const s in test.rule.numsfx[i])
@@ -2578,9 +2579,9 @@ function testAnumsfx(award, obj)
   if (obj.px)
   {
     let test = CR.awards[award.sponsor].awards[award.name];
-    let px = obj.px.substr(0, obj.px.length - 1);
+    let px = obj.px.slice(0, -1);
     let suf = obj.DEcall.replace(px, "");
-    suf = suf.substr(0, test.rule.numsfx[0][0].length);
+    suf = suf.slice(0, test.rule.numsfx[0][0].length);
     for (const i in test.rule.numsfx)
     {
       for (const s in test.rule.numsfx[i])
@@ -2729,17 +2730,19 @@ function processAllAwardTrackers()
 
 function newAwardTrackerObject(sponsor, award, enable)
 {
-  let newAward = {};
-  newAward.sponsor = sponsor;
-  newAward.name = award;
-  newAward.enable = enable;
-  newAward.mode = CR.awards[sponsor].awards[award].rule.mode[0];
-  newAward.band = CR.awards[sponsor].awards[award].rule.band[0];
-  newAward.count = CR.awards[sponsor].awards[award].rule.count[0];
-  newAward.stat = {};
-  newAward.comp = {};
-  newAward.test = {};
-  return newAward;
+  const rule = CR.awards[sponsor].awards[award].rule;
+
+  return {
+    sponsor,
+    name: award,
+    enable,
+    mode: rule.mode[0],
+    band: rule.band[0],
+    count: rule.count[0],
+    stat: {},
+    comp: {},
+    test: {}
+  };
 }
 
 function addAllAwards()
@@ -2867,8 +2870,7 @@ function doubleCompile(award, firstLevel)
 
             if (obj.bands[mode][band] > 0)
             {
-              firstLevel[k].bands[mode][band] =
-                ~~firstLevel[k].bands[mode][band] + 1;
+              firstLevel[k].bands[mode][band] = ~~firstLevel[k].bands[mode][band] + 1;
             }
           }
         }
@@ -3114,21 +3116,19 @@ function watcherEndDateEnable(checked)
 
 function newWatcherEntry()
 {
-  let entry = Object();
-
-  entry.watch = true;
-  entry.type = "Callsign";
-  entry.regex = false;
-  entry.text = "";
-  entry.name = "";
-  entry.start = false;
-  entry.end = false;
-  entry.startTime = 0;
-  entry.endTime = 0;
-  entry.autoDelete = false;
-  entry.error = false;
-
-  return entry;
+  return {
+    watch: true,
+    type: "Callsign",
+    regex: false,
+    text: "",
+    name: "",
+    start: false,
+    end: false,
+    startTime: 0,
+    endTime: 0,
+    autoDelete: false,
+    error: false
+  };
 }
 
 function saveWatcher()
@@ -3293,20 +3293,13 @@ function wantRenderWatchersTab()
   }
 }
 
-function boolCompare(a, b)
-{
-  return (a == false && b == true) ? -1 : (a == b) ? 0 : 1;
-}
-
-function stringCompare(a, b)
-{
+function stringCompare(a, b) {
   return a.toLowerCase() < b.toLowerCase() ? -1 : (a == b) ? 0 : 1;
 }
 
-function numberCompare(a ,b)
-{
-  return (a < b) ? -1 : (a == b) ? 0 : 1;
-}
+const numberCompare = (a, b) => a - b;
+const boolCompare = (a, b) => Number(a) - Number(b);
+
 
 CR.watcherColumns = {
   watch: { text: "👁️", sort: true, cmp: boolCompare },

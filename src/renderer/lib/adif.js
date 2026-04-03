@@ -2828,7 +2828,7 @@ function sendACLogMessage(record, port, address)
   report += aclUpdateControlValue("TXTENTRYCONTINENT", adifField(record, "CONT"));
   report += aclUpdateControlValue("TXTENTRYITUZ", adifField(record, "ITUZ"));
   report += aclUpdateControlValue("TXTENTRYCQZONE", adifField(record, "CQZ"));
-  report += aclUpdateControlValue("TXTENTRYCOUNTYR", replaceAll(adifField(record, "CNTY"), ", ", ","));
+  report += aclUpdateControlValue("TXTENTRYCOUNTYR", adifField(record, "CNTY").replaceAll(", ", ","));
 
   let sentSpcNum = false;
   if (adifField(record, "SRX").length > 0)
@@ -2958,9 +2958,7 @@ function findAdiField(row, field)
 
 function parsePSKadif(adiBuffer)
 {
-  let rawAdiBuffer = "";
-  if (typeof adiBuffer == "object") rawAdiBuffer = String(adiBuffer);
-  else rawAdiBuffer = adiBuffer;
+  let rawAdiBuffer = String(adiBuffer ?? "");
 
   let activeAdifArray = Array();
 
@@ -2968,15 +2966,10 @@ function parsePSKadif(adiBuffer)
 
   if (rawAdiBuffer.length > 1)
   {
-    let regex = new RegExp("<EOH>", "ig");
-    rawAdiBuffer = replaceAll(rawAdiBuffer, regex, "");
+    rawAdiBuffer = rawAdiBuffer.replace(/<EOH>/ig, "");
   }
 
-  if (rawAdiBuffer.length > 1)
-  {
-    let regex = new RegExp("<EOR>", "i");
-    activeAdifArray = rawAdiBuffer.split(regex);
-  }
+  activeAdifArray = String(rawAdiBuffer ?? "").split(/<EOR>/i).filter(record => record.trim().length > 0);
 
   for (let x = 0; x < activeAdifArray.length; x++)
   {

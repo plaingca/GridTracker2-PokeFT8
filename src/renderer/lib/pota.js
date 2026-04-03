@@ -686,7 +686,7 @@ function createParkTipTable(toolElement)
       const { activator, spotter, frequency, count, spotTime, source, comments } = spot;
       const spotterDisplay = (spotter === activator) ? "Self" : spotter;
       const secondsAgo = ~~((now - spotTime) / 1000);
-      html += `<tr><td style='color:yellow'>${activator}</td><td style='color:cyan'>${spotterDisplay}</td><td style='color:lightgreen'>${formatMhz(frequency, 3, 3)} <font color='yellow'>(${band})</font></td><td style='color:orange'>${mode}</td><td>${count}</td><td style='color:lightblue'>${toDHMS(secondsAgo)}</td><td>${source}</td><td>${comments}</td></tr>`;
+      html += `<tr><td style='color:yellow'>${activator}</td><td style='color:cyan'>${spotterDisplay}</td><td style='color:lightgreen'>${formatMhz(frequency)} <font color='yellow'>(${band})</font></td><td style='color:orange'>${mode}</td><td>${count}</td><td style='color:lightblue'>${toDHMS(secondsAgo)}</td><td>${source}</td><td>${comments}</td></tr>`;
     }
   }
   html += "</table>";

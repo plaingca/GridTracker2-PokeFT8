@@ -86,7 +86,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <div id="spotsDiv" style="border: 1px solid yellow; background-color: black;width:fit-content;padding:2px;" class="roundBorder">
         <table align="center">
           <tr>
-            <td colspane="2" id="spotCountDiv">Spots: 0</td>
+            <td colspan="2" id="spotCountDiv">Spots: 0</td>
           </tr>
           <tr>
             <td colspan="2" align="center" id="spotHistoryTimeTd"></td>
@@ -1256,6 +1256,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <td id="bigctyUpdatedTd">Never</td>
             <td id="bigctyDetailsTd"></td>
           </tr>
+          <tr>
             <td data-i18n="settings.lookup.db.ULS">US Callsigns</td>
             <td>
               <input type="checkbox" id="ulsUseEnable" onclick="ulsValuesChanged();" />
@@ -1681,7 +1682,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               <br>
               <div id="mapApiKeyTr">
                 <label data-i18n="settings.logging.QRZcom.details.apikey" for="mapApiKeyInput">API Key</label>
-                <input id="mapApiKeyInput" type="test" class="inputTextValue"  size="21" oninput="mapApiKeyInputChanged()" /><br>
+                <input id="mapApiKeyInput" type="text" class="inputTextValue"  size="21" oninput="mapApiKeyInputChanged()" /><br>
                 <div id="mapApiKeyApplyDiv" data-i18n="settings.Update.label" class="button" onclick="changeMapLayer()">Apply Changes</div>
             </div>
             </div>
@@ -1694,7 +1695,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <br>
             <div id="nightMapApiKeyTr">
               <label data-i18n="settings.logging.QRZcom.details.apikey" for="nightMapApiKeyInput">API Key</label>
-              <input id="nightMapApiKeyInput" type="test" class="inputTextValue"  size="21" oninput="nightMapApiKeyInputChanged()" /><br>
+              <input id="nightMapApiKeyInput" type="text" class="inputTextValue"  size="21" oninput="nightMapApiKeyInputChanged()" /><br>
               <div id="nightMapApiKeyApplyDiv" data-i18n="settings.Update.label" class="button" onclick="changeMapLayer()">Apply Changes</div>
             </div>
           </div>
@@ -2186,7 +2187,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <label for="acLogQsl">QSL By</label>
                 <select id="acLogQsl" onchange="acLogLoggerChanged();">
                   <option value="A">Any</option>
-                  <option value="C">Card</optio>
+                  <option value="C">Card</option>
                   <option value="E">eQSL</option>
                   <option value="L">LoTW</option>
                   <option value="Q">QRZ.com</option>
