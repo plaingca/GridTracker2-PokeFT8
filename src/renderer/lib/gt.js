@@ -5565,7 +5565,7 @@ function handleWsjtxDecode(newMessage)
 
   // FOX message
   // eg: "YK7DAQ RR73; 3O5GAS <JI1BXD> +14"
-  if (newMessage.Msg.indexOf(" RR73; ") > -1)
+  if (newMessage.Msg.includes(" RR73; "))
   {
     let parts = newMessage.Msg.split("RR73; ");
     // parts[0] is "YK7DAQ " includes space
