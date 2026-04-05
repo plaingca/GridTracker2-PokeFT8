@@ -246,7 +246,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
   // V8 OPTIMIZATION: Destructuring locals once avoids repeated object property lookups
   const { 
     DEcall, band, mode, time, digital, phone, grid4, 
-    dxcc, px, cont, state, cnty, ituz, cqz, hash, confirmed, pota 
+    dxcc, px, cont, state, cnty, ituz, cqz, confirmed, pota 
   } = details;
 
   // V8 OPTIMIZATION: 'new Date(ms)' is native and much faster than creating a 1970 date and calling setSeconds
@@ -354,7 +354,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
   if (px) {
     const wPx = worked.px;
     wPx[px + bandMode] = true;
-    wPx[px] = hash;
+    wPx[px] = DEcall;
     wPx[px + mode] = true;
     wPx[px + band] = true;
     if (digital) {
@@ -370,7 +370,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
   if (cont) {
     const wCont = worked.cont;
     wCont[cont + bandMode] = true;
-    wCont[cont] = hash;
+    wCont[cont] = true;
     wCont[cont + mode] = true;
     wCont[cont + band] = true;
     if (digital) {
@@ -516,7 +516,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     if (px) {
       const cPx = confirmed.px;
       cPx[px + bandMode] = true;
-      cPx[px] = hash;
+      cPx[px] = DEcall;
       cPx[px + mode] = true;
       cPx[px + band] = true;
       if (digital) {
@@ -532,7 +532,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     if (cont) {
       const cCont = confirmed.cont;
       cCont[cont + bandMode] = true;
-      cCont[cont] = hash;
+      cCont[cont] = true;
       cCont[cont + mode] = true;
       cCont[cont + band] = true;
       if (digital) {

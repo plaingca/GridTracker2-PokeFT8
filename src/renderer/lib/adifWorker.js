@@ -371,7 +371,7 @@ const def_qso = {
   grid: "", grid4: "", IOTA: null, ituz: null, mode: "", msg: "-", phone: false,
   pota: null, propMode: "", px: null, qso: true, qual: false, RSTrecv: "",
   RSTsent: "", state: null, time: 0, vucc_grids: [], worked: true, zipcode: null,
-  zone: null, hash: null
+  zone: null
 };
 
 function manualMerge(target, source) {
@@ -406,7 +406,6 @@ function addQSO(qso) {
     // Fast creation for new QSOs
     details = manualMerge(Object.assign({}, def_qso), qso);
     details.confSrcs = qso.confSrcs ? Object.assign({}, qso.confSrcs) : {};
-    details.hash = hash;
     GT.QSOhash[hash] = details;    
   }
 

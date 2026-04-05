@@ -7678,25 +7678,25 @@ function showWPXBox()
   let confirmed = 0;
   let List = {};
   let ListConfirmed = {};
-
-  for (let key in GT.tracker.worked.px)
+  const workedPx = GT.tracker.worked.px;
+  const confirmedPx = GT.tracker.confirmed.px;
+  for (const key in workedPx)
   {
-    if (typeof GT.tracker.worked.px[key] === "string" && key + modifier in GT.tracker.worked.px)
+    if (typeof workedPx[key] === "string" && key + modifier in workedPx)
     {
       List[key] = key;
+      worked++;
     }
   }
 
-  for (let key in GT.tracker.confirmed.px)
+  for (const key in confirmedPx)
   {
-    if (typeof GT.tracker.worked.px[key] === "string" &&  key + modifier in GT.tracker.confirmed.px)
+    if (typeof confirmedPx[key] === "string" &&  key + modifier in confirmedPx)
     {
       ListConfirmed[key] = key;
+      confirmed++;
     }
   }
-
-  worked = Object.keys(List).length;
-  confirmed = Object.keys(ListConfirmed).length;
 
   if (worked > 0)
   {
@@ -7717,7 +7717,7 @@ function showWPXBox()
           "<tr><td align=left style='color:#ff0;' >" +
           formatCallsign(key) +
           "</td><td style='color:#0ff;'>" +
-          formatCallsign(GT.QSOhash[GT.tracker.worked.px[key]].DEcall) +
+          formatCallsign(GT.tracker.worked.px[key]) +
           "</td></tr>";
       });
 
@@ -7744,7 +7744,7 @@ function showWPXBox()
           "<tr><td align=left style='color:#ff0;' >" +
           formatCallsign(key) +
           "</td><td style='color:#0ff;'>" +
-          formatCallsign(GT.QSOhash[GT.tracker.confirmed.px[key]].DEcall) +
+          formatCallsign(GT.tracker.confirmed.px[key]) +
           "</td></tr>";
       });
 
