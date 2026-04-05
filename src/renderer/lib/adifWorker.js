@@ -109,6 +109,7 @@ function parseAdifBufferFast(buffer, onRecord) {
 
 function onAdiLoadComplete(task) {
   try {
+    console.log(task);
     GT.appSettings = task.appSettings;
     GT.myQsoCalls = {};
     GT.myQsoGrids = {};
@@ -282,8 +283,6 @@ function onAdiLoadComplete(task) {
 
     // FORCE FREE MEMORY before structured cloning begins
     delete task.rawAdiBuffer; 
-    task = null; 
-
 
     let returnTask = {};
     if (liveLog) {
