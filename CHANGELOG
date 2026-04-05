@@ -230,6 +230,8 @@ Call Roster:
 App:
   Rx Calls and Rx DXCC counts are now cumulative per session
     Click 'Clear Live' to reset them
+  ADIF Processing
+    Fixed regression in parser
 
 
 ### Fixed
