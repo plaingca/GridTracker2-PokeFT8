@@ -3660,7 +3660,7 @@ function clearLive()
   GT.callRoster = {};
 
 
-  removePaths();
+
   removePaths();
   clearGrids();
   clearCalls();
@@ -6299,6 +6299,8 @@ function handleWsjtxClear(newMessage)
     if (GT.callRoster[call].callObj.instance == newMessage.instance) { delete GT.callRoster[call]; }
   }
 
+  removePaths();
+  clearTempGrids();
   redrawGrids();
   redrawPins();
 
@@ -7679,7 +7681,7 @@ function showWPXBox()
 
   for (let key in GT.tracker.worked.px)
   {
-    if (typeof GT.tracker.worked.px[key] == "string" && key + modifier in GT.tracker.worked.px)
+    if (key + modifier in GT.tracker.worked.px)
     {
       List[key] = key;
     }
@@ -7687,7 +7689,7 @@ function showWPXBox()
 
   for (let key in GT.tracker.confirmed.px)
   {
-    if (typeof GT.tracker.confirmed.px[key] == "string" && key + modifier in GT.tracker.confirmed.px)
+    if (key + modifier in GT.tracker.confirmed.px)
     {
       ListConfirmed[key] = key;
     }
