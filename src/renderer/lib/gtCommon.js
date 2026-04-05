@@ -245,7 +245,7 @@ function initQSOdata() {
 function trackQSO(details, currentYear, currentDay, currentSecond) {
   // V8 OPTIMIZATION: Destructuring locals once avoids repeated object property lookups
   const { 
-    DEcall, band, mode, time, digital, phone, grid, 
+    DEcall, band, mode, time, digital, phone, grid4, 
     dxcc, px, cont, state, cnty, ituz, cqz, hash, confirmed, pota 
   } = details;
 
@@ -289,18 +289,16 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     wCall[DEcall + bandDg] = true;
   }
 
-  // Safer check, and .slice() is implemented natively in V8 as a zero-copy slice
-  if (grid && grid.length >= 4) {
+  if (grid4) {
     const wGrid = worked.grid;
-    const fourGrid = grid.slice(0, 4); 
-    wGrid[fourGrid] = true;
-    wGrid[fourGrid + mode] = true;
-    wGrid[fourGrid + band] = true;
-    wGrid[fourGrid + bandMode] = true;
+    wGrid[grid4] = true;
+    wGrid[grid4 + mode] = true;
+    wGrid[grid4 + band] = true;
+    wGrid[grid4 + bandMode] = true;
 
     if (digital) {
-      wGrid[fourGrid + "dg"] = true;
-      wGrid[fourGrid + bandDg] = true;
+      wGrid[grid4 + "dg"] = true;
+      wGrid[grid4 + bandDg] = true;
     }
   }
 
@@ -436,16 +434,15 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
       cCall[DEcall + bandDg] = true;
     }
 
-    if (grid && grid.length >= 4) {
+    if (grid4) {
       const cGrid = confirmed.grid;
-      const fourGrid = grid.slice(0, 4);
-      cGrid[fourGrid + bandMode] = true;
-      cGrid[fourGrid] = true;
-      cGrid[fourGrid + mode] = true;
-      cGrid[fourGrid + band] = true;
+      cGrid[grid4 + bandMode] = true;
+      cGrid[grid4] = true;
+      cGrid[grid4 + mode] = true;
+      cGrid[grid4 + band] = true;
       if (digital) {
-        cGrid[fourGrid + "dg"] = true;
-        cGrid[fourGrid + bandDg] = true;
+        cGrid[grid4 + "dg"] = true;
+        cGrid[grid4 + bandDg] = true;
       }
     }
 

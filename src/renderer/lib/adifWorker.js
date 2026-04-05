@@ -80,7 +80,7 @@ function parseAdifBufferFast(buffer, onRecord) {
 
     if (parts.length > 1 && fieldName in GT.strictAdif) {
       const fieldLength = parseInt(parts[1], 10);
-      if (!isNaN(fieldLength)) {
+      if (!isNaN(fieldLength) && fieldLength >= 0) {
         let valueStart = endTag + 1;
         let fieldValue = "";
 
@@ -108,19 +108,20 @@ function parseAdifBufferFast(buffer, onRecord) {
 }
 
 function onAdiLoadComplete(task) {
-  GT.appSettings = task.appSettings;
-  GT.myQsoCalls = {};
-  GT.myQsoGrids = {};
-
-  const liveLog = task.liveLog;
-  let rows = 0;
-  let rowsFiltered = 0;
-  let lastHash = null;
-  
-  const clublogFile = task.rawAdiBuffer.includes("clublog.adif") || task.rawAdiBuffer.includes("ADIF export from Club Log");
-  let lotwTimestampUpdated = false;
-
   try {
+    GT.appSettings = task.appSettings;
+    GT.myQsoCalls = {};
+    GT.myQsoGrids = {};
+
+    const liveLog = task.liveLog;
+    let rows = 0;
+    let rowsFiltered = 0;
+    let lastHash = null;
+    
+    const clublogFile = task.rawAdiBuffer.includes("clublog.adif") || task.rawAdiBuffer.includes("ADIF export from Club Log");
+    let lotwTimestampUpdated = false;
+
+
     if (task.rawAdiBuffer.length > 1) {
       
       // Use the fast parser, passing a callback for every record found
@@ -279,6 +280,11 @@ function onAdiLoadComplete(task) {
       });
     }
 
+    // FORCE FREE MEMORY before structured cloning begins
+    delete task.rawAdiBuffer; 
+    task = null; 
+
+
     let returnTask = {};
     if (liveLog) {
       if (rows === 1 && lastHash !== null) {
@@ -301,6 +307,7 @@ function onAdiLoadComplete(task) {
     postMessage(returnTask);
 
   } catch (e) {
+    console.error(e);
     postMessage({ type: "exception", nextFunc: task.nextFunc });
   }
 }
@@ -626,6 +633,7 @@ function parseAcLog(task)
   }
   catch(e)
   {
+    console.error(e);
     // something when horribly wrong, let's tell the boss
     returnTask.type = "exception";
     returnTask.nextFunc = task.nextFunc;
