@@ -5590,6 +5590,8 @@ const kIsEven = {
   FT4: { "00": 1, "15": 1, "30": 1, "45": 1 }
 }
 
+const REGEX_GRID_4 = /^[A-R]{2}[0-9]{2}$/; 
+
 function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessage)
 {
   let didCustomAlert = false;
@@ -5656,22 +5658,15 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     // Grab the last word in the decoded message
     let qth = decodeWords[decodeWords.length - 1].trim();
-    if (qth.length == 4)
-    {
-      let LETTERS = qth.substr(0, 2);
-      let NUMBERS = qth.substr(2, 2);
-      if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
-      {
-        theirQTH = LETTERS + NUMBERS;
-        if (theirQTH != "RR73")
-        {
-          validQTH = true;
-        }
-        else
-        {
-          theirQTH = "";
-          validQTH = false;
-        }
+    if (qth.length === 4) {
+      if (qth === "RR73") {
+        // Trap the FT8 message immediately. No regex needed!
+        theirQTH = "";
+        validQTH = false;
+      } else if (REGEX_GRID_4.test(qth)) {
+        // It's not RR73, so validate it as a real grid
+        theirQTH = qth;
+        validQTH = true;
       }
     }
 
