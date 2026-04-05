@@ -6656,21 +6656,31 @@ function getSortedCallsigns() {
 }
 
 function showCallsignBox() {
-  let html = [
-    `<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bolder;'>${I18N("gt.callsignBox.title")} <img src='img/reset_24x48.png' title='${I18N("gt.spots.refresh")}' onclick="window.opener.showCallsignBox()" style='height:18px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer;border:1px' alt="${I18N("gt.spots.refresh")}"></div><br>`
-  ];
+  // Start with a pure string
+  let html = `<div style='vertical-align:top;display:inline-block;margin:2px;color:cyan;font-weight:bolder;'>${I18N("gt.callsignBox.title")} <img src='img/reset_24x48.png' title='${I18N("gt.spots.refresh")}' onclick="window.opener.showCallsignBox()" style='height:18px;margin:-1px;margin-bottom:-3px;padding:0px;cursor:pointer;border:1px' alt="${I18N("gt.spots.refresh")}"></div><br>`;
 
   const callsignCount = GT.sessionCallsigns.size;
 
   if (callsignCount > 0) {
     const newCallList = getSortedCallsigns();
     const myCall = GT.settings.app.myRawCall;
-    
-    // OPTIMIZATION 1: Cache the current time once!
     const now = timeNowSec(); 
 
-    // Table Header
-    html.push(`
+    // OPTIMIZATION 1: Cache deep settings outside the loop!
+    const useLotw = GT.settings.callsignLookups.lotwUseEnable;
+    const useEqsl = GT.settings.callsignLookups.eqslUseEnable;
+    const useOqrs = GT.settings.callsignLookups.oqrsUseEnable;
+    
+    // OPTIMIZATION 2: Cache deep objects for instant hash lookups
+    const workedCall = GT.tracker.worked.call;
+    const confCall = GT.tracker.confirmed.call;
+    const lotwCall = GT.lotwCallsigns;
+    const eqslCall = GT.eqslCallsigns;
+    const oqrsCall = GT.oqrsCallsigns;
+    const pskColors = GT.pskColors;
+
+    // Table Header (using +=)
+    html += `
       <div style='display:inline-block;padding-right:4px;margin-right:8px; overflow:auto;overflow-x:hidden;height:${Math.min(callsignCount * 24 + 26, getStatsWindowHeight())}px;'>
         <table class='darkTable' align=center>
           <tr>
@@ -6684,54 +6694,55 @@ function showCallsignBox() {
             <th align=left>${I18N("gt.callsignBox.QSO")}</th>
             <th>${I18N("gt.callsignBox.QSL")}</th>
             <th>${I18N("gt.callsignBox.When")}</th>
-            ${GT.settings.callsignLookups.lotwUseEnable ? `<th>${I18N("gt.callsignBox.LoTW")}</th>` : ""}
-            ${GT.settings.callsignLookups.eqslUseEnable ? `<th>${I18N("gt.callsignBox.eQSL")}</th>` : ""}
-            ${GT.settings.callsignLookups.oqrsUseEnable ? `<th>${I18N("gt.callsignBox.OQRS")}</th>` : ""}
+            ${useLotw ? `<th>${I18N("gt.callsignBox.LoTW")}</th>` : ""}
+            ${useEqsl ? `<th>${I18N("gt.callsignBox.eQSL")}</th>` : ""}
+            ${useOqrs ? `<th>${I18N("gt.callsignBox.OQRS")}</th>` : ""}
           </tr>
-    `);
+    `;
 
-    let rowsHtml = "";
     for (let i = 0; i < newCallList.length; i++) {
       const callObj = newCallList[i];
+      const thisCall = callObj.DEcall;
       
-      if (callObj.DEcall === myCall) continue; 
+      if (thisCall === myCall) continue; 
 
       const grid = callObj.grid || "-";
       const cqzone = callObj.cqz || "-";
       const ituzone = callObj.ituz || "-";
       const geo = callObj.geo;
-      const thisCall =  callObj.DEcall;
-      const bandColor = callObj.band in GT.pskColors ? GT.pskColors[callObj.band] : GT.pskColors.OOB;
+      
+      // Use cached pskColors and direct check (!== undefined)
+      const bandColor = pskColors[callObj.band] !== undefined ? pskColors[callObj.band] : pskColors.OOB;
       const age = now - callObj.time;
       let ageString = (age < 3601) ? toDHMS(age) : userTimeString(callObj.time * 1000);
 
-      rowsHtml += `
+      // OPTIMIZATION 3: Replace slow 'in' operator with instant '!== undefined' hash checks
+      html += `
         <tr>
-          <td align=left style='color:#ff0;cursor:pointer' onClick='window.opener.startLookup("${callObj.DEcall}", "${grid}");'>${formatCallsign(thisCall)}</td>
+          <td align=left style='color:#ff0;cursor:pointer' onClick='window.opener.startLookup("${thisCall}", "${grid}");'>${formatCallsign(thisCall)}</td>
           <td align=left style='color:cyan;'>${grid}</td>
           <td style='color:#${bandColor};'>${callObj.band}</td>
           <td style='color:orange;'>${geo.name}<font style='color:lightgreen;'> (${geo.pp})</font></td>
           <td>${cqzone}</td>
           <td>${ituzone}</td>
           <td align='center' style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/${geo.flag}'></td>
-          <td>${thisCall in GT.tracker.worked.call ? "&#10004;" : ""}</td>
-          <td>${thisCall in GT.tracker.confirmed.call ? "&#10004;" : ""}</td>
+          <td>${workedCall[thisCall] !== undefined ? "&#10004;" : ""}</td>
+          <td>${confCall[thisCall] !== undefined ? "&#10004;" : ""}</td>
           <td>${ageString}</td>
-          ${GT.settings.callsignLookups.lotwUseEnable ? `<td align='center'>${thisCall in GT.lotwCallsigns ? "&#10004;" : ""}</td>` : ""}
-          ${GT.settings.callsignLookups.eqslUseEnable ? `<td align='center'>${thisCall in GT.eqslCallsigns ? "&#10004;" : ""}</td>` : ""}
-          ${GT.settings.callsignLookups.oqrsUseEnable ? `<td align='center'>${thisCall in GT.oqrsCallsigns ? "&#10004;" : ""}</td>` : ""}
+          ${useLotw ? `<td align='center'>${lotwCall[thisCall] !== undefined ? "&#10004;" : ""}</td>` : ""}
+          ${useEqsl ? `<td align='center'>${eqslCall[thisCall] !== undefined ? "&#10004;" : ""}</td>` : ""}
+          ${useOqrs ? `<td align='center'>${oqrsCall[thisCall] !== undefined ? "&#10004;" : ""}</td>` : ""}
         </tr>`;
     }
 
-    html.push(rowsHtml);
-    html.push("</table></div>");
+    html += "</table></div>";
   }
 
   // Heard DXCCs Section
   const heardCount = GT.sessionDXCCs.size;
   
   if (heardCount > 0) {
-    html.push(`
+    html += `
       <div style='vertical-align:top;display:inline-block;margin-right:2px;overflow:auto;overflow-x:hidden;height:${Math.min(heardCount * 23 + 45, getStatsWindowHeight())}px;'>
         <table class='darkTable' align=center>
           <tr>
@@ -6742,24 +6753,23 @@ function showCallsignBox() {
             <th>${I18N("gt.callsignBox.Flag")}</th>
             <th align=left>${I18N("gt.callsignBox.Calls")}</th>
           </tr>
-    `);
+    `;
 
     const dxccArray = [];
     for (const [key, count] of GT.sessionDXCCs) {
-      const info = GT.dxccInfo[key];
       dxccArray.push({
         name: GT.dxccToAltName[key],
         total: count,
-        flag: info.flag
+        flag: GT.dxccInfo[key].flag
       });
     }
 
+    // .localeCompare is slow but acceptable here since the DXCC list is generally small
     dxccArray.sort((a, b) => a.name.localeCompare(b.name));
 
-    let dxccHtml = "";
     for (let i = 0; i < dxccArray.length; i++) {
       const item = dxccArray[i];
-      dxccHtml += `
+      html += `
         <tr>
           <td align=left style='color:#ff0;'>${item.name}</td>
           <td align='center' style='margin:0;padding:0'><img style='padding-top:3px' src='img/flags/16/${item.flag}'></td>
@@ -6768,13 +6778,12 @@ function showCallsignBox() {
       `;
     }
     
-    html.push(dxccHtml);
-    html.push("</table></div>");
+    html += "</table></div>";
   }
   
-  html.push("</div>");
+  html += "</div>";
 
-  setStatsDiv("callsignListDiv", html.join(""));
+  setStatsDiv("callsignListDiv", html);
 }
 
 function setStatsDiv(div, worker)
