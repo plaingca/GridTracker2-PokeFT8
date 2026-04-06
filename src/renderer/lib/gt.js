@@ -6690,7 +6690,6 @@ function showCallsignBox() {
             <th>${I18N("gt.callsignBox.DXCC")}</th>
             <th>${I18N("gt.callsignBox.CQ")}</th>
             <th>${I18N("gt.callsignBox.ITU")}</th>
-            <th>${I18N("gt.callsignBox.Flag")}</th>
             <th align=left>${I18N("gt.callsignBox.QSO")}</th>
             <th>${I18N("gt.callsignBox.QSL")}</th>
             <th>${I18N("gt.callsignBox.When")}</th>
@@ -6725,7 +6724,6 @@ function showCallsignBox() {
           <td style='color:orange;'>${geo.name}<font style='color:lightgreen;'> (${geo.pp})</font></td>
           <td>${cqzone}</td>
           <td>${ituzone}</td>
-          <td align='center' style='margin:0;padding:0'><img style='padding-top:4px' src='img/flags/16/${geo.flag}'></td>
           <td>${workedCall[thisCall] !== undefined ? "&#10004;" : ""}</td>
           <td>${confCall[thisCall] !== undefined ? "&#10004;" : ""}</td>
           <td>${ageString}</td>
