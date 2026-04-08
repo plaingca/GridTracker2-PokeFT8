@@ -625,7 +625,6 @@ function getPotaSchedule()
 
 function mouseOverPark(feature)
 {
-  if (GT.currentOverlay != 0) return false;
   createParkTipTable(feature);
   mouseParkMove(feature);
 

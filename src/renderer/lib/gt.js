@@ -5094,8 +5094,10 @@ function handleInstanceStatus(newMessage)
 {
   if (GT.ignoreMessages == 1) return;
 
-  const instanceKey = `${newMessage.DEcall}|${newMessage.Band}|${newMessage.MO}|${newMessage.DEgrid}`;
-  if (instanceKey != GT.instances[newMessage.instance].instanceKey)
+  let instanceKey = null;
+  if (newMessage.DEcall && newMessage.DEgrid) instanceKey = `${newMessage.DEcall}|${newMessage.Band}|${newMessage.MO}|${newMessage.DEgrid}`;
+
+  if (instanceKey != GT.instances[newMessage.instance].instanceKey )
   {
     GT.instances[newMessage.instance].instanceKey = instanceKey;
     GT.gtLiveStatusUpdate = true;
@@ -5895,28 +5897,31 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     if (newMessage.NW)
     {
       if (GT.settings.app.spottingEnable === true && newMessage.OF > 0) {
-        
-        const instanceHash = GT.instances[newMessage.instance].instanceHash;
-        const call = callsign.DEcall;
-        if (GT.gtCallsigns[call] !== undefined) {
-          const spotColl = GT.spotCollector;
-          let spotMap = spotColl[instanceHash];
+        const instanceKey = GT.instances[newMessage.instance].instanceKey;
+        if (instanceKey)
+        {
+          const instanceHash = GT.instances[newMessage.instance].instanceHash;
+          const call = callsign.DEcall;
+          if (GT.gtCallsigns[call] !== undefined) {
+            const spotColl = GT.spotCollector;
+            let spotMap = spotColl[instanceHash];
 
-          if (spotMap === undefined) {
-            spotMap = new Map();
-            spotColl[instanceHash] = spotMap;
+            if (spotMap === undefined) {
+              spotMap = new Map();
+              spotColl[instanceHash] = spotMap;
+            }
+
+            spotMap.set(call, callsign.RSTsent + "|" + (callsign.delta + newMessage.OF));
           }
 
-          spotMap.set(call, callsign.RSTsent + "|" + (callsign.delta + newMessage.OF));
-        }
-
-        const decodeColl = GT.decodeCollector;
-        const currentCount = decodeColl[instanceHash];
-        // V8 optimized, i know it looks bad, but it's really not
-        if (currentCount === undefined) {
-          decodeColl[instanceHash] = 1;
-        } else {
-          decodeColl[instanceHash] = currentCount + 1;
+          const decodeColl = GT.decodeCollector;
+          const currentCount = decodeColl[instanceHash];
+          // V8 optimized, i know it looks bad, but it's really not
+          if (currentCount === undefined) {
+            decodeColl[instanceHash] = 1;
+          } else {
+            decodeColl[instanceHash] = currentCount + 1;
+          }
         }
       }
 
