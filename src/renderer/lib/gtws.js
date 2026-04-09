@@ -50,6 +50,8 @@ function gtConnectChat() {
   if (GT.gtChatSocket != null) {
     GT.gtState = ChatState.error;
     GT.lastGtStatus = "";
+    GT.spotCollector = {};
+    GT.decodeCollector = {};
     return;
   }
 
@@ -65,6 +67,8 @@ function gtConnectChat() {
 
   GT.gtChatSocket.onopen = function () {
     GT.gtState = ChatState.connected;
+    GT.spotCollector = {};
+    GT.decodeCollector = {};
     GT.lastGtStatus = "";
     GT.gtLiveStatusUpdate = true;
   };

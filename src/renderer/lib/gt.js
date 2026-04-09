@@ -186,7 +186,6 @@ if (isNaN(GT.myLon) || Math.abs(GT.myLon) >= 180)
 GT.useTransform = false;
 GT.currentOverlay = GT.settings.map.trophyOverlay;
 GT.spotCollector = {};
-GT.spotDetailsCollector = {};
 GT.decodeCollector = {};
 GT.currentMapIndex = "";
 GT.setNewUdpPortTimeoutHandle = null;
@@ -9151,7 +9150,6 @@ function setSpottingEnable()
   if (GT.settings.app.spottingEnable == false)
   {
     GT.spotCollector = {};
-    GT.spotDetailsCollector = {};
     GT.decodeCollector = {};
   }
   GT.gtLiveStatusUpdate = true;
