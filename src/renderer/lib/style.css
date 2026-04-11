@@ -1100,10 +1100,13 @@ button:focus {
 }
 
 .flexSettingDiv {
-  display: block;
-  width: 780px;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;     
+  max-width: 850px !important; 
+  margin: 0 auto !important;   
+  justify-content: center !important;
   font-weight: bold;
-  align-items: center;
 }
 
 .flexItem {
@@ -1121,7 +1124,7 @@ button:focus {
   min-width: 168px;
   min-height: 44px;
   display: inline-flex;
-  flex: auto;
+  flex: none;
   flex-direction: column;
   justify-content: flex-start;
 }

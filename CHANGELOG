@@ -233,6 +233,13 @@ App:
   ADIF Processing
     Fixed regression in parser
 
+Map:
+  Grayline Terminator:
+    Now supported in AEQD Projection
+    New Map Settings "Grayline Terminator" values [Horizon, Civil, Nautical, Astronomical]
+App:
+  Translated "Features" tab to other languages
+  Fixed live QSO logging event bug/regression
 
 ### Fixed
 

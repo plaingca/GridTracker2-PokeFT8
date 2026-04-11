@@ -152,6 +152,7 @@ const def_settings = {
     latitude: 0.0,
     mapOpacity: 1,
     mapIndex: "Street by Esri (English)",
+    terminatorDegreeIndex: 1,
     offlineMapIndex: "Satellite by MapTiler (No Labels)(Offline)",
     mergeOverlay: false,
     mouseOver: true,

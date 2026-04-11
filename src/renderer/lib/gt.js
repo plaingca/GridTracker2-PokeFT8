@@ -446,6 +446,10 @@ GT.LocalOptions = {
   timeZoneName: "short"
 };
 
+GT.terminatorDegrees = [-0.833 , -6 , -12, -18];
+GT.terminatorDegreesNames = ["Horizon", "Civil", "Nautical", "Astronomical"];
+
+
 GT.GraylineImageArray = ["img/shadow_on_32.png", "img/shadow_off_32.png"];
 GT.gtFlagImageArray = ["img/flag_off.png", "img/flag_on.png"];
 GT.pinImageArray = ["img/gt_grid.png", "img/red_pin_32.png"];
@@ -940,7 +944,7 @@ function toggleEarth()
 {
   GT.settings.app.graylineImgSrc ^= 1;
   graylineImg.src = GT.GraylineImageArray[GT.settings.app.graylineImgSrc];
-  if (GT.settings.app.graylineImgSrc == 1 || GT.useTransform == true)
+  if (GT.settings.app.graylineImgSrc == 1)
   {
     dayNight.hide();
     GT.nightTime = dayNight.refresh();
@@ -950,7 +954,7 @@ function toggleEarth()
     GT.nightTime = dayNight.refresh();
     dayNight.show();
   }
-  Grayline.style.display = (GT.useTransform) ? "none" : "";
+
 }
 
 function toggleOffline()
@@ -3423,6 +3427,14 @@ function removeFlightPathsAndDimSquares()
   if (GT.timeNow >= GT.nextDimTime)
   {
     dimGridsquare();
+
+    // NEW: Prune orphaned/gridless callsigns that missed the rectangle cleanup
+    const maxAge = GT.timeNow - GT.settings.app.gridsquareDecayTime;
+    for (const hash in GT.liveCallsigns) {
+      if (GT.liveCallsigns[hash].age < maxAge && GT.liveCallsigns[hash].locked == false) {
+        delete GT.liveCallsigns[hash];
+      }
+    }
     GT.nextDimTime = GT.timeNow + 8;
   }
 }
@@ -4010,10 +4022,8 @@ function tryRecenterAEQD()
   }
 }
 
-function changeMapProjection(honorMemory = true)
-{
-  if (honorMemory)
-  {
+function changeMapProjection(honorMemory = true) {
+  if (honorMemory) {
     // save the current map view
     mapMemory(6, true, true);
   }
@@ -4021,67 +4031,101 @@ function changeMapProjection(honorMemory = true)
   // remove flights
   removePaths();
 
-  if (GT.settings.map.projection == "AEQD")
-  {
+  if (GT.settings.map.projection == "AEQD") {
     GT.settings.map.projection = "EPSG:3857";
     projectionImg.style.filter = "grayscale(1)";
-  }
-  else
-  {
+  } else {
     GT.settings.map.projection = "AEQD";
     projectionImg.style.filter = "";
   }
 
-  if (GT.map != null) 
-  {
+  if (GT.map != null) {
     const map = GT.map;
 
-    const layers = map.getLayers().getArray();
-    layers.forEach((layer) => {
+    // 1. DEEP CLEAN LAYERS & SOURCES (Recursive)
+    // This ensures child layers inside LayerGroups are also destroyed.
+    const disposeLayerTree = (layer) => {
+      // If it's a Group, recursively dispose its children first
+      if (typeof layer.getLayers === 'function') {
+        layer.getLayers().getArray().forEach(disposeLayerTree);
+      }
+      // Dispose the source (frees geometries/features from memory)
+      if (typeof layer.getSource === 'function') {
         const source = layer.getSource();
         if (source && typeof source.dispose === 'function') {
-            source.dispose();
+          source.dispose();
         }
-        if (typeof layer.dispose === 'function') {
-            layer.dispose();
-        }
-    });
-    map.getLayers().clear(); 
+      }
+      // Dispose the layer itself
+      if (typeof layer.dispose === 'function') {
+        layer.dispose();
+      }
+    };
+    
+    map.getLayers().getArray().forEach(disposeLayerTree);
+    map.getLayers().clear();
 
+    // 2. CLEANUP OVERLAYS (Fixes Detached DOM Node leaks)
+    map.getOverlays().getArray().forEach(overlay => {
+      const element = overlay.getElement();
+      if (element && element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    });
+    map.getOverlays().clear();
+
+    // 3. CLEANUP CONTROLS AND INTERACTIONS (Frees event listeners)
+    map.getControls().getArray().forEach(c => typeof c.dispose === 'function' && c.dispose());
+    map.getInteractions().getArray().forEach(i => typeof i.dispose === 'function' && i.dispose());
+
+    // 4. CLEANUP WEBGL CONTEXT (Your original excellent code)
     const olCanvas = map.getViewport().querySelector("canvas");
     if (olCanvas) {
-        const gl = olCanvas.getContext("webgl") || olCanvas.getContext("webgl2");
-        if (gl) {
-            const loseContext = gl.getExtension("WEBGL_lose_context");
-            if (loseContext) {
-                loseContext.loseContext();
-            }
+      const gl = olCanvas.getContext("webgl") || olCanvas.getContext("webgl2");
+      if (gl) {
+        const loseContext = gl.getExtension("WEBGL_lose_context");
+        if (loseContext) {
+          loseContext.loseContext();
         }
+      }
     }
-    GT.map.setTarget(null);
+
+    // 5. COMPLETELY NUKE THE MAP
+    map.setTarget(null); // Detach from DOM container
+    if (typeof map.dispose === 'function') {
+      map.dispose(); // Unbinds all window/document listeners!
+    }
+    
     GT.map = null;
   }
+
+  // REBUILD
   renderMap();
 
-  if (honorMemory)
-  {
+  if (honorMemory) {
     // load the current map view
     mapMemory(6, false);
   }
 
+  // RE-ADD DATA
   drawAllGrids();
   drawRangeRings();
   displayPredLayer();
+  
+  // Clear old references to specific layers so they are garbage collected
   GT.timezoneLayer = null;
   displayTimezones();
+  
   GT.usRadar = null;
   displayRadar();
+  
   redrawGrids();
   redrawSpots();
   redrawParks();
   redrawPins();
   setTrophyOverlay(GT.currentOverlay);
 }
+
 
 class RotateNorthControl extends ol.control.Control {
   /**
@@ -4428,7 +4472,7 @@ function renderMap()
   document.getElementById("menuDiv").style.display = "block";
 
   dayNight.init();
-  if (GT.settings.app.graylineImgSrc == 1 || GT.useTransform == true)
+  if (GT.settings.app.graylineImgSrc == 1)
   {
     dayNight.hide();
   }
@@ -4436,7 +4480,6 @@ function renderMap()
   {
     GT.nightTime = dayNight.show();
   }
-  Grayline.style.display = (GT.useTransform) ? "none" : "";
 
   moonLayer.init(GT.map);
   if (GT.settings.app.moonTrack == 1)
@@ -5250,6 +5293,7 @@ function handleInstanceStatus(newMessage)
         GT.settings.map.longitude = GT.myLon = LL.o;
         tryUpdateQTH(homeQTHInput.value);
         nodeTimers.setTimeout(tryRecenterAEQD, 32);
+        GT.nightTime = dayNight.refresh();
       }
     }
 
@@ -10476,6 +10520,9 @@ function loadMapSettings()
   mapTransValue.value = GT.settings.map.mapTrans;
   mapTransChange();
 
+  mapTerminatorValue.value = GT.settings.map.terminatorDegreeIndex;
+  mapTerminatorChange();
+
   gridDecay.value = GT.settings.app.gridsquareDecayTime;
   changeGridDecay();
 
@@ -13502,6 +13549,17 @@ function mapTransChange()
 
   mapTransTd.innerHTML = String(100 - parseInt(((GT.settings.map.mapTrans * 255) / 255) * 100)) + "%";
   mapSettingsDiv.style.backgroundColor = "rgba(0,0,0, " + GT.settings.map.mapTrans + ")";
+}
+
+function mapTerminatorChange()
+{
+  GT.settings.map.terminatorDegreeIndex = mapTerminatorValue.value;
+  mapTerminatorTd.innerHTML = I18N( "settings.map.terminator." +  GT.terminatorDegreesNames[GT.settings.map.terminatorDegreeIndex] );
+
+  if (GT.map)
+  {
+    dayNight.refresh();
+  }
 }
 
 function spotPathChange()

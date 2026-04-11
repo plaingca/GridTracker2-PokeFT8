@@ -1,312 +1,434 @@
 /**
-
-**/
-(function (global, factory)
-{
-  typeof exports == "object" && typeof module !== "undefined"
+ * GeoJSONTerminator (Fixed AEQD Inversion logic for GT2)
+ */
+(function (global, factory) {
+  typeof exports === "object" && typeof module !== "undefined"
     ? (module.exports = factory())
-    : typeof define == "function" && define.amd
+    : typeof define === "function" && define.amd
       ? define(factory)
       : (global.GeoJSONTerminator = factory());
-})(this, function ()
-{
+})(this, function () {
   "use strict";
 
-  function julian(date)
-  {
-    /* Calculate the present UTC Julian Date. Function is valid after
-     * the beginning of the UNIX epoch 1970-01-01 and ignores leap
-     * seconds. */
-    return date / 86400000 + 2440587.5;
-  }
+  const R2D = 180 / Math.PI;
+  const D2R = Math.PI / 180;
 
-  function GMST(julianDay)
-  {
-    /* Calculate Greenwich Mean Sidereal Time according to
-       http://aa.usno.navy.mil/faq/docs/GAST.php */
-    var d = julianDay - 2451545.0;
-    // Low precision equation is good enough for our purposes.
-    return (18.697374558 + 24.06570982441908 * d) % 24;
-  }
+  function generateTerminator(options = {}) {
+    let today = options.time ? new Date(options.time) : new Date();
+    let julianDay = today.getTime() / 86400000.0 + 2440587.5;
+    let d = julianDay - 2451545.0;
+    
+    let gst = (18.697374558 + 24.06570982441908 * d) % 24;
 
-  class Terminator
-  {
-    constructor(options = { })
-    {
-      this.options = options;
-      this.version = "0.1.0";
-      this._R2D = 180 / Math.PI;
-      this._D2R = Math.PI / 180;
-      // this.options.time = options.time;
-      var latLngs = this._compute(this.options.time);
-      return this._toGeoJSON(latLngs);
+    let offset = options.offset !== undefined ? options.offset : -6;
+    let h0Rad = offset * D2R;
+
+    let limit = (typeof GT !== 'undefined' && GT.useTransform) ? 89.999 : 85;
+
+    let n = julianDay - 2451545.0;
+    let L = (280.46 + 0.9856474 * n) % 360;
+    let g = (357.528 + 0.9856003 * n) % 360;
+    let lambda = L + 1.915 * Math.sin(g * D2R) + 0.02 * Math.sin(2 * g * D2R);
+
+    let T = n / 36525;
+    let epsilon = 23.43929111 - T * (46.836769 / 3600);
+
+    let alphaRad = Math.atan(Math.cos(epsilon * D2R) * Math.tan(lambda * D2R));
+    let deltaRad = Math.asin(Math.sin(epsilon * D2R) * Math.sin(lambda * D2R));
+    
+    let alpha = alphaRad * R2D;
+    let lQuadrant = Math.floor(lambda / 90) * 90;
+    let raQuadrant = Math.floor(alpha / 90) * 90;
+    alpha = alpha + (lQuadrant - raQuadrant);
+
+    let isQthNight = false;
+    if (options.qth) {
+      let qthLon = options.qth[0];
+      let qthLat = options.qth[1];
+      let lst = gst + qthLon / 15;
+      let haRad = (lst * 15 - alpha) * D2R;
+      let latRad = qthLat * D2R;
+      
+      let altRad = Math.asin(
+        Math.sin(latRad) * Math.sin(deltaRad) + 
+        Math.cos(latRad) * Math.cos(deltaRad) * Math.cos(haRad)
+      );
+      isQthNight = (altRad * R2D) < offset;
     }
 
-    _toGeoJSON(latLngs)
-    {
-      /* Return 'pseudo' GeoJSON representation of the coordinates
-        Why 'pseudo'?
-        Coordinates longitude range go from -360 to 360
-        whereas it should be -180, + 180
-        API like OpenLayers or Leaflet can consume them although invalid
-        from GeoJSON spec
-        In this case, use something like GDAL/OGR to clip to a valid range with
-        ogr2ogr -f "GeoJSON" output.geojson input.geojson \
-        -clipsrc -180 90 180 90
-      */
-     let feature = {
+    let getAlt = (lat, haRad) => {
+      let lRad = lat * D2R;
+      return Math.asin(
+        Math.sin(lRad) * Math.sin(deltaRad) + 
+        Math.cos(lRad) * Math.cos(deltaRad) * Math.cos(haRad)
+      ) * R2D;
+    };
+
+    let bottomEdge = [];
+    let topEdge = [];
+
+    for (let i = -180; i <= 180; i += 1) {
+      let lng = i;
+      let lst = gst + lng / 15;
+      let haRad = (lst * 15 - alpha) * D2R;
+
+      let A = Math.sin(deltaRad);
+      let B = Math.cos(deltaRad) * Math.cos(haRad);
+      let C = Math.sin(h0Rad);
+
+      let R = Math.sqrt(A * A + B * B) || 0.0000001;
+      let ratio = C / R;
+      let latMin = null;
+      let latMax = null;
+
+      if (ratio >= 1) {
+        latMin = -limit;
+        latMax = limit;
+      } else if (ratio <= -1) {
+        // Entirely light
+      } else {
+        let theta = Math.asin(ratio);
+        let aRad = Math.atan2(B, A);
+        
+        let phi1 = theta - aRad;
+        let phi2 = Math.PI - theta - aRad;
+        
+        let norm = (p) => {
+          while (p > Math.PI) p -= 2 * Math.PI;
+          while (p < -Math.PI) p += 2 * Math.PI;
+          return p;
+        };
+        
+        let r1 = norm(phi1) * R2D;
+        let r2 = norm(phi2) * R2D;
+        
+        let validRoots = [];
+        if (Math.abs(r1) <= 90.001) validRoots.push(r1);
+        if (Math.abs(r2) <= 90.001) validRoots.push(r2);
+        
+        if (validRoots.length === 2) {
+          let rMin = Math.min(validRoots[0], validRoots[1]);
+          let rMax = Math.max(validRoots[0], validRoots[1]);
+          if (getAlt((rMin + rMax) / 2, haRad) < offset) {
+            latMin = rMin;
+            latMax = rMax;
+          }
+        } else if (validRoots.length === 1) {
+          let root = validRoots[0];
+          let testLat = root < 0 ? root + 2 : root - 2;
+          let isDark = getAlt(testLat, haRad) < offset;
+          
+          if (testLat > root) {
+            latMin = isDark ? root : -limit;
+            latMax = isDark ? limit : root;
+          } else {
+            latMin = isDark ? -limit : root;
+            latMax = isDark ? root : limit;
+          }
+        }
+      }
+
+      if (latMin !== null && latMax !== null) {
+        latMin = Math.max(-limit, Math.min(limit, latMin));
+        latMax = Math.max(-limit, Math.min(limit, latMax));
+        bottomEdge.push([lng, latMin]); 
+        topEdge.unshift([lng, latMax]); 
+      }
+    }
+
+    let polygon = bottomEdge.concat(topEdge);
+    if (polygon.length > 0) polygon.push(polygon[0]); 
+    
+    return {
+      isQthNight: isQthNight,
+      geojson: {
         type: "Feature",
         properties: { prop: "shadow" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              ...latLngs.map((latLng) =>
-              {
-                return [latLng[1], latLng[0]];
-              }),
-              [latLngs[0][1], latLngs[0][0]]
-            ]
-              .slice()
-
-          ]
-        }
-      };
-      return feature;
-    }
-
-    _sunEclipticPosition(julianDay)
-    {
-      /* Compute the position of the Sun in ecliptic coordinates at
-         julianDay.  Following
-         http://en.wikipedia.org/wiki/Position_of_the_Sun */
-      // Days since start of J2000.0
-      var n = julianDay - 2451545.0;
-      // mean longitude of the Sun
-      var L = 280.46 + 0.9856474 * n;
-      L %= 360;
-      // mean anomaly of the Sun
-      var g = 357.528 + 0.9856003 * n;
-      g %= 360;
-      // ecliptic longitude of Sun
-      var lambda =
-        L +
-        1.915 * Math.sin(g * this._D2R) +
-        0.02 * Math.sin(2 * g * this._D2R);
-
-      return { lambda: lambda };
-    }
-
-    _eclipticObliquity(julianDay)
-    {
-      // Following the short term expression in
-      // http://en.wikipedia.org/wiki/Axial_tilt#Obliquity_of_the_ecliptic_.28Earth.27s_axial_tilt.29
-      var n = julianDay - 2451545.0;
-      // Julian centuries since J2000.0
-      var T = n / 36525;
-      var epsilon =
-        23.43929111 -
-        T *
-          (46.836769 / 3600 -
-            T *
-              (0.0001831 / 3600 +
-                T *
-                  (0.0020034 / 3600 -
-                    T * (0.576e-6 / 3600 - (T * 4.34e-8) / 3600))));
-      return epsilon;
-    }
-
-    _jday(date)
-    {
-      return date.getTime() / 86400000.0 + 2440587.5;
-    }
-
-    _calculatePositionOfSun(date)
-    {
-      date = date instanceof Date ? date : new Date();
-
-      var rad = 0.017453292519943295;
-
-      // based on NOAA solar calculations
-      var ms_past_midnight =
-        ((date.getUTCHours() * 60 + date.getUTCMinutes()) * 60 +
-          date.getUTCSeconds()) *
-          1000 +
-        date.getUTCMilliseconds();
-      var jc = (this._jday(date) - 2451545) / 36525;
-      var mean_long_sun =
-        (280.46646 + jc * (36000.76983 + jc * 0.0003032)) % 360;
-      var mean_anom_sun = 357.52911 + jc * (35999.05029 - 0.0001537 * jc);
-      var sun_eq =
-        Math.sin(rad * mean_anom_sun) *
-          (1.914602 - jc * (0.004817 + 0.000014 * jc)) +
-        Math.sin(rad * 2 * mean_anom_sun) * (0.019993 - 0.000101 * jc) +
-        Math.sin(rad * 3 * mean_anom_sun) * 0.000289;
-      var sun_true_long = mean_long_sun + sun_eq;
-      var sun_app_long =
-        sun_true_long -
-        0.00569 -
-        0.00478 * Math.sin(rad * 125.04 - 1934.136 * jc);
-      var mean_obliq_ecliptic =
-        23 +
-        (26 + (21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813))) / 60) /
-          60;
-      var obliq_corr =
-        mean_obliq_ecliptic + 0.00256 * Math.cos(rad * 125.04 - 1934.136 * jc);
-
-      var lat =
-        Math.asin(Math.sin(rad * obliq_corr) * Math.sin(rad * sun_app_long)) /
-        rad;
-
-      var eccent = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
-      var y =
-        Math.tan(rad * (obliq_corr / 2)) * Math.tan(rad * (obliq_corr / 2));
-      var rq_of_time =
-        4 *
-        ((y * Math.sin(2 * rad * mean_long_sun) -
-          2 * eccent * Math.sin(rad * mean_anom_sun) +
-          4 *
-            eccent *
-            y *
-            Math.sin(rad * mean_anom_sun) *
-            Math.cos(2 * rad * mean_long_sun) -
-          0.5 * y * y * Math.sin(4 * rad * mean_long_sun) -
-          1.25 * eccent * eccent * Math.sin(2 * rad * mean_anom_sun)) /
-          rad);
-      var true_solar_time_in_deg =
-        ((ms_past_midnight + rq_of_time * 60000) % 86400000) / 240000;
-
-      var lng = -(true_solar_time_in_deg < 0
-        ? true_solar_time_in_deg + 180
-        : true_solar_time_in_deg - 180);
-
-      return [lng, lat];
-    }
-
-    _sunEquatorialPosition(sunEclLng, eclObliq)
-    {
-      /* Compute the Sun's equatorial position from its ecliptic
-       * position. Inputs are expected in degrees. Outputs are in
-       * degrees as well. */
-      var alpha =
-        Math.atan(
-          Math.cos(eclObliq * this._D2R) * Math.tan(sunEclLng * this._D2R)
-        ) * this._R2D;
-      var delta =
-        Math.asin(
-          Math.sin(eclObliq * this._D2R) * Math.sin(sunEclLng * this._D2R)
-        ) * this._R2D;
-
-      var lQuadrant = Math.floor(sunEclLng / 90) * 90;
-      var raQuadrant = Math.floor(alpha / 90) * 90;
-      alpha = alpha + (lQuadrant - raQuadrant);
-
-      return { alpha: alpha, delta: delta };
-    }
-
-    _hourAngle(lng, sunPos, gst)
-    {
-      /* Compute the hour angle of the sun for a longitude on
-       * Earth. Return the hour angle in degrees. */
-      var lst = gst + lng / 15;
-      return lst * 15 - sunPos.alpha;
-    }
-
-    _latitude(ha, sunPos)
-    {
-      /* For a given hour angle and sun position, compute the
-       * latitude of the terminator in degrees. */
-      var lat =
-        Math.atan(
-          -Math.cos(ha * this._D2R) / Math.tan(sunPos.delta * this._D2R)
-        ) * this._R2D;
-      return lat;
-    }
-
-    _compute(time)
-    {
-      var today = time ? new Date(time) : new Date();
-      var julianDay = julian(today);
-      var gst = GMST(julianDay);
-      var latLng = [];
-      var startMinus = -180;
-
-      var sunEclPos = this._sunEclipticPosition(julianDay);
-      var eclObliq = this._eclipticObliquity(julianDay);
-      var sunEqPos = this._sunEquatorialPosition(sunEclPos.lambda, eclObliq);
-      for (var i = 0; i <= 360; i++)
-      {
-        var lng = startMinus + i;
-        var ha = this._hourAngle(lng, sunEqPos, gst);
-        latLng[i + 1] = [this._latitude(ha, sunEqPos), lng];
+        geometry: { type: "Polygon", coordinates: [polygon] }
       }
-      if (sunEqPos.delta < 0)
-      {
-        latLng[0] = [90, startMinus];
-        latLng[latLng.length] = [90, 180];
-      }
-      else
-      {
-        latLng[0] = [-90, startMinus];
-        latLng[latLng.length] = [-90, 180];
-      }
-      return latLng;
-    }
+    };
   }
-  function terminator(options)
-  {
-    return new Terminator(options);
-  }
-
-  return terminator;
+  return generateTerminator;
 });
 
-var dayNight = {
-  vectorSource: new ol.source.Vector({}),
-  init: function ()
-  {
-    GT.shadowVector.setSource(this.vectorSource);
-  },
-  refresh: function ()
-  {
-    let style = new ol.style.Style({
-      fill: new ol.style.Fill({
-        color: "rgb(0,0,0)"
-      }),
-      stroke: new ol.style.Stroke({
-        color: "rgb(0,0,0)"
-      })
-    });
-    GT.shadowVector.setStyle(style);
-    GT.shadowVector.setOpacity(Number(GT.settings.map.graylineOpacity));
+(function (global, factory) {
+  typeof exports === "object" && typeof module !== "undefined"
+    ? (module.exports = factory())
+    : typeof define === "function" && define.amd
+      ? define(factory)
+      : (global.CircularTerminator = factory());
+})(this, function () {
+  "use strict";
+
+  const R2D = 180 / Math.PI;
+  const D2R = Math.PI / 180;
+
+  function generateCircularTerminator(options = {}) {
+    let today = options.time ? new Date(options.time) : new Date();
+    let julianDay = today.getTime() / 86400000.0 + 2440587.5;
     
-    this.vectorSource.clear();
-    this.vectorSource.addFeature(
-      new ol.format.GeoJSON().readFeature(new GeoJSONTerminator(), {
-        featureProjection: "EPSG:3857"
-      })
-    );
-     
-    let point = ol.proj.fromLonLat([GT.myLon, GT.myLat]);
-    let arr = this.vectorSource.getFeaturesAtCoordinate(point);
-    return arr.length > 0;
+    // --- 1. ASTRONOMICAL CALCULATIONS ---
+    let n = julianDay - 2451545.0;
+    
+    let gst = (18.697374558 + 24.06570982441908 * n) % 24;
+    let L = (280.46 + 0.9856474 * n) % 360;
+    let g = (357.528 + 0.9856003 * n) % 360;
+    let lambda = L + 1.915 * Math.sin(g * D2R) + 0.02 * Math.sin(2 * g * D2R);
+    let T = n / 36525;
+    let epsilon = 23.43929111 - T * (46.836769 / 3600);
+
+    let alphaRad = Math.atan(Math.cos(epsilon * D2R) * Math.tan(lambda * D2R));
+    let deltaRad = Math.asin(Math.sin(epsilon * D2R) * Math.sin(lambda * D2R));
+    
+    let alpha = alphaRad * R2D;
+    let lQuadrant = Math.floor(lambda / 90) * 90;
+    let raQuadrant = Math.floor(alpha / 90) * 90;
+    alpha = alpha + (lQuadrant - raQuadrant);
+
+    // --- 2. FIND SUN AND ANTI-SUN (NIGHT CENTER) ---
+    let sunLat = deltaRad * R2D;
+    let sunLon = alpha - (gst * 15);
+    
+    let nightLat = -sunLat;
+    let nightLon = sunLon > 0 ? sunLon - 180 : sunLon + 180;
+    
+    let nightLatRad = nightLat * D2R;
+    let nightLonRad = nightLon * D2R;
+
+    // --- 3. GENERATE TRUE CIRCLE ---
+    let offset = options.offset !== undefined ? options.offset : -0.833;
+    let radiusDegrees = 90 + offset; 
+    let radiusRad = radiusDegrees * D2R;
+
+    let polygon = [];
+    let steps = 1440; 
+    
+    // Variables to track and unwrap the dateline crossing
+    let prevLonRad = null;
+    let lonOffset = 0;
+
+    for (let i = 0; i <= steps; i++) {
+      let bearing = (i * 360 / steps) * D2R;
+
+      let latRad = Math.asin(
+        Math.sin(nightLatRad) * Math.cos(radiusRad) + 
+        Math.cos(nightLatRad) * Math.sin(radiusRad) * Math.cos(bearing)
+      );
+      
+      let lonRad = nightLonRad + Math.atan2(
+        Math.sin(bearing) * Math.sin(radiusRad) * Math.cos(nightLatRad),
+        Math.cos(radiusRad) - Math.sin(nightLatRad) * Math.sin(latRad)
+      );
+
+      // DATELINE UNWRAPPER: Prevents the polygon from snapping across the map
+      if (prevLonRad !== null) {
+          let diff = lonRad - prevLonRad;
+          if (diff < -Math.PI) lonOffset += 2 * Math.PI; // Crossed going East
+          if (diff > Math.PI) lonOffset -= 2 * Math.PI;  // Crossed going West
+      }
+      prevLonRad = lonRad;
+
+      let continuousLonRad = lonRad + lonOffset;
+      polygon.push([continuousLonRad * R2D, latRad * R2D]);
+    }
+
+    // --- 4. EXACT QTH NIGHT CHECK ---
+    let isQthNight = false;
+    if (options.qth) {
+      let qthLon = options.qth[0];
+      let qthLat = options.qth[1];
+      let lst = gst + qthLon / 15;
+      let haRad = (lst * 15 - alpha) * D2R;
+      let latRad = qthLat * D2R;
+      
+      let altRad = Math.asin(
+        Math.sin(latRad) * Math.sin(deltaRad) + 
+        Math.cos(latRad) * Math.cos(deltaRad) * Math.cos(haRad)
+      );
+      isQthNight = (altRad * R2D) < offset;
+    }
+
+    return {
+      isQthNight: isQthNight,
+      geojson: {
+        type: "Feature",
+        properties: { prop: "shadow" },
+        geometry: { type: "Polygon", coordinates: [polygon] }
+      }
+    };
+  }
+  
+  return generateCircularTerminator;
+});
+
+
+const dayNight = {
+  vectorSource: new ol.source.Vector({}),
+  
+  baseStyle: new ol.style.Style({
+    fill: new ol.style.Fill({ color: "rgb(0,0,0)" }),
+    stroke: new ol.style.Stroke({ color: "rgb(0,0,0)" })
+  }),
+
+  init: function () {
+    GT.shadowVector.setSource(this.vectorSource);
+    GT.shadowVector.setStyle(this.baseStyle);
   },
-  show: function ()
-  {
+
+  refresh: function () {
+    GT.shadowVector.setOpacity(Number(GT.settings.map.graylineOpacity));
+    this.vectorSource.clear();
+    
+    if (GT.useTransform) {
+      let terminatorData = CircularTerminator({ 
+          offset: GT.terminatorDegrees[GT.settings.map.terminatorDegreeIndex] , 
+          qth: [GT.myLon, GT.myLat] 
+      });
+      
+      let isTrueNight = terminatorData.isQthNight;
+      let rawPolygon = terminatorData.geojson.geometry.coordinates[0];
+      
+      let qthProj = ol.proj.fromLonLat([GT.myLon, GT.myLat], GT.settings.map.projection);
+      let qx = qthProj[0];
+      let qy = qthProj[1];
+      
+      // The exact mathematical max radius of an AEQD projection map 
+      // (WGS84 Earth radius * PI)
+      let R_MAX = 20037508.34; 
+
+      // 1. Project all valid points
+      let pts = [];
+      for (let i = 0; i < rawPolygon.length; i++) {
+        let lon = rawPolygon[i][0];
+        let lat = rawPolygon[i][1];
+        
+        // Strip out the unwrapper jump for standard projection handling
+        lon = ((lon + 180) % 360 + 360) % 360 - 180;
+
+        let p = ol.proj.fromLonLat([lon, lat], GT.settings.map.projection);
+        
+        // Filter out any NaN/Infinity singularities right at the exact antipode
+        if (isFinite(p[0]) && isFinite(p[1])) {
+            pts.push(p);
+        }
+      }
+
+      // 2. Build the contiguous map ring, bridging antipode jumps and smoothing jagged edges
+      let projectedRing = [];
+      let smoothThreshold = 250000; // 250 km: Smooths jagged stretched edges
+      let jumpThreshold = 5000000;  // 5,000 km: Detects the true antipode leap
+
+      // Helper function to draw smooth curves for stretched segments
+      function injectSmoothCurve(pPrev, pNext, qx, qy, R_MAX) {
+          let dist = Math.sqrt(Math.pow(pNext[0] - pPrev[0], 2) + Math.pow(pNext[1] - pPrev[1], 2));
+          
+          if (dist > smoothThreshold) {
+              let a1 = Math.atan2(pPrev[1] - qy, pPrev[0] - qx);
+              let a2 = Math.atan2(pNext[1] - qy, pNext[0] - qx);
+              let r1 = Math.sqrt(Math.pow(pPrev[0] - qx, 2) + Math.pow(pPrev[1] - qy, 2));
+              let r2 = Math.sqrt(Math.pow(pNext[0] - qx, 2) + Math.pow(pNext[1] - qy, 2));
+              
+              let diff = a2 - a1;
+              while (diff < -Math.PI) diff += 2 * Math.PI;
+              while (diff > Math.PI) diff -= 2 * Math.PI;
+              
+              // If it's a massive leap across the antipode, force radius to R_MAX to hug the perimeter
+              let isJump = dist > jumpThreshold; 
+              
+              // Add a point roughly every ~1 degree to ensure a perfect curve
+              let steps = Math.ceil(Math.abs(diff) / 0.02); 
+              for (let j = 1; j < steps; j++) {
+                  let fraction = j / steps;
+                  let a = a1 + diff * fraction;
+                  let r = isJump ? R_MAX : (r1 + (r2 - r1) * fraction); // Interpolate radius for smooth transition
+                  
+                  projectedRing.push([
+                      qx + Math.cos(a) * r,
+                      qy + Math.sin(a) * r
+                  ]);
+              }
+          }
+      }
+
+      for (let i = 0; i < pts.length; i++) {
+        let p = pts[i];
+        if (projectedRing.length > 0) {
+            injectSmoothCurve(projectedRing[projectedRing.length - 1], p, qx, qy, R_MAX);
+        }
+        projectedRing.push(p);
+      }
+
+      // 3. Close the polygon loop safely
+      if (projectedRing.length > 0) {
+          injectSmoothCurve(projectedRing[projectedRing.length - 1], projectedRing[0], qx, qy, R_MAX);
+      }
+
+      let feature = new ol.Feature({
+        geometry: new ol.geom.Polygon([projectedRing])
+      });
+
+      // 4. Ray-Caster to detect topological inversion
+      let isVisualNight = false;
+      let testX = qx + 10, testY = qy + 10; // 10m offset prevents collinear math crashes
+      
+      for (let i = 0, j = projectedRing.length - 1; i < projectedRing.length; j = i++) {
+          let xi = projectedRing[i][0], yi = projectedRing[i][1];
+          let xj = projectedRing[j][0], yj = projectedRing[j][1];
+          let intersect = ((yi > testY) !== (yj > testY)) && (testX < (xj - xi) * (testY - yi) / (yj - yi) + xi);
+          if (intersect) isVisualNight = !isVisualNight;
+      }
+
+      // 5. Apply the "Donut Trick" if visually inverted
+      if (isTrueNight !== isVisualNight) {
+          let shadowRing = projectedRing.slice().reverse(); 
+          let maxDist = 25000000; // Extend outer world ring safely beyond AEQD limits
+          let worldRing = [];
+          
+          for (let i = 0; i <= 360; i += 5) {
+              let rad = i * Math.PI / 180;
+              worldRing.push([
+                  qx + Math.cos(rad) * maxDist, 
+                  qy + Math.sin(rad) * maxDist
+              ]);
+          }
+          feature.setGeometry(new ol.geom.Polygon([worldRing, shadowRing]));
+      }
+      
+      this.vectorSource.addFeature(feature);
+      return isTrueNight;
+
+    } else {
+      // Standard Mercator Fallback
+      let terminatorData = GeoJSONTerminator({ 
+        offset: GT.terminatorDegrees[GT.settings.map.terminatorDegreeIndex], 
+        qth: [GT.myLon, GT.myLat] 
+      });
+    
+      let isTrueNight = terminatorData.isQthNight;
+      let format = new ol.format.GeoJSON();
+      let feature = format.readFeature(terminatorData.geojson, {
+        featureProjection: GT.settings.map.projection
+      });
+      this.vectorSource.addFeature(feature);
+      return isTrueNight;
+    }
+  },
+
+  show: function () {
     GT.shadowVector.setVisible(true);
     return this.refresh();
   },
-  hide: function ()
-  {
+
+  hide: function () {
     GT.shadowVector.setVisible(false);
   },
-  isVisible: function ()
-  {
+
+  isVisible: function () {
     return GT.shadowVector.getVisible();
   }
 };
 
-var moonLayer = {
+let moonLayer = {
   vectorSource: null,
   vectorLayer: null,
   icon: null,
@@ -339,22 +461,22 @@ var moonLayer = {
   },
   future: function (now)
   {
-    var r = 0;
-    var x = 25;
-    var i = 3600;
-    var data = Array();
+    let r = 0;
+    let x = 25;
+    let i = 3600;
+    let data = Array();
     for (r = 0; r < x; r++)
     {
       data.push(subLunar(now + r * i).ll);
     }
-    line = [];
+    let line = [];
 
-    var lonOff = 0;
-    var lastc = 0;
+    let lonOff = 0;
+    let lastc = 0;
 
-    for (var i = 0; i < data.length; i++)
+    for (let i = 0; i < data.length; i++)
     {
-      var c = data[i];
+      let c = data[i];
       if (isNaN(c[0]))
       {
         continue;
@@ -381,7 +503,7 @@ var moonLayer = {
     }
 
     line = new ol.geom.LineString(line);
-    var feature = new ol.Feature({ geometry: line, prop: "moonFlight" });
+    let feature = new ol.Feature({ geometry: line, prop: "moonFlight" });
 
     if (GT.useTransform)
     {
@@ -401,9 +523,8 @@ var moonLayer = {
     this.vectorSource.clear();
     if (GT.settings.app.moonTrack == 1)
     {
-      now = timeNowSec();
       this.pin = iconFeature(
-        ol.proj.fromLonLat(subLunar(now).ll),
+        ol.proj.fromLonLat(subLunar(timeNowSec()).ll),
         this.icon,
         0,
         "moon"

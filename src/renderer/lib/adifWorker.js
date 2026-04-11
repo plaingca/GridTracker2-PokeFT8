@@ -336,6 +336,7 @@ function onAdiLoadComplete(task) {
     if (liveLog == true) {
       if (rows == 1 && lastHash != null) {
         returnTask.type = "parsedLive";
+        returnTask.hash = lastHash;
         returnTask.details = GT.QSOhash[lastHash];
         returnTask.nextFunc = task.nextFunc;
       } else {

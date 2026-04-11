@@ -681,7 +681,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <div class="settingstab">
         <button data-i18n="settings.General.label" id="generalbut" class="settingsTablinks active"
           onclick="openSettingsTab(event, 'generalSettingsDiv')">General</button>
-          <button id="featuresbut" class="settingsTablinks"
+        <button data-i18n="settings.Features.label" id="featuresbut" class="settingsTablinks"
           onclick="openSettingsTab(event, 'featuresSettingsDiv')">Features</button>
         <button data-i18n="settings.Lookups.label" id="lookupbut" class="settingsTablinks"
           onclick="openSettingsTab(event, 'lookupsSettingsDiv')">Lookups</button>
@@ -1011,7 +1011,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               </td>
             </tr>
             <tr>
-              <td>CR Wanted+Audio Alerts Band+Mode Memory</td>
+              <td data-i18n="settings.Features.BandMemory">CR Wanted+Audio Alerts Band+Mode Memory</td>
               <td>
                 <input type="checkbox" id="wantedByBandMode" onclick="changeWantedByBandMode()" />
               </td>
@@ -1672,7 +1672,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       </div>
     </div>
     <div id="mapSettingsDiv" class="settingsTabcontent" style="background-color: #00000044; text-shadow: 0 0 5px #000000ff">
-      <div class="flexSettingDiv">
+      <div class="flexSettingDiv" >
         <div class="flexItem">
             <label data-i18n="settings.map.current.label">Current Map</label>
 
@@ -1778,6 +1778,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           <label data-i18n="settings.map.RXSpotPath.width.label" >Spot Path Width</label>
           <input type="range" min="0" max="5" value="1.5" step="0.05" class="slider" id="spotWidthValue" oninput="spotPathChange();" onkeyup="redrawSpots();" onmouseup="redrawSpots();" />
           <label id="spotWidthTd">1.5</label>
+        </div>
+        <div class="flexItem">
+          <label data-i18n="settings.map.terminator.label" >Grayline Terminator</label>
+          <input type="range" min="0" max="3" value="1" step="0" class="slider" id="mapTerminatorValue" oninput="mapTerminatorChange();" />
+          <label id="mapTerminatorTd">Civil</label>
         </div>
         <div class="flexItem">
           <label data-i18n="settings.map.transparency.label" >Map Settings Transparency</label>
