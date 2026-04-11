@@ -75,7 +75,7 @@ win:build:
     - del *.exe.blockmap
     - npm install yaml
     - node ..\hash_win_yaml.js latest.yml
-    - rmdir /s /q node_modules
+    - Remove-Item -Recurse -Force node_modules
     - del package*.json
     - dir
 
@@ -132,7 +132,7 @@ win7:build:
     - del *.exe.blockmap
     - npm install yaml
     - node ..\hash_win_yaml.js latest.yml
-    - rmdir /s /q node_modules
+    - Remove-Item -Recurse -Force node_modules
     - del package*.json
     - mkdir win7
     - move *.* win7/.
