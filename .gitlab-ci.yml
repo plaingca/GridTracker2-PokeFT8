@@ -43,7 +43,6 @@ win:build:
       - node_modules/
   before_script:
     - npm install
-    - npm install yaml
   script:
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
@@ -74,7 +73,10 @@ win:build:
       Write-Host "All files signed successfully"
     - cd dist
     - del *.exe.blockmap
+    - npm install yaml
     - node hash_win_yaml.js latest.yml
+    - rmdir /s /q node_modules
+    - del package*.json
     - dir
 
 win7:build:
@@ -98,7 +100,6 @@ win7:build:
     - copy electron-builder.win7.yml electron-builder.yml
     - copy dev-app-update.win7.yml dev-app-update.yml
     - npm install
-    - npm install yaml
   script:
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
@@ -129,7 +130,10 @@ win7:build:
       Write-Host "All files signed successfully"
     - cd dist
     - del *.exe.blockmap
+    - npm install yaml
     - node hash_win_yaml.js latest.yml
+    - rmdir /s /q node_modules
+    - del package*.json
     - mkdir win7
     - move *.* win7/.
     - dir win7
