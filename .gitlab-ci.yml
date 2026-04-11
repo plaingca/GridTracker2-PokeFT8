@@ -72,9 +72,10 @@ win:build:
         }
       }
       Write-Host "All files signed successfully"
-    - del dist/*.exe.blockmap
-    - node hash_win_yaml.js dist/latest.yml
-    - dir dist
+    - cd dist
+    - del *.exe.blockmap
+    - node hash_win_yaml.js latest.yml
+    - dir
 
 win7:build:
   stage: build
@@ -126,11 +127,12 @@ win7:build:
         }
       }
       Write-Host "All files signed successfully"
-    - del dist/*.exe.blockmap
-    - node hash_win_yaml.js dist/latest.yml
-    - mkdir dist/win7
-    - move dist/*.* dist/win7/.
-    - dir dist/win7
+    - cd dist
+    - del *.exe.blockmap
+    - node hash_win_yaml.js latest.yml
+    - mkdir win7
+    - move *.* win7/.
+    - dir win7
 
 mac:build:
   tags:

@@ -20,6 +20,7 @@ function hashFile(file, algorithm = "sha512", encoding = "base64", options) {
 const yml_file = process.argv[2]
 const yml = fs.readFileSync(yml_file, "UTF8");
 const obj = yaml.parse(yml);
+console.log(obj.path);
 const stats = fs.statSync(obj.path);
 const fileSizeInBytes = stats.size;
 
