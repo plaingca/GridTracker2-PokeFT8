@@ -6309,14 +6309,121 @@ function shapeFeature(
   fillColor,
   borderColor,
   borderWidth
-)
-{
-  let feature = new ol.format.GeoJSON({
+) {
+  let format = new ol.format.GeoJSON({
     geometryName: key
-  }).readFeature(geoJsonData, {
-    featureProjection: GT.settings.map.projection
   });
 
+  // 1. Read in native Lat/Lon (EPSG:4326)
+  let feature = format.readFeature(geoJsonData);
+  let geometry = feature.getGeometry();
+
+  if (GT.useTransform) {
+    // Calculate the Antipode (the exact opposite side of the earth from the map center)
+    let antiLon = ((GT.myLon + 180 + 180) % 360) - 180;
+    let antiLat = -GT.myLat;
+
+    // Ray-Casting Point-in-Polygon logic to detect if the zone covers the antipode
+    function pointInPolygon(point, vs) {
+      let x = point[0], y = point[1];
+      let inside = false;
+      for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i][0], yi = vs[i][1];
+        let xj = vs[j][0], yj = vs[j][1];
+        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    // Densify lines and prevent Infinity singularities at the poles
+    function processRing(coords, maxDegree) {
+      let newCoords = [];
+      for (let i = 0; i < coords.length - 1; i++) {
+        let p1 = [...coords[i]];
+        let p2 = [...coords[i + 1]];
+
+        // Nudge exact poles by a tiny fraction to prevent projection Infinity crashes
+        if (Math.abs(p1[1]) === 90) p1[1] = p1[1] > 0 ? 89.999 : -89.999;
+        if (Math.abs(p2[1]) === 90) p2[1] = p2[1] > 0 ? 89.999 : -89.999;
+
+        newCoords.push(p1);
+
+        let dx = p2[0] - p1[0];
+        let dy = p2[1] - p1[1];
+
+        // Safely bridge the dateline (Shortest path interpolation)
+        if (dx > 180) dx -= 360;
+        else if (dx < -180) dx += 360;
+
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > maxDegree) {
+          let steps = Math.ceil(dist / maxDegree);
+          for (let j = 1; j < steps; j++) {
+            let lon = p1[0] + dx * (j / steps);
+            let lat = p1[1] + dy * (j / steps);
+            newCoords.push([lon, lat]);
+          }
+        }
+      }
+      let lastPoint = [...coords[coords.length - 1]];
+      if (Math.abs(lastPoint[1]) === 90) lastPoint[1] = lastPoint[1] > 0 ? 89.999 : -89.999;
+      newCoords.push(lastPoint);
+      return newCoords;
+    }
+
+    let type = geometry.getType();
+    let invertedPolygons = []; // Keep track of which rings turned inside-out
+
+    if (type === 'Polygon') {
+      let rings = geometry.getCoordinates();
+      if (pointInPolygon([antiLon, antiLat], rings[0])) invertedPolygons.push(0);
+      geometry.setCoordinates(rings.map(ring => processRing(ring, 1.0)));
+    } else if (type === 'MultiPolygon') {
+      let polys = geometry.getCoordinates();
+      polys.forEach((poly, index) => {
+        if (pointInPolygon([antiLon, antiLat], poly[0])) invertedPolygons.push(index);
+      });
+      geometry.setCoordinates(polys.map(poly => poly.map(ring => processRing(ring, 1.0))));
+    }
+
+    // 2. Transform the geometry to the Globe projection
+    geometry.transform('EPSG:4326', GT.settings.map.projection);
+
+    // 3. Apply the Circular "Donut Trick" to any polygons that inverted
+    if (invertedPolygons.length > 0) {
+      
+      // AEQD mathematically maps the antipode to half the earth's circumference
+      // (approx 20,037,508 meters). We add 10km (10,000m) for a clean outer rim.
+      let radius = 20047508; 
+      let worldRing = [];
+      
+      // Draw a perfect circle of 180 points (1 point every 2 degrees)
+      for (let i = 0; i <= 360; i += 2) {
+        let rad = i * Math.PI / 180;
+        // In projected coordinates, [0,0] is the map center
+        worldRing.push([radius * Math.cos(rad), radius * Math.sin(rad)]);
+      }
+
+      if (type === 'Polygon') {
+        let rings = geometry.getCoordinates();
+        rings.unshift(worldRing); // Add circular world ring to invert the fill
+        geometry.setCoordinates(rings);
+      } else if (type === 'MultiPolygon') {
+        let polys = geometry.getCoordinates();
+        invertedPolygons.forEach(index => {
+          polys[index].unshift(worldRing);
+        });
+        geometry.setCoordinates(polys);
+      }
+    }
+  } else {
+    // If NOT using the Globe transform, just project normally.
+    geometry.transform('EPSG:4326', GT.settings.map.projection);
+  }
+
+  // 4. Standard styling
   let style = new ol.style.Style({
     stroke: new ol.style.Stroke({
       color: borderColor,
