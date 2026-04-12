@@ -3,6 +3,7 @@
 // See LICENSE for more information.
 GT.phonetics = {};
 GT.enums = {};
+GT.audioPool = new Map();
 
 function loadAlerts()
 {
@@ -120,23 +121,36 @@ function addAlert(value, type, notify, repeat, filename, shortname)
 
   if (!(newKey in GT.settings.customAlerts))
   {
-    var alertItem = Object();
-    alertItem.value = value;
-    alertItem.type = type;
-    alertItem.notify = notify;
-    alertItem.repeat = repeat;
-    alertItem.filename = filename;
-    alertItem.shortname = shortname;
-    alertItem.lastMessage = "";
-    alertItem.lastTime = 0;
-    alertItem.fired = 0;
-    alertItem.needAck = 0;
+    // Use Object Literal for V8 optimization
+    const alertItem = {
+      value: value,
+      type: parseInt(type),
+      notify: parseInt(notify),
+      repeat: parseInt(repeat),
+      filename: filename,
+      shortname: shortname,
+      lastMessage: "",
+      lastTime: 0,
+      fired: 0,
+      needAck: 0,
+      regexObj: null // Placeholder for pre-compiled regex
+    };
+
+    // Pre-compile Regex if type is 6 so we don't do it in the decode loop!
+    if (alertItem.type === 6) {
+      try {
+        alertItem.regexObj = new RegExp(value, 'i');
+      } catch (e) {
+        console.error("Invalid regex in alerts:", value);
+      }
+    }
+
     GT.settings.customAlerts[newKey] = alertItem;
-    
     return true;
   }
   return false; // we have this alert already
 }
+
 
 function deleteAlert(key)
 {
@@ -170,25 +184,17 @@ function processCustomAlertMessage(decodeWords, message, band, mode)
 
     // Grab the last word in the decoded message
     var grid = decodeWords[decodeWords.length - 1].trim();
-    if (grid.length == 4)
+    // One single Regex checks the exact 4-char pattern (e.g. EM12)
+    if (/^[A-R]{2}[0-9]{2}$/.test(grid)) 
     {
-      // maybe it's a grid
-      var LETTERS = grid.substr(0, 2);
-      var NUMBERS = grid.substr(2, 2);
-
-      if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
+      if (grid !== "RR73") 
       {
-        theirGrid = LETTERS + NUMBERS;
-
-        if (theirGrid != "RR73")
-        {
-          validQTH = true;
-        }
-        else
-        {
-          theirGrid = null;
-          validQTH = false;
-        }
+        theirGrid = grid;
+        validQTH = true;
+      } 
+      else 
+      {
+        validQTH = false;
       }
     }
 
@@ -276,16 +282,22 @@ function checkAlerts(
     else if (nalert.type == 6)
     {
       // callsign regex
-      try
-      {
-        if (!(DEcallsign + band + mode in GT.tracker.worked.call) && DEcallsign.match(nalert.value))
-        {
-          handleAlert(nalert, DEcallsign, originalMessage, callsignRecord, grid);
-          hadAlert = true;
+      // Backwards compatibility: Compile on the fly if loaded from JSON
+      if (nalert.regexObj === undefined) {
+        try {
+          nalert.regexObj = new RegExp(nalert.value, 'i');
+        } catch (e) {
+          nalert.regexObj = null; // Mark as invalid so we don't try again
         }
       }
-      catch (e) {}
+
+      if (nalert.regexObj && !(DEcallsign + band + mode in GT.tracker.worked.call) && nalert.regexObj.test(DEcallsign))
+      {
+        handleAlert(nalert, DEcallsign, originalMessage, callsignRecord, grid);
+        hadAlert = true;
+      }
     }
+
   }
   if (hadAlert)
   {
@@ -321,41 +333,81 @@ function handleAlert(nAlert, target, lastMessage, callsignRecord, grid)
   if (nAlert.type == 0 || nAlert.type == 5 || nAlert.type == 6)
   {
     if (nAlert.notify == 0) playAlertMediaFile(nAlert.filename);
-    if (nAlert.notify == 1) speakAlertString("Callsign", target, null);
-    if (nAlert.notify == 2) displayAlertPopUp("Seeking", target, null);
+    if (nAlert.notify == 1) speakAlertString(I18N("alerts.callsign.speech"), target, null);
+    if (nAlert.notify == 2) displayAlertPopUp(I18N("alerts.callsign.popup"), target, null);
   }
 
   if (nAlert.type == 2)
   {
     if (nAlert.notify == 0) playAlertMediaFile(nAlert.filename);
-    if (nAlert.notify == 1) speakAlertString("Grid square", grid, null);
-    if (nAlert.notify == 2) displayAlertPopUp("Gridsquare", grid, target);
+    if (nAlert.notify == 1) speakAlertString(I18N("alerts.gridsquare.speech"), grid, null);
+    if (nAlert.notify == 2) displayAlertPopUp(I18N("alerts.gridsquare.speech"), grid, target);
   }
 
   if (nAlert.type == 4)
   {
     if (nAlert.notify == 0) playAlertMediaFile(nAlert.filename);
-    if (nAlert.notify == 1) speakQRZString(target, "Calling", GT.settings.app.myCall);
+    if (nAlert.notify == 1) speakQRZString(target, I18N("alerts.QRZ.speech"));
     if (nAlert.notify == 2) displayAlertPopUp("QRZ", null, null);
   }
   nAlert.fired++;
 }
 
-
 function playAlertMediaFile(filename)
 {
-  let audioElement = document.createElement("audio");
-  if (GT.settings.audio.alertMute == 1) return;
+  if (GT.settings.audio.alertMute == 1) {
+    return;
+  }
 
   let fpath = path.join(GT.gtMediaDir, filename);
   if (!fs.existsSync(fpath))
   {
     fpath = path.join(GT.extraMediaDir, filename);
   }
-  audioElement.src = "file://" + fpath;
-  audioElement.setSinkId(GT.settings.app.soundCard);
-  audioElement.volume = GT.settings.audio.volume;
-  audioElement.play();
+
+  // 1. Initialize our Audio Pool (using a Map to link filepath -> Audio object)
+  if (!GT.audioPool) {
+    GT.audioPool = new Map();
+  }
+
+  let player;
+
+  // 2. Check if we already have an Audio object for this exact file
+  if (GT.audioPool.has(fpath)) {
+    player = GT.audioPool.get(fpath);
+    // Reset the audio to the beginning so it immediately restarts if already playing
+    player.currentTime = 0; 
+  } else {
+    // 3. We don't have this sound yet. Create a new one.
+    player = new Audio("file://" + fpath);
+    
+    // Memory Failsafe: Cap the pool at 20 unique sounds. 
+    // If a user has 100s of custom sounds, we delete the oldest one to prevent RAM leaks.
+    if (GT.audioPool.size >= 20) {
+      const oldestKey = GT.audioPool.keys().next().value; // Map remembers insertion order
+      const oldPlayer = GT.audioPool.get(oldestKey);
+      oldPlayer.src = ""; // Force browser to drop the file handle
+      GT.audioPool.delete(oldestKey);
+    }
+    
+    GT.audioPool.set(fpath, player);
+  }
+
+  // 4. Update Volume and Sound Card Routing
+  player.volume = GT.settings.audio.volume;
+  
+  if (GT.settings.app.soundCard && typeof player.setSinkId === 'function') {
+    // Only re-route if the sound card actually changed, saves CPU
+    if (player.sinkId !== GT.settings.app.soundCard) {
+      player.setSinkId(GT.settings.app.soundCard).catch(() => {});
+    }
+  }
+  
+  // 5. Play and gracefully suppress interruption errors
+  player.play().catch(err => {
+    if (err.name === 'AbortError') return; // Suppress harmless interruption errors
+    console.error("Audio playback failed for", filename, ":", err);
+  });
 }
 
 function stringToPhonetics(string)
@@ -381,13 +433,11 @@ function speakQRZString(caller, words, you)
   if (GT.settings.audio.alertMute == 0)
   {
     var sCaller = "";
-    var sYou = "";
     if (caller) sCaller = stringToPhonetics(caller);
-    if (you) sYou = stringToPhonetics(you);
-
+  
     if (GT.speechAvailable)
     {
-      var speak = sCaller.trim() + ", " + words.trim() + ", " + sYou.trim();
+      var speak = sCaller.trim() + ", " + words.trim();
       var msg = new SpeechSynthesisUtterance(speak);
       msg.lang = GT.localeString;
       if (GT.settings.audio.speechVoice > 0)

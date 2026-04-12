@@ -53,28 +53,10 @@ GT.acLogBandMap = {
   "1.25cm": "1.2cm"
 };
 
-function validateGridFromString(inputText)
-{
-  var validGrid = false;
-  if (inputText && (inputText.length == 4 || inputText.length == 6))
-  {
-    var LETTERS = inputText.substr(0, 2);
-    var NUMBERS = inputText.substr(2, 2);
-    if (/^[A-R]+$/.test(LETTERS) && /^[0-9]+$/.test(NUMBERS))
-    {
-      validGrid = true;
-    }
-    if (validGrid && inputText.length == 6)
-    {
-      var LETTERS_SUB = inputText.substr(4, 2);
-      if (!(/^[A-Xa-x]+$/.test(LETTERS_SUB)))
-      {
-        validGrid = false;
-      }
-    }
-  }
-
-  return validGrid;
+function validateGridFromString(inputText) {
+  if (!inputText) return false;
+  // Matches exactly 2 letters (A-R), 2 numbers, and optionally 2 sub-letters (A-X)
+  return /^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(inputText);
 }
 
 function isKnownCallsignDXCC(dxcc)
@@ -422,9 +404,9 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
 
   // --- CONFIRMED LOGIC ---
   if (confirmed) {
-    const confirmed = GT.tracker.confirmed;
+    const trackerConfirmed = GT.tracker.confirmed;
 
-    const cCall = confirmed.call;
+    const cCall = trackerConfirmed.call;
     cCall[DEcall + bandMode] = true;
     cCall[DEcall] = true;
     cCall[DEcall + mode] = true;
@@ -435,7 +417,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (grid4) {
-      const cGrid = confirmed.grid;
+      const cGrid = trackerConfirmed.grid;
       cGrid[grid4 + bandMode] = true;
       cGrid[grid4] = true;
       cGrid[grid4 + mode] = true;
@@ -447,7 +429,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (ituz) {
-      const cItuz = confirmed.ituz;
+      const cItuz = trackerConfirmed.ituz;
       const iBase = ituz + "|";
       cItuz[iBase + bandMode] = true;
       cItuz[iBase] = true;
@@ -460,7 +442,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (cqz) {
-      const cCqz = confirmed.cqz;
+      const cCqz = trackerConfirmed.cqz;
       const cBase = cqz + "|";
       cCqz[cBase + bandMode] = true;
       cCqz[cBase] = true;
@@ -473,7 +455,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (dxcc > 0) {
-      const cDxcc = confirmed.dxcc;
+      const cDxcc = trackerConfirmed.dxcc;
       const dBase = dxcc + "|";
       cDxcc[dBase + bandMode] = true;
       cDxcc[dBase] = true;
@@ -490,7 +472,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (state) {
-      const cState = confirmed.state;
+      const cState = trackerConfirmed.state;
       cState[state] = true;
       cState[state + mode] = true;
       cState[state + band] = true;
@@ -502,7 +484,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (cnty) {
-      const cCnty = confirmed.cnty;
+      const cCnty = trackerConfirmed.cnty;
       cCnty[cnty] = true;
       cCnty[cnty + mode] = true;
       cCnty[cnty + band] = true;
@@ -514,7 +496,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (px) {
-      const cPx = confirmed.px;
+      const cPx = trackerConfirmed.px;
       cPx[px + bandMode] = true;
       cPx[px] = DEcall;
       cPx[px + mode] = true;
@@ -530,7 +512,7 @@ function trackQSO(details, currentYear, currentDay, currentSecond) {
     }
 
     if (cont) {
-      const cCont = confirmed.cont;
+      const cCont = trackerConfirmed.cont;
       cCont[cont + bandMode] = true;
       cCont[cont] = true;
       cCont[cont + mode] = true;

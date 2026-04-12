@@ -9102,9 +9102,14 @@ function toggleAlertMute()
 {
   GT.settings.audio.alertMute ^= 1;
   alertMuteImg.src = GT.alertImageArray[GT.settings.audio.alertMute];
-  if (GT.settings.audio.alertMute == 1 && GT.speechAvailable)
-  {
-    window.speechSynthesis.cancel();
+  if (GT.settings.audio.alertMute == 1 ) {
+    if (GT.audioPool) {
+      GT.audioPool.forEach(player => { player.pause(); player.currentTime = 0; });
+    }
+    if( GT.speechAvailable)
+    {
+      window.speechSynthesis.cancel();
+    }
   }
 }
 

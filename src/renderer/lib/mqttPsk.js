@@ -36,13 +36,23 @@ function openPskMqtt()
     });
 
     GT.pskMqttClient.on('connect', () => {
-        GT.pskMqttClient.subscribe([topic], () => {
-            // console.log(`Subscribe to topic '${topic}'`);
+        GT.pskMqttClient.subscribe([topic], (err) => {
+            if (err) console.error("PSKReporter MQTT Subscribe Error:", err);
         })
     });
     
     GT.pskMqttClient.on('message', (topic, payload) => {
-        addNewMqttPskSpot(JSON.parse(payload));
+          try {
+            const spotData = JSON.parse(payload.toString());
+            addNewMqttPskSpot(spotData);
+        } catch (err) {
+            console.error("Failed to parse PSKReporter MQTT payload:", err);
+        }
+    });
+        
+
+    GT.pskMqttClient.on('error', (err) => {
+        console.error("PSKReporter MQTT Error:", err.message);
     });
 }
 
