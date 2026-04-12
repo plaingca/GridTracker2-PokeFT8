@@ -1,6 +1,9 @@
 /**
  * GeoJSONTerminator (Fixed AEQD Inversion logic for GT2)
  */
+/**
+ * GeoJSONTerminator (Fixed AEQD Inversion logic for GT2)
+ */
 (function (global, factory) {
   typeof exports === "object" && typeof module !== "undefined"
     ? (module.exports = factory())
@@ -66,6 +69,7 @@
 
     let bottomEdge = [];
     let topEdge = [];
+    let polygons = [];
 
     for (let i = -180; i <= 180; i += 1) {
       let lng = i;
@@ -128,28 +132,54 @@
         }
       }
 
+      // If we have a dark column, add to our edges
       if (latMin !== null && latMax !== null) {
         latMin = Math.max(-limit, Math.min(limit, latMin));
         latMax = Math.max(-limit, Math.min(limit, latMax));
         bottomEdge.push([lng, latMin]); 
         topEdge.unshift([lng, latMax]); 
+      } else {
+        // If we hit a lit meridian and already have polygon points, split them off!
+        if (bottomEdge.length > 0) {
+          let polygon = bottomEdge.concat(topEdge);
+          polygon.push(polygon[0]); 
+          polygons.push(polygon);
+          bottomEdge = [];
+          topEdge = [];
+        }
       }
     }
 
-    let polygon = bottomEdge.concat(topEdge);
-    if (polygon.length > 0) polygon.push(polygon[0]); 
+    // Cap off the final lingering set
+    if (bottomEdge.length > 0) {
+      let polygon = bottomEdge.concat(topEdge);
+      polygon.push(polygon[0]); 
+      polygons.push(polygon);
+    }
     
+    // Choose Geometry type based on segmented results
+    let geometry;
+    if (polygons.length === 0) {
+      geometry = { type: "Polygon", coordinates: [] };
+    } else if (polygons.length === 1) {
+      geometry = { type: "Polygon", coordinates: [polygons[0]] };
+    } else {
+      geometry = { type: "MultiPolygon", coordinates: polygons.map(p => [p]) };
+    }
+
     return {
       isQthNight: isQthNight,
       geojson: {
         type: "Feature",
         properties: { prop: "shadow" },
-        geometry: { type: "Polygon", coordinates: [polygon] }
+        geometry: geometry
       }
     };
   }
+  
   return generateTerminator;
 });
+
 
 (function (global, factory) {
   typeof exports === "object" && typeof module !== "undefined"
