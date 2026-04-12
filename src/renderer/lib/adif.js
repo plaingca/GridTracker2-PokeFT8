@@ -788,8 +788,8 @@ function findTrustedQSLPaths()
     lotwStation.appendChild(option);
 
     let buffer = fs.readFileSync(GT.settings.trustedQsl.stationFile, "UTF-8");
-    parser = new DOMParser();
-    xmlDoc = parser.parseFromString(buffer, "text/xml");
+    let parser = new DOMParser();
+    let xmlDoc = parser.parseFromString(buffer, "text/xml");
     let x = xmlDoc.getElementsByTagName("StationData");
     for (let i = 0; i < x.length; i++)
     {
@@ -1155,190 +1155,161 @@ function startupAdifLoadCheck()
   }
 }
 
-function getABuffer(file_url, callback, flag, mode, port, imgToGray, stringOfFlag, timeoutX)
-{
+function getABuffer(file_url, callback, flag, mode, port, imgToGray, stringOfFlag, timeoutX) {
   const http = require(mode);
-  let fileBuffer = null;
+  const zlib = require('zlib');
+  
+  // Modern URL parsing (Replaces deprecated url.parse)
+  const parsedUrl = new URL(file_url);
+  
   let options = {
-    host: NodeURL.parse(file_url).host, // eslint-disable-line node/no-deprecated-api
-    port: port,
-    path: NodeURL.parse(file_url).path, // eslint-disable-line node/no-deprecated-api
+    hostname: parsedUrl.hostname,
+    port: port || parsedUrl.port,
+    path: parsedUrl.pathname + parsedUrl.search,
     method: "get",
-    encoding: null,
-    followAllRedirects: true,
     headers: {
-      'Accept-Encoding': 'gzip' // Tell the server we accept gzip compression
+      'Accept-Encoding': 'gzip'
     },
-    maxBufferSize: 1024 * 1024 // 1 MB
+    timeout: timeoutX || 280000
   };
 
-  if (typeof stringOfFlag != "undefined") window[stringOfFlag] = true;
-  if (typeof imgToGray != "undefined")
-  {
+  function resetUI() {
+    if (typeof stringOfFlag !== "undefined") {
+      window[stringOfFlag] = false;
+    }
+    if (typeof imgToGray !== "undefined" && imgToGray.parentNode) {
+      imgToGray.parentNode.style.animation = "";
+      imgToGray.style.webkitFilter = "";
+    }
+  }
+
+  // Set initial UI state
+  if (typeof stringOfFlag !== "undefined") window[stringOfFlag] = true;
+  if (typeof imgToGray !== "undefined" && imgToGray.parentNode) {
     imgToGray.parentNode.style.animation = "borderDash 750ms ease infinite";
     imgToGray.style.webkitFilter = "invert(100%)";
   }
 
-  const req = http.request(options, function (res)
-  {
+  const req = http.request(options, function (res) {
     const encoding = res.headers['content-encoding'];
-    const fsize = res.headers["content-length"];
-    res.on("data", function (data)
-    {
-      if (fileBuffer == null) fileBuffer = Buffer.from(data);
-      else fileBuffer = Buffer.concat([fileBuffer, data]);
+    let chunks = []; // Store chunks in an array (Much faster!)
+
+    res.on("data", function (data) {
+      // Just collect chunks, do NOT concat here
+      chunks.push(data); 
     });
 
-    res.on("end", function ()
-    {
-      if (encoding === 'gzip')
-      {
-        const zlib = require('zlib');
-        fileBuffer =  zlib.gunzipSync(fileBuffer);
+    res.on("end", function () {
+      // Concat exactly once at the very end
+      let fileBuffer = Buffer.concat(chunks);
+      let error = null;
+
+      if (encoding === 'gzip' || encoding === 'deflate') {
+        try {
+          fileBuffer = zlib.gunzipSync(fileBuffer);
+        } catch (e) {
+          console.error("Gzip decompression failed:", e);
+          error = e;
+          fileBuffer = null;
+        }
       }
-      if (typeof stringOfFlag != "undefined")
-      {
-        window[stringOfFlag] = false;
-      }
-      if (typeof imgToGray != "undefined")
-      {
-        imgToGray.parentNode.style.animation = "";
-        imgToGray.style.webkitFilter = "";
-      }
-      if (typeof callback == "function")
-      {
-        // Call it, since we have confirmed it is callable
-        callback(fileBuffer, flag, null, file_url);
+
+      resetUI();
+
+      if (typeof callback === "function") {
+        callback(fileBuffer, flag, error, file_url);
       }
     });
 
-    res.on("error", function ()
-      {
-        if (typeof stringOfFlag != "undefined")
-        {
-          window[stringOfFlag] = false;
-        }
-        if (typeof imgToGray != "undefined")
-        {
-          imgToGray.parentNode.style.animation = "";
-          imgToGray.style.webkitFilter = "";
-        }
-      });
-  });
-
-  req.on("socket", function (socket)
-  {
-    socket.setTimeout(280000);
-    socket.on("timeout", function ()
-    {
-      req.abort();
+    res.on("error", function (err) {
+      console.log("Response ERROR:", err);
+      resetUI();
+      if (typeof callback === "function") {
+        callback(null, flag, err, file_url); // Don't leave caller hanging!
+      }
     });
   });
 
-  req.on("error", function ()
-  {
-    if (typeof stringOfFlag != "undefined")
-    {
-      window[stringOfFlag] = false;
+  req.on("timeout", function () {
+    req.destroy(); 
+  });
+
+  req.on("error", function (err) {
+    console.log("Request ERROR:", err);
+    resetUI();
+    if (typeof callback === "function") {
+      callback(null, flag, err, file_url); // Don't leave caller hanging!
     }
-    if (typeof imgToGray != "undefined")
-    {
-      imgToGray.parentNode.style.animation = "";
-      imgToGray.style.webkitFilter = "";
-    }
-    req.abort();
   });
 
   req.end();
 }
 
-function getAPostBuffer(file_url, callback, flag, mode, port, theData, imgToGray, stringOfFlag)
-{
-  const querystring = require("querystring");
-  let postData = querystring.stringify(theData);
+
+function getAPostBuffer(file_url, callback, flag, mode, port, theData, imgToGray, stringOfFlag) {
+  // querystring is deprecated in modern node, use URLSearchParams
+  const postData = new URLSearchParams(theData).toString(); 
   const http = require(mode);
-  let fileBuffer = null;
+  
+  const parsedUrl = new URL(file_url);
 
   let options = {
-    host: NodeURL.parse(file_url).host, // eslint-disable-line node/no-deprecated-api
-    port: port,
-    path: NodeURL.parse(file_url).path, // eslint-disable-line node/no-deprecated-api
+    hostname: parsedUrl.hostname,
+    port: port || parsedUrl.port,
+    path: parsedUrl.pathname + parsedUrl.search,
     method: "post",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Content-Length": postData.length
-    }
+      "Content-Length": Buffer.byteLength(postData)
+    },
+    timeout: 280000 // Modern timeout
   };
 
   window[stringOfFlag] = true;
-
-  if (typeof imgToGray != "undefined")
-  {
+  if (typeof imgToGray != "undefined") {
     imgToGray.parentNode.style.animation = "borderDash 750ms ease infinite";
     imgToGray.style.webkitFilter = "invert(100%)";
   }
 
-  let req = http.request(options, function (res)
-  {
-    let fsize = res.headers["content-length"];
-    let cookies = null;
-    if (typeof res.headers["set-cookie"] != "undefined")
-    { cookies = res.headers["set-cookie"]; }
+  let req = http.request(options, function (res) {
+    let cookies = res.headers["set-cookie"] || null;
+    let chunks = []; // Use the fast array-chunk method!
 
-    res
-      .on("data", function (data)
-      {
-        if (fileBuffer == null) fileBuffer = data;
-        else fileBuffer += data;
-      })
-      .on("end", function ()
-      {
-        if (typeof callback == "function")
-        {
-          // Call it, since we have confirmed it is callable
+    res.on("data", function (data) {
+        chunks.push(data);
+    });
+    
+    res.on("end", function () {
+        let fileBuffer = Buffer.concat(chunks);
+        if (typeof callback == "function") {
           callback(fileBuffer, flag, cookies);
-          window[stringOfFlag] = false;
-          if (typeof imgToGray != "undefined")
-          {
-            imgToGray.parentNode.style.animation = "";
-            imgToGray.style.webkitFilter = "";
-          }
         }
-      })
-      .on("error", function ()
-      {
         window[stringOfFlag] = false;
-        if (typeof imgToGray != "undefined")
-        {
+        if (typeof imgToGray != "undefined") {
           imgToGray.parentNode.style.animation = "";
           imgToGray.style.webkitFilter = "";
         }
-      });
-  });
-
-  req.on("socket", function (socket)
-  {
-    socket.setTimeout(280000);
-    socket.on("timeout", function ()
-    {
-      req.abort();
     });
   });
 
-  req.on("error", function (err) // eslint-disable-line node/handle-callback-err
-  {
+  req.on("timeout", function () {
+    req.destroy();
+  });
+
+  req.on("error", function (err) {
     window[stringOfFlag] = false;
-    if (typeof imgToGray != "undefined")
-    {
+    if (typeof imgToGray != "undefined") {
       imgToGray.parentNode.style.animation = "";
       imgToGray.style.webkitFilter = "";
     }
-    req.abort();
+    // ensure callback fires so app doesn't hang!
+    if (typeof callback == "function") callback(null, flag, null);
   });
 
   req.write(postData);
   req.end();
 }
+
 
 function sendUdpMessage(msg, length, port, address)
 {
@@ -1355,6 +1326,13 @@ function sendTcpMessage(msg, length, port, address)
   const net = require("net");
   let client = new net.Socket();
   client.setTimeout(30000);
+  
+  // MUST HAVE THIS to prevent app crashes when external loggers are closed/unreachable!
+  client.on("error", function (err) {
+    console.error("TCP Logger Connection Error:", err.message);
+    client.destroy();
+  });
+
   client.connect(port, address, function ()
   {
     client.write(Buffer.from(msg, "utf-8"));
@@ -1369,6 +1347,7 @@ function sendTcpMessage(msg, length, port, address)
     client.end();
   });
 }
+
 
 function valueToAdiField(field, value)
 {
@@ -2227,12 +2206,12 @@ function CloudlogTestApiKey(buffer, flag)
     CloudlogTestResult.style.backgroundColor = "black";
     if (buffer)
     {
-      parser = new DOMParser();
-      xmlDoc = parser.parseFromString(buffer, "text/xml");
+      let parser = new DOMParser();
+      let xmlDoc = parser.parseFromString(buffer, "text/xml");
       if (xmlDoc.getElementsByTagName("status").length > 0)
       {
-        state = xmlDoc.getElementsByTagName("status");
-        rights = xmlDoc.getElementsByTagName("rights");
+        let state = xmlDoc.getElementsByTagName("status");
+        let rights = xmlDoc.getElementsByTagName("rights");
         if (rights[0].childNodes[0].nodeValue == "r")
         {
           CloudlogTestResult.innerHTML = "Read Only!";
@@ -2249,7 +2228,7 @@ function CloudlogTestApiKey(buffer, flag)
       {
         if (xmlDoc.getElementsByTagName("message").length > 0)
         {
-          message = xmlDoc.getElementsByTagName("message");
+          let message = xmlDoc.getElementsByTagName("message");
           CloudlogTestResult.innerHTML = "Error: " + message[0].childNodes[0].nodeValue;
           CloudlogTestResult.style.backgroundColor = "rgb(199, 113, 0)";
         }
@@ -2268,9 +2247,9 @@ function CloudlogFillProfiles(buffer, flag)
   {
     if (buffer)
     {
-      select = document.getElementById("CloudlogStationProfileID");
+      let select = document.getElementById("CloudlogStationProfileID");
       select.options.length = 0;
-      jsonData = JSON.parse(buffer);
+      let jsonData = JSON.parse(buffer);
       let selected = false;
       for (let i = 0; i < jsonData.length; i++)
       {
@@ -2673,96 +2652,59 @@ function getPostJSONBuffer(
   timeoutMs,
   timeoutCallback,
   who
-)
-{
-  try
-  {
+) {
+  try {
     let postData = JSON.stringify(theData);
-    let protocol = NodeURL.parse(file_url).protocol; // eslint-disable-line node/no-deprecated-api
-    const http = require(protocol.replace(":", ""));
-    let fileBuffer = null;
+    let parsedUrl = new URL(file_url); // Replaces deprecated NodeURL
+    const http = require(parsedUrl.protocol.replace(":", ""));
+    
     let options = {
-      host: NodeURL.parse(file_url).hostname, // eslint-disable-line node/no-deprecated-api
-      port: NodeURL.parse(file_url).port, // eslint-disable-line node/no-deprecated-api
-      path: NodeURL.parse(file_url).path, // eslint-disable-line node/no-deprecated-api
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || port,
+      path: parsedUrl.pathname + parsedUrl.search,
       method: "post",
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(postData),
         "User-Agent": gtUserAgent,
         "x-user-agent": gtUserAgent
-      }
+      },
+      timeout: (typeof timeoutMs === "number" && timeoutMs > 0) ? timeoutMs : 280000
     };
-    let req = http.request(options, function (res)
-    {
-      let fsize = res.headers["content-length"];
-      let cookies = null;
-      if (typeof res.headers["set-cookie"] != "undefined")
-      { cookies = res.headers["set-cookie"]; }
-      res
-        .on("data", function (data)
-        {
-          if (fileBuffer == null) fileBuffer = data;
-          else fileBuffer += data;
-        })
-        .on("end", function ()
-        {
-          if (typeof callback == "function")
-          {
-            // Call it, since we have confirmed it is callable
-            callback(fileBuffer, flag, cookies);
-          }
-        })
-        .on("error", function () {});
-    });
-    if (typeof timeoutMs == "number" && timeoutMs > 0)
-    {
-      req.on("socket", function (socket)
-      {
-        socket.setTimeout(timeoutMs);
-        socket.on("timeout", function ()
-        {
-          req.abort();
-        });
+    
+    let req = http.request(options, function (res) {
+      let cookies = res.headers["set-cookie"] || null;
+      let chunks = []; // Fast array chunking
+      
+      res.on("data", function (data) {
+        chunks.push(data);
       });
-    }
-    req.on("error", function (err) // eslint-disable-line node/handle-callback-err
-    {
-      if (typeof timeoutCallback == "function")
-      {
-        timeoutCallback(
-          file_url,
-          callback,
-          flag,
-          mode,
-          80,
-          theData,
-          timeoutMs,
-          timeoutCallback,
-          who
-        );
-      }
-      req.abort();
+      
+      res.on("end", function () {
+        let fileBuffer = chunks.length > 0 ? Buffer.concat(chunks) : null;
+        if (typeof callback === "function") {
+          callback(fileBuffer, flag, cookies);
+        }
+      });
+      
+      res.on("error", function () {});
     });
-  
+    
+    req.on("timeout", function () {
+      req.destroy();
+    });
+    
+    req.on("error", function (err) {
+      if (typeof timeoutCallback === "function") {
+        timeoutCallback(file_url, callback, flag, mode, 80, theData, timeoutMs, timeoutCallback, who);
+      }
+    });
+    
     req.write(postData);
     req.end();
-  }
-  catch (e)
-  {
-    if (typeof timeoutCallback != "undefined")
-    {
-      timeoutCallback(
-        file_url,
-        callback,
-        flag,
-        mode,
-        80,
-        theData,
-        timeoutMs,
-        timeoutCallback,
-        "Invalid Url"
-      );
+  } catch (e) {
+    if (typeof timeoutCallback === "function") {
+      timeoutCallback(file_url, callback, flag, mode, 80, theData, timeoutMs, timeoutCallback, "Invalid Url");
     }
   }
 }
@@ -3069,10 +3011,13 @@ function sendTcpMessageGetResponse(msg, port, address, callback = null)
 {
   const net = require("net");
   let client = new net.Socket();
-  let fileBuffer = null;
   client.setTimeout(30000);
-  client.on("error", function () {
+  
+  // Consolidated error handler!
+  client.on("error", function (err) {
+    console.error("TCP Logger Connection Error (ACLog):", err.message);
     addLastTraffic("<font style='color:orange'>N3FJP Download Failed</font><br><font style='color:white'>Is it running and<br>TCP server enabled?</font>");
+    client.destroy(); // Safely kill the socket
     if (callback) callback(null);
   });
 
@@ -3081,22 +3026,25 @@ function sendTcpMessageGetResponse(msg, port, address, callback = null)
     client.write(Buffer.from(msg, "utf-8"));
   });
 
+  let chunks = [];
+  
   client.on("data", function (data)  {
-      if (fileBuffer == null) fileBuffer = Buffer.from(data);
-      else fileBuffer = Buffer.concat([fileBuffer, data]);
-  });
-
-  client.on("close", function () {
+      chunks.push(data);
   });
 
   client.on("end", function () {
+    let fileBuffer = Buffer.concat(chunks);
     if (callback) callback(fileBuffer);
+  });
+
+  client.on("close", function () {
   });
 
   client.on("timeout", function () {
     client.end();
   });
 }
+
 
 function grabAcLog(count = 0)
 {
