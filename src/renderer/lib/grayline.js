@@ -381,16 +381,16 @@ const dayNight = {
       // 5. Apply the "Donut Trick" if visually inverted
       if (isTrueNight !== isVisualNight) {
           let shadowRing = projectedRing.slice().reverse(); 
-          let maxDist = 25000000; // Extend outer world ring safely beyond AEQD limits
-          let worldRing = [];
+          let maxDist = 100000000; // Extend outer world ring safely beyond AEQD limits
           
-          for (let i = 0; i <= 360; i += 5) {
-              let rad = i * Math.PI / 180;
-              worldRing.push([
-                  qx + Math.cos(rad) * maxDist, 
-                  qy + Math.sin(rad) * maxDist
-              ]);
-          }
+          let worldRing = [
+              [qx + maxDist, qy + maxDist], // Top-Right
+              [qx - maxDist, qy + maxDist], // Top-Left
+              [qx - maxDist, qy - maxDist], // Bottom-Left
+              [qx + maxDist, qy - maxDist], // Bottom-Right
+              [qx + maxDist, qy + maxDist]  // Close the ring
+          ];
+          
           feature.setGeometry(new ol.geom.Polygon([worldRing, shadowRing]));
       }
       
