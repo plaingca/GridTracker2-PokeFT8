@@ -263,7 +263,7 @@ function onZoomControlDown(event)
       event.stopPropagation();
       return;
     }
-    else if (event.code == "KeyR" || event.code == "KeyW")
+    else if (event.code == "KeyR" || event.code == "KeyW" || event.code == "KeyA")
     {
       event.preventDefault();
       event.stopPropagation();
