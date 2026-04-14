@@ -6314,101 +6314,155 @@ function shapeFeature(
     geometryName: key
   });
 
-  // 1. Read in native Lat/Lon (EPSG:4326)
   let feature = format.readFeature(geoJsonData);
   let geometry = feature.getGeometry();
 
   if (GT.useTransform) {
-    // Calculate the Antipode (the exact opposite side of the earth from the map center)
-    let antiLon = ((GT.myLon + 180 + 180) % 360) - 180;
+    let antiLon = GT.myLon > 0 ? GT.myLon - 180 : GT.myLon + 180;
     let antiLat = -GT.myLat;
+    
+    let testLon = antiLon + 0.00013;
+    let testLat = antiLat + 0.00017;
+    if (testLat <= -89.9) testLat = -89.9;
+    else if (testLat >= 89.9) testLat = 89.9;
 
-    // Ray-Casting Point-in-Polygon logic to detect if the zone covers the antipode
     function pointInPolygon(point, vs) {
-      let x = point[0], y = point[1];
-      let inside = false;
-      for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        let xi = vs[i][0], yi = vs[i][1];
-        let xj = vs[j][0], yj = vs[j][1];
-        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
+      let lon = point[0], lat = point[1];
+      
+      let poly = [];
+      let curLon = vs[0][0];
+      poly.push([curLon, vs[0][1]]);
+      for (let i = 1; i < vs.length; i++) {
+        let dl = vs[i][0] - vs[i - 1][0];
+        if (Math.abs(dl) > 359) {
+          // Explicit full-world sweep, keep it
+        } else if (dl > 180) {
+          dl -= 360;
+        } else if (dl < -180) {
+          dl += 360;
+        }
+        curLon += dl;
+        poly.push([curLon, vs[i][1]]);
       }
-      return inside;
+
+      let minLon = Math.min(...poly.map(p => p[0]));
+      let maxLon = Math.max(...poly.map(p => p[0]));
+
+      let testLons = [lon, lon - 360, lon + 360];
+      for (let tLon of testLons) {
+        if (tLon >= minLon && tLon <= maxLon) {
+          let inside = false;
+          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            let xi = poly[i][0], yi = poly[i][1];
+            let xj = poly[j][0], yj = poly[j][1];
+            let intersect = ((yi > lat) !== (yj > lat)) && (tLon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+          }
+          if (inside) return true;
+        }
+      }
+      return false;
     }
 
-    // Densify lines and prevent Infinity singularities at the poles
-    function processRing(coords, maxDegree) {
-      let newCoords = [];
-      for (let i = 0; i < coords.length - 1; i++) {
-        let p1 = [...coords[i]];
-        let p2 = [...coords[i + 1]];
+    function segmentizeRing(ring) {
+      let newRing = [];
+      for (let i = 0; i < ring.length - 1; i++) {
+        let p1 = ring[i];
+        let p2 = ring[i + 1];
 
-        // Nudge exact poles by a tiny fraction to prevent projection Infinity crashes
-        if (Math.abs(p1[1]) === 90) p1[1] = p1[1] > 0 ? 89.999 : -89.999;
-        if (Math.abs(p2[1]) === 90) p2[1] = p2[1] > 0 ? 89.999 : -89.999;
+        let lat1 = Math.max(-89.99, Math.min(89.99, p1[1]));
+        let lat2 = Math.max(-89.99, Math.min(89.99, p2[1]));
+        let lon1 = p1[0];
+        let lon2 = p2[0];
+        
+        newRing.push([lon1, lat1]);
 
-        newCoords.push(p1);
+        let dLon = lon2 - lon1;
+        let dLat = lat2 - lat1;
 
-        let dx = p2[0] - p1[0];
-        let dy = p2[1] - p1[1];
+        if (Math.abs(dLon) > 359) {
+          // Keep perfect closure
+        } else if (Math.abs(dLon) > 180) {
+          dLon = dLon > 0 ? dLon - 360 : dLon + 360;
+        }
 
-        // Safely bridge the dateline (Shortest path interpolation)
-        if (dx > 180) dx -= 360;
-        else if (dx < -180) dx += 360;
+        let dist = Math.sqrt(dLon * dLon + dLat * dLat);
 
-        let dist = Math.sqrt(dx * dx + dy * dy);
+        // Prevents Euclidean longitude distortions at the poles from ignoring the singularity
+        let rad = Math.PI / 180;
+        let aLatRad = antiLat * rad;
 
-        if (dist > maxDegree) {
-          let steps = Math.ceil(dist / maxDegree);
+        let lat1Rad = lat1 * rad;
+        let dLonRad1 = (lon1 - antiLon) * rad;
+        let a1 = Math.sin((aLatRad - lat1Rad) / 2) ** 2 + Math.cos(lat1Rad) * Math.cos(aLatRad) * Math.sin(dLonRad1 / 2) ** 2;
+        let dist1 = 2 * Math.asin(Math.sqrt(a1)) * (180 / Math.PI);
+
+        let lat2Rad = lat2 * rad;
+        let dLonRad2 = (lon2 - antiLon) * rad;
+        let a2 = Math.sin((aLatRad - lat2Rad) / 2) ** 2 + Math.cos(lat2Rad) * Math.cos(aLatRad) * Math.sin(dLonRad2 / 2) ** 2;
+        let dist2 = 2 * Math.asin(Math.sqrt(a2)) * (180 / Math.PI);
+
+        let distToAnti = Math.min(dist1, dist2);
+
+        let currentMaxDegree = 0.5; // Standard global smooth step
+        if (distToAnti < 5.0) {
+           currentMaxDegree = 0.05; // Extreme resolution near singularity (20 points per degree)
+        } else if (distToAnti < 15.0) {
+           currentMaxDegree = 0.1;  // High resolution
+        } else if (distToAnti < 30.0) {
+           currentMaxDegree = 0.2;  // Medium resolution
+        }
+
+        if (dist > currentMaxDegree) {
+          let steps = Math.ceil(dist / currentMaxDegree);
           for (let j = 1; j < steps; j++) {
-            let lon = p1[0] + dx * (j / steps);
-            let lat = p1[1] + dy * (j / steps);
-            newCoords.push([lon, lat]);
+            let intLon = lon1 + dLon * (j / steps);
+            let intLat = lat1 + dLat * (j / steps);
+            
+            if (intLon > 180) intLon -= 360;
+            else if (intLon < -180) intLon += 360;
+            
+            newRing.push([intLon, intLat]);
           }
         }
       }
-      let lastPoint = [...coords[coords.length - 1]];
-      if (Math.abs(lastPoint[1]) === 90) lastPoint[1] = lastPoint[1] > 0 ? 89.999 : -89.999;
-      newCoords.push(lastPoint);
-      return newCoords;
+      
+      let lastP = ring[ring.length - 1];
+      newRing.push([lastP[0], Math.max(-89.99, Math.min(89.99, lastP[1]))]);
+      return newRing;
     }
 
     let type = geometry.getType();
-    let invertedPolygons = []; // Keep track of which rings turned inside-out
+    let invertedPolygons = []; 
 
     if (type === 'Polygon') {
       let rings = geometry.getCoordinates();
-      if (pointInPolygon([antiLon, antiLat], rings[0])) invertedPolygons.push(0);
-      geometry.setCoordinates(rings.map(ring => processRing(ring, 1.0)));
+      if (pointInPolygon([testLon, testLat], rings[0])) invertedPolygons.push(0);
+      geometry.setCoordinates(rings.map(ring => segmentizeRing(ring)));
     } else if (type === 'MultiPolygon') {
       let polys = geometry.getCoordinates();
       polys.forEach((poly, index) => {
-        if (pointInPolygon([antiLon, antiLat], poly[0])) invertedPolygons.push(index);
+        if (pointInPolygon([testLon, testLat], poly[0])) invertedPolygons.push(index);
       });
-      geometry.setCoordinates(polys.map(poly => poly.map(ring => processRing(ring, 1.0))));
+      geometry.setCoordinates(polys.map(poly => poly.map(ring => segmentizeRing(ring))));
     }
 
-    // 2. Transform the geometry to the Globe projection
     geometry.transform('EPSG:4326', GT.settings.map.projection);
 
-    // 3. Apply the Circular "Donut Trick" to any polygons that inverted
     if (invertedPolygons.length > 0) {
-      
-      // AEQD mathematically maps the antipode to half the earth's circumference
-      // (approx 20,037,508 meters). We add 10km (10,000m) for a clean outer rim.
       let radius = 20047508; 
       let worldRing = [];
       
-      // Draw a perfect circle of 180 points (1 point every 2 degrees)
-      for (let i = 0; i <= 360; i += 2) {
+      // Increased from 1.0 to 0.1 degree steps (3,600 total points) to ensure the 
+      // outer border of the donut is a perfectly smooth circle without jagged straight edges.
+      for (let i = 0; i <= 360; i += 0.1) {
         let rad = i * Math.PI / 180;
-        // In projected coordinates, [0,0] is the map center
         worldRing.push([radius * Math.cos(rad), radius * Math.sin(rad)]);
       }
 
       if (type === 'Polygon') {
         let rings = geometry.getCoordinates();
-        rings.unshift(worldRing); // Add circular world ring to invert the fill
+        rings.unshift(worldRing); 
         geometry.setCoordinates(rings);
       } else if (type === 'MultiPolygon') {
         let polys = geometry.getCoordinates();
@@ -6419,11 +6473,9 @@ function shapeFeature(
       }
     }
   } else {
-    // If NOT using the Globe transform, just project normally.
     geometry.transform('EPSG:4326', GT.settings.map.projection);
   }
 
-  // 4. Standard styling
   let style = new ol.style.Style({
     stroke: new ol.style.Stroke({
       color: borderColor,
