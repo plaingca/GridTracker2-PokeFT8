@@ -241,10 +241,12 @@ App:
   Translated "Features" tab to other languages
   Fixed live QSO logging event bug/regression
 
+
 Map: Fixed CQ and ITU award layers in AEQD projection 
 Audio: Fixed sound stacking / silence issue 
 Audio: Mute is now immediate
 Grayline Terminator: Fixed dateline issue in Mercator projection when terminator is circular
+
 
 ### Fixed
 

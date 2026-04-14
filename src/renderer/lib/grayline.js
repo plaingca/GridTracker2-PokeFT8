@@ -132,14 +132,12 @@
         }
       }
 
-      // If we have a dark column, add to our edges
       if (latMin !== null && latMax !== null) {
         latMin = Math.max(-limit, Math.min(limit, latMin));
         latMax = Math.max(-limit, Math.min(limit, latMax));
         bottomEdge.push([lng, latMin]); 
         topEdge.unshift([lng, latMax]); 
       } else {
-        // If we hit a lit meridian and already have polygon points, split them off!
         if (bottomEdge.length > 0) {
           let polygon = bottomEdge.concat(topEdge);
           polygon.push(polygon[0]); 
@@ -150,14 +148,12 @@
       }
     }
 
-    // Cap off the final lingering set
     if (bottomEdge.length > 0) {
       let polygon = bottomEdge.concat(topEdge);
       polygon.push(polygon[0]); 
       polygons.push(polygon);
     }
     
-    // Choose Geometry type based on segmented results
     let geometry;
     if (polygons.length === 0) {
       geometry = { type: "Polygon", coordinates: [] };
@@ -196,8 +192,7 @@
   function generateCircularTerminator(options = {}) {
     let today = options.time ? new Date(options.time) : new Date();
     let julianDay = today.getTime() / 86400000.0 + 2440587.5;
-    
-    // --- 1. ASTRONOMICAL CALCULATIONS ---
+
     let n = julianDay - 2451545.0;
     
     let gst = (18.697374558 + 24.06570982441908 * n) % 24;
@@ -215,7 +210,6 @@
     let raQuadrant = Math.floor(alpha / 90) * 90;
     alpha = alpha + (lQuadrant - raQuadrant);
 
-    // --- 2. FIND SUN AND ANTI-SUN (NIGHT CENTER) ---
     let sunLat = deltaRad * R2D;
     let sunLon = alpha - (gst * 15);
     
@@ -225,7 +219,6 @@
     let nightLatRad = nightLat * D2R;
     let nightLonRad = nightLon * D2R;
 
-    // --- 3. GENERATE TRUE CIRCLE ---
     let offset = options.offset !== undefined ? options.offset : -0.833;
     let radiusDegrees = 90 + offset; 
     let radiusRad = radiusDegrees * D2R;
@@ -233,7 +226,6 @@
     let polygon = [];
     let steps = 1440; 
     
-    // Variables to track and unwrap the dateline crossing
     let prevLonRad = null;
     let lonOffset = 0;
 
@@ -250,7 +242,6 @@
         Math.cos(radiusRad) - Math.sin(nightLatRad) * Math.sin(latRad)
       );
 
-      // DATELINE UNWRAPPER: Prevents the polygon from snapping across the map
       if (prevLonRad !== null) {
           let diff = lonRad - prevLonRad;
           if (diff < -Math.PI) lonOffset += 2 * Math.PI; // Crossed going East
@@ -262,7 +253,6 @@
       polygon.push([continuousLonRad * R2D, latRad * R2D]);
     }
 
-    // --- 4. EXACT QTH NIGHT CHECK ---
     let isQthNight = false;
     if (options.qth) {
       let qthLon = options.qth[0];
@@ -322,8 +312,6 @@ const dayNight = {
       let qx = qthProj[0];
       let qy = qthProj[1];
       
-      // The exact mathematical max radius of an AEQD projection map 
-      // (WGS84 Earth radius * PI)
       let R_MAX = 20037508.34; 
 
       // 1. Project all valid points
@@ -343,7 +331,6 @@ const dayNight = {
         }
       }
 
-      // 2. Build the contiguous map ring, bridging antipode jumps and smoothing jagged edges
       let projectedRing = [];
       let smoothThreshold = 250000; // 250 km: Smooths jagged stretched edges
       let jumpThreshold = 5000000;  // 5,000 km: Detects the true antipode leap
@@ -388,7 +375,6 @@ const dayNight = {
         projectedRing.push(p);
       }
 
-      // 3. Close the polygon loop safely
       if (projectedRing.length > 0) {
           injectSmoothCurve(projectedRing[projectedRing.length - 1], projectedRing[0], qx, qy, R_MAX);
       }
@@ -397,7 +383,7 @@ const dayNight = {
         geometry: new ol.geom.Polygon([projectedRing])
       });
 
-      // 4. Ray-Caster to detect topological inversion
+
       let isVisualNight = false;
       let testX = qx + 10, testY = qy + 10; // 10m offset prevents collinear math crashes
       
@@ -408,17 +394,16 @@ const dayNight = {
           if (intersect) isVisualNight = !isVisualNight;
       }
 
-      // 5. Apply the "Donut Trick" if visually inverted
       if (isTrueNight !== isVisualNight) {
           let shadowRing = projectedRing.slice().reverse(); 
-          let maxDist = 100000000; // Extend outer world ring safely beyond AEQD limits
+          let maxDist = 100000000;
           
           let worldRing = [
               [qx + maxDist, qy + maxDist], // Top-Right
               [qx - maxDist, qy + maxDist], // Top-Left
               [qx - maxDist, qy - maxDist], // Bottom-Left
               [qx + maxDist, qy - maxDist], // Bottom-Right
-              [qx + maxDist, qy + maxDist]  // Close the ring
+              [qx + maxDist, qy + maxDist]  // Close it
           ];
           
           feature.setGeometry(new ol.geom.Polygon([worldRing, shadowRing]));
