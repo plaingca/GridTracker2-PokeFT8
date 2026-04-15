@@ -2843,6 +2843,40 @@ function squareToCenter(qth) {
   };
 }
 
+function latLonToGridSquare(lat, lon, width = 4) {
+  if (!(lat > -90 && lat < 90 && lon >= -180 && lon <= 180)) {
+    return "";
+  }
+  
+  const adjLat = lat + 90;
+  const adjLon = lon + 180;
+  const gLon = (adjLon / 20) | 0;
+  const gLat = (adjLat / 10) | 0;
+  const remLon = adjLon % 20;
+  const remLat = adjLat % 10;
+  const nLon = (remLon / 2) | 0;
+  const nLat = remLat | 0;
+  if (width === 4) {
+      return String.fromCharCode(
+      65 + gLon,    // 1st char (Field)
+      65 + gLat,    // 2nd char (Field)
+      48 + nLon,    // 3rd char (Square)
+      48 + nLat,    // 4th char (Square)
+    );
+  }
+
+  const subLon = ((remLon % 2) * 12) | 0;
+  const subLat = ((remLat % 1) * 24) | 0;
+  return String.fromCharCode(
+    65 + gLon,    // 1st char (Field)
+    65 + gLat,    // 2nd char (Field)
+    48 + nLon,    // 3rd char (Square)
+    48 + nLat,    // 4th char (Square)
+    65 + subLon,  // 5th char (Subsquare)
+    65 + subLat   // 6th char (Subsquare )
+  );
+}
+
 // Pre-computed constants
 const K_LO_STEP_6 = 5 / 60;
 const K_LA_STEP_6 = 2.5 / 60;
