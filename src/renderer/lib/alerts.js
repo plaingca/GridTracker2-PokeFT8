@@ -283,7 +283,7 @@ function checkAlerts(
     {
       // callsign regex
       // Backwards compatibility: Compile on the fly if loaded from JSON
-      if (nalert.regexObj === undefined) {
+      if (!nalert.regexObj || typeof nalert.regexObj.test !== 'function') {
         try {
           nalert.regexObj = new RegExp(nalert.value, 'i');
         } catch (e) {
