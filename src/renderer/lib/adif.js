@@ -2652,59 +2652,96 @@ function getPostJSONBuffer(
   timeoutMs,
   timeoutCallback,
   who
-) {
-  try {
+)
+{
+  try
+  {
     let postData = JSON.stringify(theData);
-    let parsedUrl = new URL(file_url); // Replaces deprecated NodeURL
-    const http = require(parsedUrl.protocol.replace(":", ""));
-    
+    let protocol = NodeURL.parse(file_url).protocol; // eslint-disable-line node/no-deprecated-api
+    const http = require(protocol.replace(":", ""));
+    let fileBuffer = null;
     let options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || port,
-      path: parsedUrl.pathname + parsedUrl.search,
+      host: NodeURL.parse(file_url).hostname, // eslint-disable-line node/no-deprecated-api
+      port: NodeURL.parse(file_url).port, // eslint-disable-line node/no-deprecated-api
+      path: NodeURL.parse(file_url).path, // eslint-disable-line node/no-deprecated-api
       method: "post",
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(postData),
         "User-Agent": gtUserAgent,
         "x-user-agent": gtUserAgent
-      },
-      timeout: (typeof timeoutMs === "number" && timeoutMs > 0) ? timeoutMs : 280000
-    };
-    
-    let req = http.request(options, function (res) {
-      let cookies = res.headers["set-cookie"] || null;
-      let chunks = []; // Fast array chunking
-      
-      res.on("data", function (data) {
-        chunks.push(data);
-      });
-      
-      res.on("end", function () {
-        let fileBuffer = chunks.length > 0 ? Buffer.concat(chunks) : null;
-        if (typeof callback === "function") {
-          callback(fileBuffer, flag, cookies);
-        }
-      });
-      
-      res.on("error", function () {});
-    });
-    
-    req.on("timeout", function () {
-      req.destroy();
-    });
-    
-    req.on("error", function (err) {
-      if (typeof timeoutCallback === "function") {
-        timeoutCallback(file_url, callback, flag, mode, 80, theData, timeoutMs, timeoutCallback, who);
       }
+    };
+    let req = http.request(options, function (res)
+    {
+      let fsize = res.headers["content-length"];
+      let cookies = null;
+      if (typeof res.headers["set-cookie"] != "undefined")
+      { cookies = res.headers["set-cookie"]; }
+      res
+        .on("data", function (data)
+        {
+          if (fileBuffer == null) fileBuffer = data;
+          else fileBuffer += data;
+        })
+        .on("end", function ()
+        {
+          if (typeof callback == "function")
+          {
+            // Call it, since we have confirmed it is callable
+            callback(fileBuffer, flag, cookies);
+          }
+        })
+        .on("error", function () {});
     });
-    
+    if (typeof timeoutMs == "number" && timeoutMs > 0)
+    {
+      req.on("socket", function (socket)
+      {
+        socket.setTimeout(timeoutMs);
+        socket.on("timeout", function ()
+        {
+          req.abort();
+        });
+      });
+    }
+    req.on("error", function (err) // eslint-disable-line node/handle-callback-err
+    {
+      if (typeof timeoutCallback == "function")
+      {
+        timeoutCallback(
+          file_url,
+          callback,
+          flag,
+          mode,
+          80,
+          theData,
+          timeoutMs,
+          timeoutCallback,
+          who
+        );
+      }
+      req.abort();
+    });
+  
     req.write(postData);
     req.end();
-  } catch (e) {
-    if (typeof timeoutCallback === "function") {
-      timeoutCallback(file_url, callback, flag, mode, 80, theData, timeoutMs, timeoutCallback, "Invalid Url");
+  }
+  catch (e)
+  {
+    if (typeof timeoutCallback != "undefined")
+    {
+      timeoutCallback(
+        file_url,
+        callback,
+        flag,
+        mode,
+        80,
+        theData,
+        timeoutMs,
+        timeoutCallback,
+        "Invalid Url"
+      );
     }
   }
 }
