@@ -3462,13 +3462,6 @@ function removeFlightPathsAndDimSquares()
   {
     dimGridsquare();
 
-    // NEW: Prune orphaned/gridless callsigns that missed the rectangle cleanup
-    const maxAge = GT.timeNow - GT.settings.app.gridsquareDecayTime;
-    for (const hash in GT.liveCallsigns) {
-      if (GT.liveCallsigns[hash].age < maxAge && GT.liveCallsigns[hash].locked == false) {
-        delete GT.liveCallsigns[hash];
-      }
-    }
     GT.nextDimTime = GT.timeNow + 8;
   }
 }
