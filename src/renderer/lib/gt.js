@@ -5527,10 +5527,6 @@ function handleInstanceStatus(newMessage)
             console.log("Unexpected error inside handleInstanceStatus", err)
           }
         }
-        else
-        {
-          console.log("No point for: (" + GT.myDXGrid + ")");
-        }
       }
 
       GT.weAreDecoding = false;

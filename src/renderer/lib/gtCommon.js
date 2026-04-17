@@ -53,10 +53,12 @@ GT.acLogBandMap = {
   "1.25cm": "1.2cm"
 };
 
+const K_GRID_REGEX = /^[A-R]{2}[0-9]{2}([A-X]{2})?$/i;
+
 function validateGridFromString(inputText) {
   if (!inputText) return false;
   // Matches exactly 2 letters (A-R), 2 numbers, and optionally 2 sub-letters (A-X)
-  return /^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(inputText);
+  return K_GRID_REGEX.test(inputText);
 }
 
 function isKnownCallsignDXCC(dxcc)
