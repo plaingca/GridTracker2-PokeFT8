@@ -1420,11 +1420,6 @@ function styleAllFlightPaths() {
     GT.sharedStyles.qrz.getStroke().setColor(colorQRZ);
     GT.sharedStyles.qrzArrow.getImage().getStroke().setWidth(widthQRZ);
     GT.sharedStyles.qrzArrow.getImage().getStroke().setColor(colorQRZ);
-
-    GT.sharedStyles.transmit.getStroke().setWidth(widthQRZ);
-    GT.sharedStyles.transmit.getStroke().setColor(colorQRZ);
-    GT.sharedStyles.transmitArrow.getImage().getStroke().setWidth(widthQRZ);
-    GT.sharedStyles.transmitArrow.getImage().getStroke().setColor(colorQRZ);
   }
   
   // 3. Update Shape Flights (Polygons)
@@ -3417,10 +3412,7 @@ function changeAnimate() {
     GT.sharedStyles.flight.getStroke().setLineDashOffset(dashOff);
     GT.sharedStyles.qrz.getStroke().setLineDash(dash);
     GT.sharedStyles.qrz.getStroke().setLineDashOffset(dashOff);
-    GT.sharedStyles.transmit.getStroke().setLineDash(dash);
-    GT.sharedStyles.transmit.getStroke().setLineDashOffset(dashOff);
-    
-    // CRITICAL FIX: Tell the layers the styles changed!
+  
     GT.layerSources.flight.changed();
     GT.layerSources.transmit.changed();
   }
@@ -3461,7 +3453,6 @@ function removeFlightPathsAndDimSquares()
   if (GT.timeNow >= GT.nextDimTime)
   {
     dimGridsquare();
-
     GT.nextDimTime = GT.timeNow + 8;
   }
 }
@@ -3510,18 +3501,11 @@ function animatePaths() {
 
   // 1. Instantly Animate ALL flight paths via shared style modification
   if (GT.sharedStyles) {
-    if (pathsLen > 0) {
       GT.sharedStyles.flight.getStroke().setLineDashOffset(targetOffset);
       GT.sharedStyles.qrz.getStroke().setLineDashOffset(targetOffset);
       GT.layerSources.flight.changed(); 
-
-      requestRedraw = true;
-    }
-    if (txPath) {
-      GT.sharedStyles.transmit.getStroke().setLineDashOffset(targetOffset);
       GT.layerSources.transmit.changed();
       requestRedraw = true;
-    }
   }
 
   // 2. Animate Dazzle Grid
@@ -5540,10 +5524,15 @@ function handleInstanceStatus(newMessage)
           }
           catch (err)
           {
-            console.error("Unexpected error inside handleInstanceStatus", err)
+            console.log("Unexpected error inside handleInstanceStatus", err)
           }
         }
+        else
+        {
+          console.log("No point for: (" + GT.myDXGrid + ")");
+        }
       }
+
       GT.weAreDecoding = false;
     }
   }

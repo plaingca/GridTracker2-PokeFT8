@@ -42,7 +42,6 @@ if (typeof module != 'undefined' && module.exports) {
 
 // Initially from https://pskreporter.info/
 // Many many thanks!!!
-// --- 1. THE UPDATED FLIGHT FEATURE W/ SHARED STYLES ---
 function flightFeature(points, opts, layer, canAnimate) {
   let steps = opts.steps;
   let start = ol.proj.toLonLat(points[0]);
@@ -80,15 +79,12 @@ function flightFeature(points, opts, layer, canAnimate) {
     feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
   }
 
-  // INITIALIZE SHARED STYLES CACHE ONCE
   if (!GT.sharedStyles) {
     GT.sharedStyles = {
       flight: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
       flightArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
       qrz: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
       qrzArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) }),
-      transmit: new ol.style.Style({ stroke: new ol.style.Stroke({}) }),
-      transmitArrow: new ol.style.Style({ image: new ol.style.Circle({ radius: 3, stroke: new ol.style.Stroke({}) }) })
     };
   }
 
@@ -96,10 +92,7 @@ function flightFeature(points, opts, layer, canAnimate) {
 
   // ROUTE TO THE CORRECT SHARED STYLE (O(1) Memory footprint!)
   if (layer === "flight" || layer === "transmit") {
-    if (layer === "transmit") {
-      lineStyle = GT.sharedStyles.transmit;
-      arrowStyle = GT.sharedStyles.transmitArrow;
-    } else if (opts.isQRZ === true) {
+    if (layer === "transmit" || opts.isQRZ === true) {
       lineStyle = GT.sharedStyles.qrz;
       arrowStyle = GT.sharedStyles.qrzArrow;
     } else {
