@@ -249,7 +249,10 @@ Grayline Terminator: Fixed dateline issue in Mercator projection when terminator
 
 Logging:
   Cloudlog / Wavelog: Fixed regression
-  
+
+App:
+  Valid maidenhead grid test fixed for lowercase 5th and 6th characters
+
 ### Fixed
 
 
