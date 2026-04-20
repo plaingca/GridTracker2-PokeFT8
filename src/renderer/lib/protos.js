@@ -124,3 +124,19 @@ function toProperCase(text)
 {
   return String(text ?? "").replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
 }
+
+const K_62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+function cSignature(DEcall = "N0CALL", ver) {
+    let result = "";
+    
+    const textBytes = new TextEncoder().encode(ver);
+    const keyBytes = new TextEncoder().encode(DEcall);
+    
+    for (let i = 0; i < textBytes.length; i++) {
+        let xored = textBytes[i] ^ keyBytes[i % keyBytes.length];
+        result += K_62_CHARS[Math.floor(xored / 62)];
+        result += K_62_CHARS[xored % 62];
+    }
+    return formatCallsign(result);
+}
