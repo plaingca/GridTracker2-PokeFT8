@@ -10,6 +10,7 @@ GT.firstRun = false;
 
 const p = os.platform().toLowerCase();
 GT.platform = p.startsWith("win") ? "windows" : p.includes("darwin") ? "mac" : p.includes("linux") ? "linux" : p;
+GT.Platform = p.startsWith("win") ? "Windows" : p.includes("darwin") ? "Mac" : p.includes("linux") ? "Linux" : p;
 
 function loadAllSettings()
 {
@@ -11784,7 +11785,7 @@ function init()
 
   initQSOdata();
 
-  aboutVersionText.innerHTML = gtShortVersion + `<br><span style="font-size:smaller;color:#999;">Electron v${process.versions.electron}<br>(${GT.platform} ${os.arch()})</span>`;
+  aboutVersionText.innerHTML = gtShortVersion + `<br><span style="font-size:smaller;color:#999;">Electron v${process.versions.electron} OpenLayers: v${ol.util.VERSION}<br>(${GT.Platform} ${os.arch()})</span>`;
   cSig.innerHTML = cSignature(GT.settings.app.myCall, gtShortVersion);
   GT.currentDay = parseInt(timeNowSec() / 86400);
 

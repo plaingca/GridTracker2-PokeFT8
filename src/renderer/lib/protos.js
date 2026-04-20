@@ -138,5 +138,5 @@ function cSignature(DEcall = "N0CALL", ver) {
         result += K_62_CHARS[Math.floor(xored / 62)];
         result += K_62_CHARS[xored % 62];
     }
-    return formatCallsign(result);
+    return "sig: " + formatCallsign(result);
 }
