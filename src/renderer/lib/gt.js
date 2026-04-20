@@ -11784,7 +11784,7 @@ function init()
 
   initQSOdata();
 
-  aboutVersionText.innerHTML = gtShortVersion + `<br><span style="font-size:smaller;color:#999;">Electron v${process.versions.electron}<br>(${os.platform()} ${os.arch()} ${os.machine()} ${os.version()})</span>`;
+  aboutVersionText.innerHTML = gtShortVersion + `<br><span style="font-size:smaller;color:#999;">Electron v${process.versions.electron}<br>(${GT.platform} ${os.arch()})</span>`;
   cSig.innerHTML = cSignature(GT.settings.app.myCall, gtShortVersion);
   GT.currentDay = parseInt(timeNowSec() / 86400);
 
