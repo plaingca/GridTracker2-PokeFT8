@@ -296,7 +296,7 @@ function reportPotaQSO(record)
     frequency: record.FREQ,
     reference: record.POTA_REF,
     mode: record.MODE,
-    source: "GT",
+    source: "GT2",
     comments: record.COMMENT ? record.COMMENT : "",
     activatorGrid: record.GRIDSQUARE ? record.GRIDSQUARE : "",
     spotterGrid: record.MY_GRIDSQUARE ? record.MY_GRIDSQUARE : ""
