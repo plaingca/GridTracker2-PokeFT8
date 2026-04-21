@@ -1515,6 +1515,9 @@ function sendToLogger(ADIF)
     record.GRIDSQUARE = GT.liveCallsigns[localHash].grid.substr(0, 4);
   }
 
+  // No inbound POTA_REF allowed, we have no idea where this log entry came from!
+  if (record.POTA_REF) delete record.POTA_REF;
+
   if (GT.settings.app.potaFeatureEnabled && localHash in GT.liveCallsigns && GT.liveCallsigns[localHash].pota)
   {
     if (GT.liveCallsigns[localHash].pota != "?-????")

@@ -253,6 +253,9 @@ Logging:
 App:
   Valid maidenhead grid test fixed for lowercase 5th and 6th characters
 
+App:
+  Prevent POTA reporting on old records being sent to GT via ADIF UDP Broadcast
+
 ### Fixed
 
 
