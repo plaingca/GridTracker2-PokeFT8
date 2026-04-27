@@ -93,7 +93,7 @@ const ROSTER_COLUMNS = {
     tableData: (callObj) => ({
       rawAttrs: callObj.style.calling,
       name: callObj.CQ ? "CQ" : "Calling",
-      html: (CR.rosterSettings.wantRRCQ && callObj.RR73) ? "RR73" : formatCallsign(callObj.DXcallHTML || callObj.DXcall)
+      html: (CR.rosterSettings.wantRRCQ && callObj.RR73) ? callObj.RR73 : formatCallsign(callObj.DXcallHTML || callObj.DXcall)
     })
   },
 

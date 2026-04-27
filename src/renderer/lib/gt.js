@@ -5768,7 +5768,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     if (decodeWords[2] == "RR73" || decodeWords[2] == "73")
     {
-      RR73 = true;
+      RR73 = decodeWords[2];
     }
 
     let callsign = null;
