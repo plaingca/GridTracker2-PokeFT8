@@ -1727,40 +1727,45 @@ function toggleConditionsBox()
 
 function insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callObj, hash)
 {
-  if (GT.rosterUpdateTimer != null)
-  {
-    nodeTimers.clearTimeout(GT.rosterUpdateTimer);
-    GT.rosterUpdateTimer = null;
-  }
+    if (GT.rosterUpdateTimer) {
+        if (typeof GT.rosterUpdateTimer.refresh === "function") {
+            GT.rosterUpdateTimer.refresh();
+        } else {
+            nodeTimers.clearTimeout(GT.rosterUpdateTimer);
+            GT.rosterUpdateTimer = nodeTimers.setTimeout(delayedRosterUpdate, 150);
+        }
+    } else {
+        GT.rosterUpdateTimer = nodeTimers.setTimeout(delayedRosterUpdate, 150);
+    }
 
-  if (newMessage.SP == 7 ) hash += msgDXcallsign;
+    // 2. Adjust Hash for SP=7 (Fox/Hound or SuperFox)
+    if (newMessage.SP === 7) {
+        hash += msgDXcallsign;
+    }
 
-  const now = timeNowSec();
-  if (!(hash in GT.callRoster))
-  {
-    GT.callRoster[hash] = {};
-    callObj.life = now;
-    callObj.reset = false;
-  }
-  if (callObj.reset)
-  {
-    callObj.life = now;
-    callObj.reset = false;
-  }
+    if (callObj.life === undefined || callObj.reset) {
+        callObj.life = timeNowSec();
+        callObj.reset = false;
+    }
 
-  if (typeof callObj.life == "undefined")
-  {
-    callObj.life = now;
-    callObj.reset = false;
-  }
+    const activeCallObj = newMessage.SP === 7 ? { ...callObj } : callObj;
+    activeCallObj.hash = hash;
 
-  GT.callRoster[hash].message = newMessage;
-  GT.callRoster[hash].callObj = newMessage.SP == 7 ? { ...callObj } : callObj;
-  GT.callRoster[hash].callObj.hash = hash;
-  GT.callRoster[hash].DXcall = msgDXcallsign;
-  GT.callRoster[hash].DEcall = msgDEcallsign;
-
-  GT.rosterUpdateTimer = nodeTimers.setTimeout(delayedRosterUpdate, 150);
+    const entry = GT.callRoster[hash];
+    
+    if (!entry) {
+        GT.callRoster[hash] = {
+            message: newMessage,
+            callObj: activeCallObj,
+            DXcall: msgDXcallsign,
+            DEcall: msgDEcallsign
+        };
+    } else {
+        entry.message = newMessage;
+        entry.callObj = activeCallObj;
+        entry.DXcall = msgDXcallsign;
+        entry.DEcall = msgDEcallsign;
+    }
 }
 
 function delayedRosterUpdate()
@@ -5761,7 +5766,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       msgDEcallsign = decodeWords[1];
     }
 
-    if (decodeWords[2] == "RR73")
+    if (decodeWords[2] == "RR73" || decodeWords[2] == "73")
     {
       RR73 = true;
     }
@@ -6539,33 +6544,33 @@ function handleWsjtxClear(newMessage)
   goProcessRoster();
 }
 
-function goProcessRoster()
-{
-  let now = timeNowSec();
-  for (const call in GT.callRoster)
-  {
-    if (now - GT.callRoster[call].callObj.age > 300)
-    {
-      GT.callRoster[call].callObj.rosterAlerted = false;
-      GT.callRoster[call].callObj.shouldRosterAlert = false;
-      GT.callRoster[call].callObj.audioAlerted = false;
-      GT.callRoster[call].callObj.shouldAudioAlert = false;
-      delete GT.callRoster[call];
-      continue;
+function goProcessRoster() {
+    const now = timeNowSec();
+
+    for (const call in GT.callRoster) {
+        const entry = GT.callRoster[call];
+        const callObj = entry.callObj;
+
+        if (now - callObj.age > 300) {
+            // callObj is passed by reference from elsewhere, 
+            // so we safely reset its flags before pruning the roster entry.
+            callObj.rosterAlerted = false;
+            callObj.shouldRosterAlert = false;
+            callObj.audioAlerted = false;
+            callObj.shouldAudioAlert = false;
+            
+            // Delete from the roster map
+            delete GT.callRoster[call];
+        }
     }
-  }
-  if (GT.callRosterWindowInitialized)
-  {
-    try
-    {
-      GT.callRosterWindowHandle.window.processRoster();
+
+    if (GT.callRosterWindowInitialized) {
+        try {
+            GT.callRosterWindowHandle.window.processRoster();
+        } catch (e) {
+            console.log("[goProcessRoster] IPC Error:", e);
+        }
     }
-    catch (e)
-    {
-      console.error("processRoster");
-      console.error(e);
-    }
-  }
 }
 
 function handleClosed(newMessage)

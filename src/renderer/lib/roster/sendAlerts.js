@@ -8,7 +8,7 @@ function sendAlerts()
   let scriptExists = false;
   let shouldRosterAlert = 0;
   let shouldAudioAlert = 0;
-  let audioAlertCounts = { ...AUDIO_ALERT_HUNT_ZERO };
+  let audioAlertCounts = createEmptyAudioAlerts();
   let scriptReport = {};
 
   for (const entry in callRoster)

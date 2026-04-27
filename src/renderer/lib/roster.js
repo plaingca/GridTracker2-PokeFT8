@@ -3,73 +3,75 @@
 // See LICENSE for more information.
 
 // var CR is in screen.js
-CR.developerMode = false;
-CR.callRoster = {};
-CR.ignoredCalls = {};
-CR.ignoredCQ = {};
-CR.ignoredDxcc = {};
-CR.ignoredGrid = {};
-CR.ignoredCQz = {};
-CR.ignoredITUz = {};
-CR.modes = {};
-CR.modes_phone = {};
-CR.rosterSettings = GT.settings.roster;
-CR.day = 0;
-CR.dayAsString = "0";
-CR.menuHide = null;
-CR.menuShow = null;
-CR.columnMenu = null;
-CR.columnMembers = {};
-CR.callMenu = null;
-CR.callMenuRotator = null;
-CR.callingMenu = null;
-CR.callingMenuRotator = null;
-CR.ageMenu = null;
-CR.compactMenuHide = null;
-CR.compactMenuShow = null;
-
-CR.currentColumnName = null;
-CR.targetHash = "";
-CR.dxccMenu = null;
-CR.targetDxcc = -1;
-CR.CQMenu = null;
-CR.CQzMenu = null;
-CR.GridMenu = null;
-CR.MsgMenu = null;
-CR.targetCQ = "";
-CR.targetCQz = null;
-CR.timerInterval = null;
-CR.alertTimer = null;
-CR.awards = {};
-CR.awardTypes = {};
-CR.awardTracker = {};
-CR.callsignDatabaseDXCC = {};
-CR.callsignDatabaseUS = {};
-CR.callsignDatabaseUSplus = {};
-CR.modeColors = {};
-CR.modeColors.FT2 = "FF8811";
-CR.modeColors.FT4 = "7777FF";
-CR.modeColors.FT8 = "11FF11";
-CR.modeColors.JS8 = "11FFFF";
-CR.modeColors.JT4 = "EE1111";
-CR.modeColors.JT9 = "7CFC00";
-CR.modeColors.JT65 = "E550E5";
-CR.modeColors.QRA64 = "FF00FF";
-CR.modeColors.MSK144 = "1149FF";
-CR.rosterTimeout = null;
-CR.rosterFocus = false;
-CR.lastTime = 0;
-CR.watchers = {};
-CR.watchersTest = {};
-
-CR.def_displayFilters = {
-  brightness: 100,
-  contrast: 100,
-  saturate: 100,
-  invert: 0,
-  sepia: 0,
-  huerotate: 0
-};
+Object.assign(CR,
+{
+  developerMode: false,
+  callRoster: {},
+  ignoredCalls: {},
+  ignoredCQ: {},
+  ignoredDxcc: {},
+  ignoredGrid: {},
+  ignoredCQz: {},
+  ignoredITUz: {},
+  modes: {},
+  modes_phone: {},
+  rosterSettings: GT.settings.roster,
+  day: 0,
+  dayAsString: "0",
+  menuHide: null,
+  menuShow: null,
+  columnMenu: null,
+  columnMembers: {},
+  callMenu: null,
+  callMenuRotator: null,
+  callingMenu: null,
+  callingMenuRotator: null,
+  ageMenu: null,
+  compactMenuHide: null,
+  compactMenuShow: null,
+  currentColumnName: null,
+  targetHash: "",
+  dxccMenu: null,
+  targetDxcc: -1,
+  CQMenu: null,
+  CQzMenu: null,
+  GridMenu: null,
+  MsgMenu: null,
+  targetCQ: "",
+  targetCQz: null,
+  timerInterval: null,
+  alertTimer: null,
+  awards: {},
+  awardTypes: {},
+  awardTracker: {},
+  callsignDatabaseDXCC: {},
+  callsignDatabaseUS: {},
+  callsignDatabaseUSplus: {},
+  modeColors: {
+    FT2: "FF8811",
+    FT4: "7777FF",
+    FT8: "11FF11",
+    JS8: "11FFFF",
+    JT4: "EE1111",
+    JT9: "7CFC00",
+    JT65: "E550E5",
+    QRA64: "FF00FF",
+    MSK144: "1149FF"
+  },
+  rosterTimeout: null,
+  rosterFocus: false,
+  lastTime: 0,
+  watchers: {},
+  watchersTest: {},
+  def_displayFilters: {
+    brightness: 100,
+    contrast: 100,
+    saturate: 100,
+    invert: 0,
+    sepia: 0,
+    huerotate: 0
+  }
+});
 
 const LOGBOOK_LIVE_BAND_LIVE_MODE = "0";
 const LOGBOOK_LIVE_BAND_MIX_MODE = "1";
@@ -79,15 +81,23 @@ const LOGBOOK_MIX_BAND_MIX_MODE = "4";
 const LOGBOOK_MIX_BAND_DIGI_MODE = "5";
 const LOGBOOK_AWARD_TRACKER = "6";
 
-const LAYERED_MODE_FOR = {};
-LAYERED_MODE_FOR[LOGBOOK_LIVE_BAND_LIVE_MODE] = false;
-LAYERED_MODE_FOR[LOGBOOK_LIVE_BAND_MIX_MODE] = false;
-LAYERED_MODE_FOR[LOGBOOK_LIVE_BAND_DIGI_MODE] = false;
-LAYERED_MODE_FOR[LOGBOOK_MIX_BAND_LIVE_MODE] = LOGBOOK_LIVE_BAND_LIVE_MODE;
-LAYERED_MODE_FOR[LOGBOOK_MIX_BAND_MIX_MODE] = LOGBOOK_LIVE_BAND_MIX_MODE;
-LAYERED_MODE_FOR[LOGBOOK_MIX_BAND_DIGI_MODE] = LOGBOOK_LIVE_BAND_DIGI_MODE;
-LAYERED_MODE_FOR[LOGBOOK_AWARD_TRACKER] = false;
+const LAYERED_MODE_FOR = {
+  [LOGBOOK_LIVE_BAND_LIVE_MODE]: false,
+  [LOGBOOK_LIVE_BAND_MIX_MODE]: false,
+  [LOGBOOK_LIVE_BAND_DIGI_MODE]: false,
+  [LOGBOOK_MIX_BAND_LIVE_MODE]: LOGBOOK_LIVE_BAND_LIVE_MODE,
+  [LOGBOOK_MIX_BAND_MIX_MODE]: LOGBOOK_LIVE_BAND_MIX_MODE,
+  [LOGBOOK_MIX_BAND_DIGI_MODE]: LOGBOOK_LIVE_BAND_DIGI_MODE,
+  [LOGBOOK_AWARD_TRACKER]: false
+};
 
+// Hoisted Regular Expressions to prevent recompilation in hot loops
+const HAS_DIGIT_REGEX = /\d/;
+const HAS_UPPER_REGEX = /[A-Z]/;
+const WATCHER_CLEAN_NAME_REGEX = /[$%.'"\\,<>]/g;
+const MSG_CLEAN_REGEX = /[^A-Z0-9/<>\s]+/g;
+const CALLING_CLEAN_REGEX = /[^A-Z0-9/\s]+/g;
+const CALLSIGN_CLEAN_REGEX = /[^A-Z0-9/]+/g;
 
 // awardTrackersActive is a much smaller object than awardTracker
 CR.awardTrackersActive = GT.settings.awardTracker;
@@ -119,54 +129,52 @@ function storeAwardTracker()
   let activeAwards = {};
   for (const hash in CR.awardTracker)
   {
-    let award = {
+    activeAwards[hash] = {
       sponsor: CR.awardTracker[hash].sponsor,
       name: CR.awardTracker[hash].name,
       enable: CR.awardTracker[hash].enable
     };
-    activeAwards[hash] = award;
   }
   GT.settings.awardTracker = activeAwards;
 }
 
 function loadSettings()
 {
-  
   for (let key in CR.rosterSettings.watchers)
   {
+    let watcher = CR.rosterSettings.watchers[key];
+    
     // Fix because I allowed \ to be input as a key name char. -Tag
     let test = key.replace(/\\/g, "");
-    if (test.length != key.length)
+    if (test.length !== key.length)
     {
       delete CR.rosterSettings.watchers[key];
       continue;
     }
 
-    // Fix beacues we could have stored a regex object in settings in older versions
-    if ("test" in CR.rosterSettings.watchers[key])
+    // Fix because we could have stored a regex object in settings in older versions
+    if ("test" in watcher)
     {
-      delete CR.rosterSettings.watchers[key].test;
+      delete watcher.test;
     }
 
     // Fix to add the name to the entry, makes sorting easier since we can sort on members vs key
-    if (!("name" in CR.rosterSettings.watchers[key]))
+    if (!("name" in watcher))
     {
-      CR.rosterSettings.watchers[key].name = key;
+      watcher.name = key;
     }
 
-    if (CR.rosterSettings.watchers[key].start == false) CR.rosterSettings.watchers[key].startTime = 0;
-    if (CR.rosterSettings.watchers[key].end == false) CR.rosterSettings.watchers[key].endTime = 0;
-
+    if (!watcher.start) watcher.startTime = 0;
+    if (!watcher.end) watcher.endTime = 0;
   }
 
   // Code reducer
   CR.watchers = CR.rosterSettings.watchers;
 }
 
-
 function writeRosterSettings()
 {
-  GT.settings.roster =  CR.rosterSettings;
+  GT.settings.roster = CR.rosterSettings;
   storeAwardTracker();
   storeBlocks();
 }
@@ -188,16 +196,19 @@ function isKnownCallsignUSplus(dxcc)
 
 function timeNowSec()
 {
-  return parseInt(Date.now() / 1000);
+  // Math.trunc is much faster than parseInt, avoiding String conversion
+  return Math.trunc(Date.now() / 1000);
 }
 
-function hashMaker(callObj, reference) {
+function hashMaker(callObj, reference)
+{
   // 1. Safe extraction: Prevents crashes AND prevents "20mundefined"
   const b = callObj?.band ?? "";
   const m = callObj?.mode ?? "";
 
   // 2. Switch statements use Strict Equality (===) and V8 Jump Tables
-  switch (reference) {
+  switch (reference)
+  {
     case LOGBOOK_LIVE_BAND_LIVE_MODE:
     case LOGBOOK_AWARD_TRACKER:
       return `${b}${m}`;
@@ -231,7 +242,7 @@ function rosterInFocus()
 function rosterNoFocus()
 {
   CR.rosterFocus = false;
-  if (CR.rosterTimeout != null)
+  if (CR.rosterTimeout !== null)
   {
     nodeTimers.clearTimeout(CR.rosterTimeout);
     CR.rosterTimeout = null;
@@ -242,7 +253,7 @@ function rosterNoFocus()
 function processRoster()
 {
   CR.callRoster = GT.callRoster;
-  if (CR.rosterTimeout != null)
+  if (CR.rosterTimeout !== null)
   {
     nodeTimers.clearTimeout(CR.rosterTimeout);
     CR.rosterTimeout = null;
@@ -268,7 +279,7 @@ function viewRoster()
   processRosterHunting(CR.callRoster, rosterSettings);
   renderRoster(CR.callRoster, rosterSettings);
 
-  if (CR.alertTimer != null)
+  if (CR.alertTimer !== null)
   {
     nodeTimers.clearTimeout(CR.alertTimer);
     CR.alertTimer = null;
@@ -280,52 +291,48 @@ function viewRoster()
 function realtimeRoster()
 {
   let now = timeNowSec();
-  CR.day = parseInt(now / 86400);
+  CR.day = Math.trunc(now / 86400);
   CR.dayAsString = String(CR.day);
 
-  if (CR.rosterSettings.realtime == false) return;
+  if (!CR.rosterSettings.realtime) return;
 
-  let timeCols = document.getElementsByClassName("timeCol");
-  for (let x = 0; x < timeCols.length; x++)
+  for (const timeCol of document.getElementsByClassName("timeCol"))
   {
-    let id = timeCols[x].id.slice(2);
+    let id = timeCol.id.slice(2);
     if (id in CR.callRoster)
     {
-      timeCols[x].textContent = toDHMS(now - CR.callRoster[id].callObj.age);
+      timeCol.textContent = toDHMS(now - CR.callRoster[id].callObj.age);
     }
   }
 
-  let lifeCols = document.getElementsByClassName("lifeCol");
-  for (let x = 0; x < lifeCols.length; x++)
+  for (const lifeCol of document.getElementsByClassName("lifeCol"))
   {
-    let id = lifeCols[x].id.slice(2);
+    let id = lifeCol.id.slice(2);
     if (id in CR.callRoster)
     {
-      lifeCols[x].textContent = toDHMS(now - CR.callRoster[id].callObj.life);
+      lifeCol.textContent = toDHMS(now - CR.callRoster[id].callObj.life);
     }
   }
   
   if (CR.rosterSettings.columns.Spot)
   {
-    let spotCols = document.getElementsByClassName("spotCol");
-    for (let x = 0; x < spotCols.length; x++)
+    for (const spotCol of document.getElementsByClassName("spotCol"))
     {
-      let id = spotCols[x].id.slice(2);
+      let id = spotCol.id.slice(2);
       if (id in CR.callRoster)
       {
-        spotCols[x].textContent = getSpotString(CR.callRoster[id].callObj);
+        spotCol.textContent = getSpotString(CR.callRoster[id].callObj);
       }
     }
   }
 }
 
-function getSpotString(callObj) {
+function getSpotString(callObj)
+{
   const spot = callObj.spot;
-
   if (!spot || spot.when <= 0) return "";
 
   const elapsed = timeNowSec() - spot.when;
-
   if (elapsed > GT.settings.reception.viewHistoryTimeSec) return "";
 
   return `${toDHM(elapsed)} / ${spot.snr}`;
@@ -380,23 +387,19 @@ function updateInstances()
     let instances = GT.instances;
     let html = [];
     let keys = Object.keys(instances).sort();
-    for (const key in keys)
+    
+    for (const inst of keys)
     {
-      let inst = keys[key];
       if (instances[inst].canRoster)
       {
         let sp = inst.split(" - ");
         let shortInst = sp[sp.length - 1].substring(0, 18);
-        let color = "blue";
+        let color = instances[inst].open ? "blue" : "purple";
 
-        if (instances[inst].open == false)
-        {
-          color = "purple";
-        }
         html.push(`<div class='button' style='background-color:${color};'>` +
                   `<input type='checkbox' id='${inst}' onchange='instanceChange(this);' ` +
                   (instances[inst].crEnable ? "checked " : "") +
-                  `>&nbsp;${shortInst}</div>`)
+                  `>&nbsp;${shortInst}</div>`);
       }
     }
     instancesDiv.innerHTML = html.join("");
@@ -413,10 +416,8 @@ function processStatus(newMessage)
 {
   if (newMessage.Transmitting == 0)
   {
-    // Not Transmitting
     if (newMessage.Decoding == 1)
     {
-      // Decoding
       txrxdec.style.backgroundColor = "Blue";
       txrxdec.style.borderColor = "Cyan";
       txrxdec.innerHTML = "DECODE";
@@ -438,7 +439,7 @@ function processStatus(newMessage)
 
 function newOption(value, text)
 {
-  if (typeof text == "undefined") text = value;
+  if (typeof text === "undefined") text = value;
   let option = document.createElement("option");
   option.value = value;
   option.text = text;
@@ -465,21 +466,21 @@ function createSelectOptions(
   option.style.display = "none";
   selector.appendChild(option);
 
-  let obj = null;
-  if (forObject)
-  {
-    obj = Object.keys(forObject).sort();
-  }
+  let obj = forObject ? Object.keys(forObject).sort() : null;
+  
   for (const k in obj)
   {
     let opt = obj[k];
-    let option = document.createElement("option");
-    option.value = opt;
-    option.text = altName ? forObject[opt][altName] : opt;
+    let optElement = document.createElement("option");
+    optElement.value = opt;
+    optElement.text = altName ? forObject[opt][altName] : opt;
+    
     if (checkSponsor && opt + "-" + checkSponsor in CR.awardTracker)
-    { option.disabled = true; }
+    { 
+      optElement.disabled = true; 
+    }
 
-    selector.appendChild(option);
+    selector.appendChild(optElement);
   }
 }
 
@@ -498,13 +499,9 @@ function awardSponsorChanged()
 
 function addAwardTracker(sponsor, name, enabled)
 {
-  let awardToAdd = newAwardTrackerObject(
-    sponsor,
-    name,
-    enabled
-  );
-
+  let awardToAdd = newAwardTrackerObject(sponsor, name, enabled);
   let hash = awardToAdd.name + "-" + awardToAdd.sponsor;
+  
   if (!(hash in CR.awardTracker))
   {
     CR.awardTracker[hash] = awardToAdd;
@@ -513,6 +510,7 @@ function addAwardTracker(sponsor, name, enabled)
     updateAwardList(hash);
     viewRoster();
   }
+  
   createSelectOptions(
     "awardName",
     "Select Award",
@@ -535,11 +533,11 @@ function updateAwardList(target = null)
 
   let keys = Object.keys(CR.awardTracker).sort();
 
-  for (const key in keys)
+  for (const key of keys)
   {
-    let award = CR.awardTracker[keys[key]];
+    let award = CR.awardTracker[key];
     let row = awardTable.insertRow();
-    row.id = keys[key];
+    row.id = key;
     let baseAward = false;
     let baseCount = 0;
 
@@ -549,28 +547,32 @@ function updateAwardList(target = null)
 
     let tooltip = CR.awards[award.sponsor].awards[award.name].tooltip + " (" + CR.awards[award.sponsor].sponsor + ")\n";
     tooltip += toProperCase(award.test.look) + " QSO\n";
+    
     for (const mode in award.comp.counts)
     {
       tooltip += mode + "\n";
       for (const count in award.comp.counts[mode])
       {
         endorseTotal++;
-        if (award.comp.counts[mode][count].per == 100)
+        if (award.comp.counts[mode][count].per === 100)
         {
           baseAward = true;
           endorseCount++;
         }
         if (award.comp.counts[mode][count].num > baseCount)
-        { baseCount = award.comp.counts[mode][count].num; }
+        { 
+          baseCount = award.comp.counts[mode][count].num; 
+        }
 
         tooltip += "\t" + award.comp.counts[mode][count].num + "/" + count + " (" + award.comp.counts[mode][count].per + "%)\n";
         let wrk = "";
+        
         if (Object.keys(award.comp.endorse).length > 0)
         {
           for (const band in award.comp.endorse[mode])
           {
             endorseTotal++;
-            if (award.comp.endorse[mode][band][count] == true)
+            if (award.comp.endorse[mode][band][count] === true)
             {
               endorseCount++;
               wrk += band + " ";
@@ -583,7 +585,8 @@ function updateAwardList(target = null)
         }
       }
     }
-    if (baseCount > 0 && endorseCount == endorseTotal) allEndorse = true;
+    
+    if (baseCount > 0 && endorseCount === endorseTotal) allEndorse = true;
 
     let cell = createCellHtml(row, award.name + " - " + award.sponsor);
     cell.style.textAlign = "left";
@@ -630,8 +633,9 @@ function awardValueChanged(sender)
 function createCell(row, target, value, data = null, title = null, checkbox = false)
 {
   let cell = row.insertCell();
-  if (data == null) cell.innerHTML = value;
+  if (data === null) cell.innerHTML = value;
   if (title) cell.title = title;
+  
   if (checkbox)
   {
     let x = document.createElement("INPUT");
@@ -653,7 +657,6 @@ function createCellHtml(row, html, title = null)
   let cell = row.insertCell();
   cell.innerHTML = html;
   if (title) cell.title = title;
-
   return cell;
 }
 
@@ -662,16 +665,18 @@ function createAwardSelector(cell, target, value, forObject)
   let selector = document.createElement("select");
   selector.name = target;
   selector.value = value;
-  selector.disabled = forObject.length == 1;
+  selector.disabled = forObject.length === 1;
   selector.style.margin = "0px";
   selector.style.padding = "1px";
+  
   if (selector.disabled) selector.style.cursor = "auto";
   selector.addEventListener("change", awardValueChanged);
+  
   for (const opt in forObject)
   {
     let option = document.createElement("option");
     option.value = forObject[opt];
-    if (option.value == "Phone" || option.value == "CW") option.disabled = true;
+    if (option.value === "Phone" || option.value === "CW") option.disabled = true;
     option.text = forObject[opt];
     selector.appendChild(option);
   }
@@ -700,7 +705,6 @@ function closeAwardPopup()
 function toggleMoreControls()
 {
   CR.rosterSettings.controlsExtended = !CR.rosterSettings.controlsExtended;
-
   setVisual();
 }
 
@@ -729,7 +733,7 @@ function setVisual()
   }
 
   // Award Hunter
-  if (GT.activeRoster.logbook.referenceNeed == LOGBOOK_AWARD_TRACKER)
+  if (GT.activeRoster.logbook.referenceNeed === LOGBOOK_AWARD_TRACKER)
   {
     huntNeed.style.display = "none";
     onlyHitsDiv.style.display = "none";
@@ -747,7 +751,7 @@ function setVisual()
       if (key in window)
       {
         window[key].checked = GT.activeRoster.wanted[key];
-        if (GT.activeAudioAlerts.wanted[key] == true)
+        if (GT.activeAudioAlerts.wanted[key] === true)
         {
           window[key].nextElementSibling.nextElementSibling.innerHTML = "<font style='font-size:smaller;' onclick='window.opener.openAudioAlertSettings()'>&#128276;</font>";
         }
@@ -772,7 +776,7 @@ function setVisual()
   useseQSLDiv.style.display = (GT.settings.callsignLookups.eqslUseEnable) ? "" : "none";
   usesOQRSDiv.style.display = (GT.settings.callsignLookups.oqrsUseEnable) ? "" : "none";
   onlySpotDiv.style.display = (CR.rosterSettings.columns.Spot) ? "" : "none";
-  huntingMatrixPotaDiv.style.display = (GT.settings.app.potaFeatureEnabled && GT.settings.map.offlineMode == false) ? "" : "none";
+  huntingMatrixPotaDiv.style.display = (GT.settings.app.potaFeatureEnabled && !GT.settings.map.offlineMode) ? "" : "none";
   rosterBody.style.display = "block";
   
   resize();
@@ -782,7 +786,7 @@ function wantedChanged(element)
 {
   GT.activeRoster.wanted[element.id] = element.checked;
 
-  if (element.checked == true)
+  if (element.checked)
   {
     let id = element.id.replace("hunt", "");
 
@@ -801,8 +805,6 @@ function wantedChanged(element)
   viewRoster();
 }
 
-
-// Incoming from GT window
 function wantedValuesChangedFromAudioAlerts()
 {
   resetAlertReporting(false, true);
@@ -810,12 +812,11 @@ function wantedValuesChangedFromAudioAlerts()
   viewRoster();
 }
 
-// Incoming from GT window
 function huntingValueChangedFromAudioAlerts(id, value)
 {
   if (id in window)
   {
-    if (window[id].type == "checkbox")
+    if (window[id].type === "checkbox")
     {
       CR.rosterSettings[id] = window[id].checked = value;
     }
@@ -839,12 +840,12 @@ function logbookValuesChanged()
 
 function huntingValueChanged(element)
 {
-  let id = element.id
+  let id = element.id;
   
   if (id in CR.rosterSettings)
   {
     let value;
-    if (element.type == "checkbox")
+    if (element.type === "checkbox")
     {
       value = CR.rosterSettings[id] = element.checked;
     }
@@ -888,13 +889,13 @@ function loadFilterSettings()
       slider.value = CR.rosterSettings.displayFilters[filter];
       let td = document.getElementById("filter" + filter + "Td");
 
-      if (filter == "invert")
+      if (filter === "invert")
       {
-        if (slider.value > 49 ) slider.value = 100;
+        if (slider.value > 49) slider.value = 100;
         if (slider.value <= 49) slider.value = 0;
       }
       
-      if (filter == "huerotate")
+      if (filter === "huerotate")
       {
         td.innerHTML = slider.value + " deg";
         filters += "hue-rotate(" + slider.value + "deg) ";
@@ -921,7 +922,6 @@ function filtersChanged()
     }
     else
     {
-      // no longer a filter, get rid of it
       delete CR.rosterSettings.displayFilters[filter];
     }
   }
@@ -941,10 +941,10 @@ function initSelectors()
 {
   for (const column in ROSTER_COLUMNS)
   {
-    if (column != "Callsign")
+    if (column !== "Callsign")
     {
       let option = newOption(column, column);
-      if (column == CR.rosterSettings.compactEntity)
+      if (column === CR.rosterSettings.compactEntity)
       {
         option.selected = true;
       }
@@ -954,29 +954,24 @@ function initSelectors()
 
   let items = Object.keys(GT.dxccToAltName).sort(function (a, b)
   {
-    return GT.dxccToAltName[a].localeCompare(
-      GT.dxccToAltName[b]
-    );
+    return GT.dxccToAltName[a].localeCompare(GT.dxccToAltName[b]);
   });
 
-  for (const i in items)
+  for (const key of items)
   {
-    let key = items[i];
-    if (GT.dxccInfo[key].geo != "deleted")
+    if (GT.dxccInfo[key].geo !== "deleted")
     {
       let option = document.createElement("option");
       option.value = key;
       option.text = GT.dxccToAltName[key] + " (" + GT.dxccInfo[key].pp + ")";
-      // Note: do not use cloneNode on elements/nodes that have ids
       ignoreCqDxccSelect.appendChild(option.cloneNode(true));
       ignoreDxccSelect.appendChild(option.cloneNode(true));
     }
   }
 
   items = Object.keys(GT.cqZones).sort();
-  for (const i in items)
+  for (const key of items)
   {
-    let key = items[i];
     let option = document.createElement("option");
     option.value = key;
     option.text = key + " - " + GT.cqZones[key].name;
@@ -984,22 +979,22 @@ function initSelectors()
   }
 
   items = Object.keys(GT.ituZones).sort();
-  for (const i in items)
+  for (const key of items)
   {
-    let key = items[i];
     let option = document.createElement("option");
     option.value = key;
     option.text = key;
     ignoreItuzSelect.appendChild(option);
   }
 
-  CR.ignoreTypeInputs = {};
-  CR.ignoreTypeInputs.Callsign = ignoreCallsignValue;
-  CR.ignoreTypeInputs.Grid = ignoreGridValue;
-  CR.ignoreTypeInputs.CQ = ignoreCqDiv;
-  CR.ignoreTypeInputs.DXCC = ignoreDxccSelect;
-  CR.ignoreTypeInputs.CQz = ignoreCqzSelect;
-  CR.ignoreTypeInputs.ITUz = ignoreItuzSelect;
+  CR.ignoreTypeInputs = {
+    Callsign: ignoreCallsignValue,
+    Grid: ignoreGridValue,
+    CQ: ignoreCqDiv,
+    DXCC: ignoreDxccSelect,
+    CQz: ignoreCqzSelect,
+    ITUz: ignoreItuzSelect
+  };
 
   ignoreTypeChanged("Callsign");
   watcherTypeChanged("Callsign");
@@ -1021,7 +1016,7 @@ function ignoreTypeChanged(ignoreTypeValue)
 {
   hideIgnoreElements();
   CR.ignoreTypeInputs[ignoreTypeValue].style.display = "";
-  if (CR.ignoreType != ignoreTypeValue)
+  if (CR.ignoreType !== ignoreTypeValue)
   {
     ingnoreAddResultLabel.innerHTML = "";
     CR.ignoreType = ignoreTypeValue;
@@ -1048,33 +1043,33 @@ function gridInputValidate(element)
 
 function addNewIgnore()
 {
-  if (CR.ignoreType == "Callsign")
+  if (CR.ignoreType === "Callsign")
   {
     if (ValidateTextInput(ignoreCallsignValue, ingnoreAddResultLabel))
     {
       ignoreCallsign(ignoreCallsignValue.value);
     }
   }
-  else if (CR.ignoreType == "CQ")
+  else if (CR.ignoreType === "CQ")
   {
     if (ValidateTextInput(ignoreCqCallsignValue, ingnoreAddResultLabel))
     {
       ignoreCQ("CQ " + ignoreCqCallsignValue.value, ignoreCqDxccSelect.value);
     }
   }
-  else if (CR.ignoreType == "DXCC")
+  else if (CR.ignoreType === "DXCC")
   {
     ignoreDxcc(ignoreDxccSelect.value);
   }
-  else if (CR.ignoreType == "Grid")
+  else if (CR.ignoreType === "Grid")
   {
     ignoreGrid(ignoreGridValue.value);
   }
-  else if (CR.ignoreType == "CQz")
+  else if (CR.ignoreType === "CQz")
   {
     ignoreCQz(ignoreCqzSelect.value)
   }
-  else if (CR.ignoreType == "ITUz")
+  else if (CR.ignoreType === "ITUz")
   {
     ignoreITUz(ignoreItuzSelect.value);
   }
@@ -1084,7 +1079,6 @@ function updateWorked()
 {
   CR.modes = GT.modes;
   CR.modes_phone = GT.modes_phone;
-
   processAllAwardTrackers();
 }
 
@@ -1182,42 +1176,42 @@ function deleteITUzIgnore(key)
 
 function clearAllCallsignIgnores()
 {
-  CR.ignoredCalls = Object();
+  CR.ignoredCalls = {};
   storeBlocks();
   viewRoster();
 }
 
 function clearAllDxccIgnores()
 {
-  CR.ignoredDxcc = Object();
+  CR.ignoredDxcc = {};
   storeBlocks();
   viewRoster();
 }
 
 function clearAllGridIgnores()
 {
-  CR.ignoredGrid = Object();
+  CR.ignoredGrid = {};
   storeBlocks();
   viewRoster();
 }
 
 function clearAllCQIgnores()
 {
-  CR.ignoredCQ = Object();
+  CR.ignoredCQ = {};
   storeBlocks();
   viewRoster();
 }
 
 function clearAllCQzIgnores()
 {
-  CR.ignoredCQz = Object();
+  CR.ignoredCQz = {};
   storeBlocks();
   viewRoster();
 }
 
 function clearAllITUzIgnores()
 {
-  CR.ignoredITUz = Object();
+  CR.ignoredITUz = {};
   storeBlocks();
   viewRoster();
 }
@@ -1255,85 +1249,73 @@ function renderIgnoresTab()
 {
   let html = [];
   let clearString = "<th>none</th>";
+  
   if (Object.keys(CR.ignoredCalls).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCallsignIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Callsigns</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredCalls)
-      .sort()
-      .forEach(function (key, i)
-      {
-        html.push("<tr><td align=left style='color:#FFFF00;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCallsignIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>Callsigns</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredCalls).sort().forEach(function (key)
+    {
+      html.push(`<tr><td align='left' style='color:#FFFF00;'>${key}</td><td style='cursor:pointer;' onclick='deleteCallsignIgnore("${key}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredCQ).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCQIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>CQ</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredCQ)
-      .sort()
-      .forEach(function (rawKey, i)
-      {
-        let split = rawKey.split(":");
-        let key = split[0];
-        let dxcc = -1;
-        if (split.length == 2) dxcc = parseInt(split[1]);
-        html.push("<tr><td align=left style='color:lightgreen;' >" + key + " from " + (dxcc == -1 ? "All" : GT.dxccToAltName[dxcc]) + "</td><td style='cursor:pointer;' onclick='deleteCQIgnore(\"" + rawKey + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>CQ</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredCQ).sort().forEach(function (rawKey)
+    {
+      let split = rawKey.split(":");
+      let key = split[0];
+      let dxcc = split.length === 2 ? parseInt(split[1]) : -1;
+      html.push(`<tr><td align='left' style='color:lightgreen;'>${key} from ${dxcc === -1 ? "All" : GT.dxccToAltName[dxcc]}</td><td style='cursor:pointer;' onclick='deleteCQIgnore("${rawKey}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredDxcc).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllDxccIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>DXCC</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredDxcc)
-      .sort()
-      .forEach(function (key, i)
-      {
-        html.push("<tr><td align=left style='color:#FFA500' >" + GT.dxccToAltName[key] + " (" + GT.dxccInfo[key].pp + ")</td><td style='cursor:pointer;' onclick='deleteDxccIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>DXCC</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredDxcc).sort().forEach(function (key)
+    {
+      html.push(`<tr><td align='left' style='color:#FFA500;'>${GT.dxccToAltName[key]} (${GT.dxccInfo[key].pp})</td><td style='cursor:pointer;' onclick='deleteDxccIgnore("${key}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredGrid).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllGridIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>Grid</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredGrid)
-      .sort()
-      .forEach(function (key, i)
-      {
-        html.push("<tr><td align=left style='color:cyan' >" + key + "</td><td style='cursor:pointer;' onclick='deleteGridIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>Grid</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredGrid).sort().forEach(function (key)
+    {
+      html.push(`<tr><td align='left' style='color:cyan;'>${key}</td><td style='cursor:pointer;' onclick='deleteGridIgnore("${key}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredCQz).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllCQzIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables' ><table class='darkTable' align=center><tr><th align=left>CQ Zones</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredCQz)
-      .sort()
-      .forEach(function (key, i)
-      {
-        html.push("<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteCQzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>CQ Zones</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredCQz).sort().forEach(function (key)
+    {
+      html.push(`<tr><td align='left' style='color:cyan;'>${key}</td><td style='cursor:pointer;' onclick='deleteCQzIgnore("${key}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
   if (Object.keys(CR.ignoredITUz).length > 0)
   {
     clearString = "<th style='cursor:pointer;' onclick='clearAllITUzIgnores()'>Clear All</th>";
-    html.push("<div class='ignoresTables'><table class='darkTable' align=center><tr><th align=left>ITU Zones</th>" + clearString + "</tr>");
-    Object.keys(CR.ignoredITUz)
-      .sort()
-      .forEach(function (key, i)
-      {
-        html.push("<tr><td align=left style='color:cyan;' >" + key + "</td><td style='cursor:pointer;' onclick='deleteITUzIgnore(\"" + key + "\")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>");
-      });
+    html.push(`<div class='ignoresTables'><table class='darkTable' align='center'><tr><th align='left'>ITU Zones</th>${clearString}</tr>`);
+    Object.keys(CR.ignoredITUz).sort().forEach(function (key)
+    {
+      html.push(`<tr><td align='left' style='color:cyan;'>${key}</td><td style='cursor:pointer;' onclick='deleteITUzIgnore("${key}")'><img src='img/trash_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px'></td></tr>`);
+    });
     html.push("</table></div>");
   }
 
@@ -1341,47 +1323,46 @@ function renderIgnoresTab()
   ignoresBoxDiv.style.height = (window.innerHeight - 50) + "px";
 
   let elems = document.getElementsByClassName("ignoresTables");
-  for (let x = 0; x < elems.length; x++)
+  for (const elem of elems)
   {
     let height = 110;
-    if (elems[x].offsetHeight > window.innerHeight - height)
+    if (elem.offsetHeight > window.innerHeight - height)
     {
-      elems[x].style.height = (window.innerHeight - height) + "px";
+      elem.style.height = (window.innerHeight - height) + "px";
     }
   }
 }
 
-
 function onMyKeyDown(event)
 {
-  if (event.keyCode == 27)
+  if (event.keyCode === 27)
   {
     closeSettings();
   }
 
-  if (event.ctrlKey == true)
+  if (event.ctrlKey)
   {
-    if (event.code == "KeyL")
+    if (event.code === "KeyL")
     {
       resetFilters();
     }
-    else if (event.code == "KeyS")
+    else if (event.code === "KeyS")
     {
       openSettings();
     }
-    else if (event.code == "KeyW" || event.code == "KeyO")
+    else if (event.code === "KeyW" || event.code === "KeyO")
     {
       openWatcher();
     }
-    else if (event.code == "KeyE")
+    else if (event.code === "KeyE")
     {
       openExceptions();
     }
-    else if (event.code == "KeyI")
+    else if (event.code === "KeyI")
     {
       openIgnores();
     }
-    else if (event.code == "KeyL")
+    else if (event.code === "KeyL")
     {
       usesLoTW.checked = !usesLoTW.checked;
       huntingValueChanged(usesLoTW);
@@ -1391,7 +1372,7 @@ function onMyKeyDown(event)
 
 function blurOnEnter(ele)
 {
-  if (event.key == "Enter")
+  if (event.key === "Enter")
   {
     ele.blur();
   }
@@ -1399,17 +1380,15 @@ function blurOnEnter(ele)
 
 function resize()
 {
-  if (GT.callRosterWindowInitialized == false) return;
+  if (!GT.callRosterWindowInitialized) return;
 
-  if (ignoresBoxDiv.style.display != "none")
+  if (ignoresBoxDiv.style.display !== "none")
   {
     renderIgnoresTab();
   }
 
   wantRenderWatchersTab();
-
   viewRoster();
-  // tagdo, why?
   window.opener.goProcessRoster();
 }
 
@@ -1456,7 +1435,7 @@ function addControls()
     watcher: I18N("roster.watcher.label"),
     oams: I18N("rosterColumns.Wanted.oams"),
     pota: I18N("rosterColumns.Wanted.pota")
-  }
+  };
 
   window.opener.setRosterSpot(CR.rosterSettings.columns.Spot);
 
@@ -1599,63 +1578,63 @@ function handleContextMenu(ev)
   let mouseX = Math.round(ev.x);
   let mouseY = Math.round(ev.y);
 
-  if (typeof ev.target != "undefined")
+  if (typeof ev.target !== "undefined")
   {
-    if (ev.target.className == "inputTextValue") return true;
+    if (ev.target.className === "inputTextValue") return true;
 
     let name = "";
     let target = ev.target;
     let parent = ev.target.parentNode;
-    if (target.tagName == "SPAN")
+    if (target.tagName === "SPAN")
     {
       target = ev.target.parentNode;
       parent = target.parentNode;
     }
-    if (target.tagName == "TD" || (CR.rosterSettings.compact && target.tagName == "DIV"))
+    if (target.tagName === "TD" || (CR.rosterSettings.compact && target.tagName === "DIV"))
     {
       name = target.getAttribute("name");
     }
-    if (CR.rosterSettings.compact && name != "Callsign")
+    if (CR.rosterSettings.compact && name !== "Callsign")
     {
       parent = parent.parentNode;
     }
-    if (name == "Callsign")
+    if (name === "Callsign")
     {
       CR.targetHash = parent.id;
       CR.callMenu.popup();
     }
-    else if (name == "Calling")
+    else if (name === "Calling")
     {
       CR.targetHash = parent.id;
       CR.callingMenu.popup();
     }
-    else if (name == "Msg")
+    else if (name === "Msg")
     {
       CR.targetHash = parent.id;
       CR.MsgMenu.popup();
     }
-    else if (name == "Grid")
+    else if (name === "Grid")
     {
-      if (CR.callRoster[parent.id].callObj.grid.length == 4)
+      if (CR.callRoster[parent.id].callObj.grid.length === 4)
       {
         CR.targetHash = parent.id;
         CR.GridMenu.popup();
       }
     }
-    else if (name == "CQ")
+    else if (name === "CQ")
     {
-      if (CR.callRoster[parent.id].DXcall != "CQ")
+      if (CR.callRoster[parent.id].DXcall !== "CQ")
       {
         CR.targetCQ = parent.id;
         CR.CQMenu.popup();
       }
     }
-    else if (name == "CQz")
+    else if (name === "CQz")
     {
       CR.targetCQz = parent.id;
       CR.CQzMenu.popup();
     }
-    else if (name == "ITUz")
+    else if (name === "ITUz")
     {
       CR.targetITUz = parent.id;
       CR.ITUzMenu.popup();
@@ -1675,7 +1654,7 @@ function handleContextMenu(ev)
       }
       else
       {
-        if (target.tagName == "TH" && target.getAttribute("name"))
+        if (target.tagName === "TH" && target.getAttribute("name"))
         {
           CR.currentColumnName = target.getAttribute("name");
           CR.columnMenu.popup();
@@ -1689,7 +1668,7 @@ function handleContextMenu(ev)
   }
   else
   {
-    if (CR.rosterSettings.compact == false)
+    if (!CR.rosterSettings.compact)
     {
       CR.menu.popup();
     }
@@ -1700,59 +1679,53 @@ function handleContextMenu(ev)
   }
 
   ev.preventDefault();
-
   return false;
 }
 
 function getTypeFromMode(mode)
 {
-  if (mode in CR.modes)
-  {
-    if (CR.modes[mode] == true) return "Digital";
-    else if (CR.modes_phone[mode] == true) return "Phone";
-  }
+  if (CR.modes[mode]) return "Digital";
+  if (CR.modes_phone[mode]) return "Phone";
   return "";
 }
 
 function testAward(awardName, obj)
 {
-
-   if (
+  if (
     CR.awardTracker[awardName].test.dxcc &&
-    CR.awardTracker[awardName].rule.dxcc.indexOf(obj.dxcc) == -1
+    CR.awardTracker[awardName].rule.dxcc.indexOf(obj.dxcc) === -1
   )
   { return false; }
 
   if (
     CR.awardTracker[awardName].test.mode &&
-    CR.awardTracker[awardName].rule.mode.indexOf(obj.mode) == -1
+    CR.awardTracker[awardName].rule.mode.indexOf(obj.mode) === -1
   )
   { return false; }
 
   if (
     CR.awardTracker[awardName].test.band &&
-    CR.awardTracker[awardName].rule.band.indexOf(obj.band) == -1
+    CR.awardTracker[awardName].rule.band.indexOf(obj.band) === -1
   )
   { return false; }
 
   if (
     CR.awardTracker[awardName].test.DEcall &&
-    CR.awardTracker[awardName].rule.call.indexOf(obj.DEcall) == -1
+    CR.awardTracker[awardName].rule.call.indexOf(obj.DEcall) === -1
   )
   { return false; }
 
   if (
     CR.awardTracker[awardName].test.cont &&
-    CR.awardTracker[awardName].rule.cont.indexOf(obj.cont) == -1
+    CR.awardTracker[awardName].rule.cont.indexOf(obj.cont) === -1
   )
   { return false; }
 
   if (
     CR.awardTracker[awardName].test.prop &&
-    CR.awardTracker[awardName].rule.propMode != obj.propMode
+    CR.awardTracker[awardName].rule.propMode !== obj.propMode
   )
   { return false; }
-
 
   let baseHash = "";
   if (CR.awardTracker[awardName].test.band) baseHash += obj.band;
@@ -1767,28 +1740,18 @@ function testAward(awardName, obj)
 
 function processAward(awardName)
 {
-  let award =
-    CR.awards[CR.awardTracker[awardName].sponsor].awards[
-      CR.awardTracker[awardName].name
-    ];
+  let award = CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name];
   CR.awardTracker[awardName].rule = award.rule;
   let test = (CR.awardTracker[awardName].test = {});
-  let mode = award.rule.mode.slice();
-
-  let Index = mode.indexOf("Mixed");
-  if (Index > -1) mode.splice(Index, 1);
-
-  Index = mode.indexOf("Digital");
-  if (Index > -1) mode.splice(Index, 1);
-
-  Index = mode.indexOf("Phone");
-  if (Index > -1) mode.splice(Index, 1);
+  
+  // Clean Array Filtering
+  let mode = award.rule.mode.filter(m => m !== "Mixed" && m !== "Digital" && m !== "Phone");
  
   test.mode = mode.length > 0;
-  test.confirmed = "qsl_req" in CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule ? CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule.qsl_req == "confirmed" : CR.awards[CR.awardTracker[awardName].sponsor].qsl_req == "confirmed";
+  test.confirmed = "qsl_req" in CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule ? CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule.qsl_req === "confirmed" : CR.awards[CR.awardTracker[awardName].sponsor].qsl_req === "confirmed";
   test.look = "qsl_req" in CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule ? CR.awards[CR.awardTracker[awardName].sponsor].awards[CR.awardTracker[awardName].name].rule.qsl_req : CR.awards[CR.awardTracker[awardName].sponsor].qsl_req;
   test.DEcall = "call" in award.rule;
-  test.band = "band" in award.rule && award.rule.band.indexOf("Mixed") == -1;
+  test.band = "band" in award.rule && award.rule.band.indexOf("Mixed") === -1;
   test.dxcc = "dxcc" in award.rule;
   test.cont = "cont" in award.rule;
   test.grid = "grid" in award.rule;
@@ -1801,22 +1764,14 @@ function processAward(awardName)
     let obj = GT.QSOhash[i];
 
     if (test.confirmed && !obj.confirmed) continue;
-
     if (obj.dxcc < 1) continue;
-
-    if (test.grid && award.rule.grid.indexOf(obj.grid4) == -1) continue;
-
-    if (test.dxcc && award.rule.dxcc.indexOf(obj.dxcc) == -1) continue;
-
-    if (test.mode && award.rule.mode.indexOf(obj.mode) == -1) continue;
-
-    if (test.band && award.rule.band.indexOf(obj.band) == -1) continue;
-
-    if (test.DEcall && award.rule.call.indexOf(obj.DEcall) == -1) continue;
-
-    if (test.cont && award.rule.cont.indexOf(obj.cont) == -1) continue;
-
-    if (test.prop && award.rule.propMode != obj.propMode) continue;
+    if (test.grid && award.rule.grid.indexOf(obj.grid4) === -1) continue;
+    if (test.dxcc && award.rule.dxcc.indexOf(obj.dxcc) === -1) continue;
+    if (test.mode && award.rule.mode.indexOf(obj.mode) === -1) continue;
+    if (test.band && award.rule.band.indexOf(obj.band) === -1) continue;
+    if (test.DEcall && award.rule.call.indexOf(obj.DEcall) === -1) continue;
+    if (test.cont && award.rule.cont.indexOf(obj.cont) === -1) continue;
+    if (test.prop && award.rule.propMode !== obj.propMode) continue;
 
     CR.awardTypes[award.rule.type].score(CR.awardTracker[awardName], obj);
   }
@@ -1830,18 +1785,19 @@ function processAward(awardName)
 
 function newAwardCountObject()
 {
-  let statCountObject = {};
-
-  statCountObject.bands = {};
-  statCountObject.bands.Mixed = {};
-  statCountObject.bands.Digital = {};
-  statCountObject.bands.Phone = {};
-  statCountObject.modes = {};
-  statCountObject.modes.Mixed = {};
-  statCountObject.modes.Digital = {};
-  statCountObject.modes.Phone = {};
-  statCountObject.unique = null;
-  return statCountObject;
+  return {
+    bands: {
+      Mixed: {},
+      Digital: {},
+      Phone: {}
+    },
+    modes: {
+      Mixed: {},
+      Digital: {},
+      Phone: {}
+    },
+    unique: null
+  };
 }
 
 function workAwardObject(obj, band, mode, isDigital, isPhone, unique = null)
@@ -1863,7 +1819,7 @@ function workAwardObject(obj, band, mode, isDigital, isPhone, unique = null)
   }
   if (unique)
   {
-    if (obj.unique == null) obj.unique = {};
+    if (obj.unique === null) obj.unique = {};
     if (!(unique in obj.unique)) obj.unique[unique] = newAwardCountObject();
     workAwardObject(obj.unique[unique], band, mode, isDigital, isPhone);
   }
@@ -1873,94 +1829,28 @@ function workAwardObject(obj, band, mode, isDigital, isPhone, unique = null)
 function buildAwardTypeHandlers()
 {
   CR.awardTypes = {
-    IOTA: { name: "Islands On The Air" },
-    call: { name: "Callsign" },
-    callarea: { name: "Call Area" },
-    calls2dxcc: { name: "Stations per DXCC" },
-    cnty: { name: "County" },
-    cont: { name: "Continents" },
-    cont5: { name: "5 Continents" },
-    cont52band: { name: "5 Continents per Band" },
-    cqz: { name: "CQ Zone" },
-    dxcc: { name: "DXCC" },
-    grids: { name: "Grids" },
-    numsfx: { name: "Call Area + Suffix" },
-    px: { name: "Prefix" },
-    pxa: { name: "Prefixes" },
-    pxplus: { name: "Special Calls" },
-    sfx: { name: "Suffix" },
-    states: { name: "States" },
-    cont2band: { name: "Continents per Band" },
-    calls2band: { name: "Stations per Band" },
-    dxcc2band: { name: "DXCC per Band" },
-    states2band: { name: "States per Band" }
+    IOTA:        { name: "Islands On The Air",    score: scoreAIOTA,       test: testAIOTA,       compile: singleCompile },
+    call:        { name: "Callsign",              score: scoreAcall,       test: testAcall,       compile: singleCompile },
+    callarea:    { name: "Call Area",             score: scoreAcallarea,   test: testAcallarea,   compile: singleCompile },
+    calls2dxcc:  { name: "Stations per DXCC",     score: scoreAcalls2dxcc, test: testAcalls2dxcc, compile: doubleCompile },
+    cnty:        { name: "County",                score: scoreAcnty,       test: testAcnty,       compile: singleCompile },
+    cont:        { name: "Continents",            score: scoreAcont,       test: testAcont,       compile: singleCompile },
+    cont5:       { name: "5 Continents",          score: scoreAcont5,      test: testAcont5,      compile: singleCompile },
+    cont52band:  { name: "5 Continents per Band", score: scoreAcont52band, test: testAcont52band, compile: doubleCompile },
+    cqz:         { name: "CQ Zone",               score: scoreAcqz,        test: testAcqz,        compile: singleCompile },
+    dxcc:        { name: "DXCC",                  score: scoreAdxcc,       test: testAdxcc,       compile: singleCompile },
+    grids:       { name: "Grids",                 score: scoreAgrids,      test: testAgrids,      compile: singleCompile },
+    numsfx:      { name: "Call Area + Suffix",    score: scoreAnumsfx,     test: testAnumsfx,     compile: singleCompile },
+    px:          { name: "Prefix",                score: scoreApx,         test: testApx,         compile: singleCompile },
+    pxa:         { name: "Prefixes",              score: scoreApxa,        test: testApxa,        compile: singleCompile },
+    pxplus:      { name: "Special Calls",         score: scoreApxplus,     test: testApxplus,     compile: singleCompile },
+    sfx:         { name: "Suffix",                score: scoreAsfx,        test: testAsfx,        compile: singleCompile },
+    states:      { name: "States",                score: scoreAstates,     test: testAstates,     compile: singleCompile },
+    cont2band:   { name: "Continents per Band",   score: scoreAcont2band,  test: testAcont2band,  compile: doubleCompile },
+    calls2band:  { name: "Stations per Band",     score: scoreAcalls2band, test: testAcalls2band, compile: doubleCompile },
+    dxcc2band:   { name: "DXCC per Band",         score: scoreAdxcc2band,  test: testAdxcc2band,  compile: doubleCompile },
+    states2band: { name: "States per Band",       score: scoreAstates2band,test: testAstates,     compile: doubleCompile }
   };
-
-  CR.awardTypes.IOTA.score = scoreAIOTA;
-  CR.awardTypes.call.score = scoreAcall;
-  CR.awardTypes.callarea.score = scoreAcallarea;
-  CR.awardTypes.calls2dxcc.score = scoreAcalls2dxcc;
-  CR.awardTypes.cnty.score = scoreAcnty;
-  CR.awardTypes.cont.score = scoreAcont;
-  CR.awardTypes.cont5.score = scoreAcont5;
-  CR.awardTypes.cont52band.score = scoreAcont52band;
-  CR.awardTypes.cqz.score = scoreAcqz;
-  CR.awardTypes.dxcc.score = scoreAdxcc;
-  CR.awardTypes.grids.score = scoreAgrids;
-  CR.awardTypes.numsfx.score = scoreAnumsfx;
-  CR.awardTypes.px.score = scoreApx;
-  CR.awardTypes.pxa.score = scoreApxa;
-  CR.awardTypes.pxplus.score = scoreApxplus;
-  CR.awardTypes.sfx.score = scoreAsfx;
-  CR.awardTypes.states.score = scoreAstates;
-  CR.awardTypes.cont2band.score = scoreAcont2band;
-  CR.awardTypes.calls2band.score = scoreAcalls2band;
-  CR.awardTypes.dxcc2band.score = scoreAdxcc2band;
-  CR.awardTypes.states2band.score = scoreAstates2band;
-
-  CR.awardTypes.IOTA.test = testAIOTA;
-  CR.awardTypes.call.test = testAcall;
-  CR.awardTypes.callarea.test = testAcallarea;
-  CR.awardTypes.calls2dxcc.test = testAcalls2dxcc;
-  CR.awardTypes.cnty.test = testAcnty;
-  CR.awardTypes.cont.test = testAcont;
-  CR.awardTypes.cont5.test = testAcont5;
-  CR.awardTypes.cont52band.test = testAcont52band;
-  CR.awardTypes.cqz.test = testAcqz;
-  CR.awardTypes.dxcc.test = testAdxcc;
-  CR.awardTypes.grids.test = testAgrids;
-  CR.awardTypes.numsfx.test = testAnumsfx;
-  CR.awardTypes.px.test = testApx;
-  CR.awardTypes.pxa.test = testApxa;
-  CR.awardTypes.pxplus.test = testApxplus;
-  CR.awardTypes.sfx.test = testAsfx;
-  CR.awardTypes.states.test = testAstates;
-  CR.awardTypes.cont2band.test = testAcont2band;
-  CR.awardTypes.calls2band.test = testAcalls2band;
-  CR.awardTypes.dxcc2band.test = testAdxcc2band;
-  CR.awardTypes.states2band.test = testAstates;
-
-  CR.awardTypes.IOTA.compile = singleCompile;
-  CR.awardTypes.call.compile = singleCompile;
-  CR.awardTypes.callarea.compile = singleCompile;
-  CR.awardTypes.calls2dxcc.compile = doubleCompile;
-  CR.awardTypes.cnty.compile = singleCompile;
-  CR.awardTypes.cont.compile = singleCompile;
-  CR.awardTypes.cont5.compile = singleCompile;
-  CR.awardTypes.cont52band.compile = doubleCompile;
-  CR.awardTypes.cqz.compile = singleCompile;
-  CR.awardTypes.dxcc.compile = singleCompile;
-  CR.awardTypes.grids.compile = singleCompile;
-  CR.awardTypes.numsfx.compile = singleCompile;
-  CR.awardTypes.px.compile = singleCompile;
-  CR.awardTypes.pxa.compile = singleCompile;
-  CR.awardTypes.pxplus.compile = singleCompile;
-  CR.awardTypes.sfx.compile = singleCompile;
-  CR.awardTypes.states.compile = singleCompile;
-  CR.awardTypes.cont2band.compile = doubleCompile;
-  CR.awardTypes.calls2band.compile = doubleCompile;
-  CR.awardTypes.dxcc2band.compile = doubleCompile;
-  CR.awardTypes.states2band.compile = doubleCompile;
 }
 
 function scoreAstates(award, obj)
@@ -1982,7 +1872,6 @@ function scoreAstates(award, obj)
 
 function testAstates(award, obj, baseHash)
 {
-  // calls with empty state will not match anything in the hash map. so filter those out
   if (!obj.state || obj.state + baseHash in GT.tracker[award.test.look].state)
   {
     return false;
@@ -2032,8 +1921,7 @@ function scoreAcont(award, obj)
 {
   if (obj.cont)
   {
-    let cont = obj.cont;
-    if (cont == "AN") cont = "OC";
+    let cont = obj.cont === "AN" ? "OC" : obj.cont;
     if (!(cont in award.stat)) award.stat[cont] = newAwardCountObject();
     return workAwardObject(
       award.stat[cont],
@@ -2050,9 +1938,7 @@ function testAcont(award, obj, baseHash)
 {
   if (obj.cont)
   {
-    let cont = obj.cont;
-    if (cont == "AN") cont = "OC";
-
+    let cont = obj.cont === "AN" ? "OC" : obj.cont;
     if (cont + baseHash in GT.tracker[award.test.look].cont)
     {
       return false;
@@ -2066,8 +1952,8 @@ function scoreAcont5(award, obj, baseHash)
   if (obj.cont)
   {
     let cont = obj.cont;
-    if (cont == "NA" || cont == "SA") cont = "AM";
-    if (cont == "AN") cont = "OC";
+    if (cont === "NA" || cont === "SA") cont = "AM";
+    if (cont === "AN") cont = "OC";
 
     if (!(cont in award.stat)) award.stat[cont] = newAwardCountObject();
     return workAwardObject(
@@ -2086,8 +1972,8 @@ function testAcont5(award, obj, baseHash)
   if (obj.cont)
   {
     let cont = obj.cont;
-    if (cont == "NA" || cont == "SA") cont = "AM";
-    if (cont == "AN") cont = "OC";
+    if (cont === "NA" || cont === "SA") cont = "AM";
+    if (cont === "AN") cont = "OC";
 
     if (cont + baseHash in GT.tracker[award.test.look].cont)
     {
@@ -2115,8 +2001,7 @@ function testAcont2band(award, obj, baseHash)
 {
   if (obj.cont)
   {
-    let cont = obj.cont;
-    if (cont == "AN") cont = "OC";
+    let cont = obj.cont === "AN" ? "OC" : obj.cont;
 
     if (cont + baseHash in GT.tracker[award.test.look].cont)
     {
@@ -2131,8 +2016,8 @@ function scoreAcont52band(award, obj)
   if (obj.cont)
   {
     let cont = obj.cont;
-    if (cont == "NA" || cont == "SA") cont = "AM";
-    if (cont == "AN") cont = "OC";
+    if (cont === "NA" || cont === "SA") cont = "AM";
+    if (cont === "AN") cont = "OC";
 
     if (!(obj.band in award.stat)) award.stat[obj.band] = newAwardCountObject();
     return workAwardObject(
@@ -2152,8 +2037,8 @@ function testAcont52band(award, obj, baseHash)
   if (obj.cont)
   {
     let cont = obj.cont;
-    if (cont == "NA" || cont == "SA") cont = "AM";
-    if (cont == "AN") cont = "OC";
+    if (cont === "NA" || cont === "SA") cont = "AM";
+    if (cont === "AN") cont = "OC";
 
     if (cont + baseHash in GT.tracker[award.test.look].cont)
     {
@@ -2184,8 +2069,8 @@ function scoreAgrids(award, obj)
 function testAgrids(award, obj, baseHash)
 {
   let grid = obj.grid;
-  if (!grid || grid.length == 0) return false;
-  if (award.rule.grid && award.rule.grid.indexOf(grid) == -1) return false;
+  if (!grid || grid.length === 0) return false;
+  if (award.rule.grid && award.rule.grid.indexOf(grid) === -1) return false;
   if (grid + baseHash in GT.tracker[award.test.look].grid) return false;
 
   return true;
@@ -2253,7 +2138,7 @@ function scoreAIOTA(award, obj)
   {
     let test = CR.awards[award.sponsor].awards[award.name];
 
-    if ("IOTA" in test.rule && test.rule.IOTA.indexOf(obj.IOTA) == -1)
+    if ("IOTA" in test.rule && test.rule.IOTA.indexOf(obj.IOTA) === -1)
     { return false; }
 
     if (!(obj.IOTA in award.stat)) award.stat[obj.IOTA] = newAwardCountObject();
@@ -2285,11 +2170,11 @@ function testAIOTA(award, obj, baseHash)
 
 function scoreAcallarea(award, obj)
 {
-  if (obj.zone != null)
+  if (obj.zone !== null)
   {
     let test = CR.awards[award.sponsor].awards[award.name];
 
-    if ("zone" in test.rule && test.rule.zone.indexOf(obj.zone) == -1)
+    if ("zone" in test.rule && test.rule.zone.indexOf(obj.zone) === -1)
     { return false; }
 
     if (!(obj.zone in award.stat)) award.stat[obj.zone] = newAwardCountObject();
@@ -2306,11 +2191,11 @@ function scoreAcallarea(award, obj)
 
 function testAcallarea(award, obj, baseHash)
 {
-  if (obj.zone != null)
+  if (obj.zone !== null)
   {
     let test = CR.awards[award.sponsor].awards[award.name];
 
-    if ("zone" in test.rule && test.rule.zone.indexOf(obj.zone) == -1)
+    if ("zone" in test.rule && test.rule.zone.indexOf(obj.zone) === -1)
     { return false; }
   }
   return true;
@@ -2325,7 +2210,7 @@ function scoreApx(award, obj)
     if ("px" in test.rule)
     {
       px = px.slice(0, test.rule.px[0].length);
-      if (test.rule.px.indexOf(px) == -1) return false;
+      if (test.rule.px.indexOf(px) === -1) return false;
     }
 
     if (!(px in award.stat)) award.stat[px] = newAwardCountObject();
@@ -2349,7 +2234,7 @@ function testApx(award, obj, baseHash)
     if ("px" in test.rule)
     {
       px = px.slice(0, test.rule.px[0].length);
-      if (test.rule.px.indexOf(px) == -1) return false;
+      if (test.rule.px.indexOf(px) === -1) return false;
     }
 
     if (String(obj.px) + baseHash in GT.tracker[award.test.look].px)
@@ -2410,11 +2295,12 @@ function scoreAsfx(award, obj)
 {
   let test = CR.awards[award.sponsor].awards[award.name];
   let suf = obj.DEcall.replace(obj.px, "");
+  
   for (const i in test.rule.sfx)
   {
-    for (const s in test.rule.sfx[i])
+    for (const s of test.rule.sfx[i])
     {
-      if (suf.indexOf(test.rule.sfx[i][s]) == 0)
+      if (suf.indexOf(s) === 0)
       {
         if (!(i in award.stat)) award.stat[i] = newAwardCountObject();
         return workAwardObject(
@@ -2435,11 +2321,12 @@ function testAsfx(award, obj, baseHash)
 {
   let test = CR.awards[award.sponsor].awards[award.name];
   let suf = obj.DEcall.replace(obj.px, "");
+  
   for (const i in test.rule.sfx)
   {
-    for (const s in test.rule.sfx[i])
+    for (const s of test.rule.sfx[i])
     {
-      if (suf.indexOf(test.rule.sfx[i][s]) == 0)
+      if (suf.indexOf(s) === 0)
       {
         return false;
       }
@@ -2537,7 +2424,6 @@ function scoreAcqz(award, obj)
 
 function testAcqz(award, obj, baseHash)
 {
-  // calls with empty cqz will not match anything in the hash map. so filter those out
   if (!obj.cqz || obj.cqz + "|" + baseHash in GT.tracker[award.test.look].cqz)
   {
     return false;
@@ -2553,11 +2439,12 @@ function scoreAnumsfx(award, obj)
     let px = obj.px.slice(0, -1);
     let suf = obj.DEcall.replace(px, "");
     suf = suf.slice(0, test.rule.numsfx[0][0].length);
+    
     for (const i in test.rule.numsfx)
     {
-      for (const s in test.rule.numsfx[i])
+      for (const s of test.rule.numsfx[i])
       {
-        if (suf.indexOf(test.rule.numsfx[i][s]) == 0)
+        if (suf.indexOf(s) === 0)
         {
           if (!(i in award.stat)) award.stat[i] = newAwardCountObject();
           return workAwardObject(
@@ -2582,11 +2469,12 @@ function testAnumsfx(award, obj)
     let px = obj.px.slice(0, -1);
     let suf = obj.DEcall.replace(px, "");
     suf = suf.slice(0, test.rule.numsfx[0][0].length);
+    
     for (const i in test.rule.numsfx)
     {
-      for (const s in test.rule.numsfx[i])
+      for (const s of test.rule.numsfx[i])
       {
-        if (suf.indexOf(test.rule.numsfx[i][s]) == 0)
+        if (suf.indexOf(s) === 0)
         {
           return false;
         }
@@ -2605,7 +2493,7 @@ function scoreApxplus(award, obj)
   {
     for (const i in test.rule.pxplus)
     {
-      if (obj.DEcall.indexOf(test.rule.pxplus[i]) == 0)
+      if (obj.DEcall.indexOf(test.rule.pxplus[i]) === 0)
       {
         if (!(i in award.stat)) award.stat[i] = newAwardCountObject();
         return workAwardObject(
@@ -2629,7 +2517,7 @@ function testApxplus(award, obj)
   {
     for (const i in test.rule.pxplus)
     {
-      if (obj.DEcall.indexOf(test.rule.pxplus[i]) == 0)
+      if (obj.DEcall.indexOf(test.rule.pxplus[i]) === 0)
       {
         return false;
       }
@@ -2651,14 +2539,14 @@ function loadAwardJson()
         if (!("unique" in CR.awards[sp].awards[aw].rule))
         { CR.awards[sp].awards[aw].rule.unique = 1; }
 
-        if (CR.awards[sp].awards[aw].rule.band[0] == "Mixed")
+        if (CR.awards[sp].awards[aw].rule.band[0] === "Mixed")
         {
           CR.awards[sp].awards[aw].rule.band.shift();
         }
 
-        if (CR.awards[sp].awards[aw].rule.band[0] == "Any") CR.awards[sp].awards[aw].rule.band[0] = "Mixed";
+        if (CR.awards[sp].awards[aw].rule.band[0] === "Any") CR.awards[sp].awards[aw].rule.band[0] = "Mixed";
 
-        if (CR.awards[sp].awards[aw].rule.band.length == 0)
+        if (CR.awards[sp].awards[aw].rule.band.length === 0)
         {
           CR.awards[sp].awards[aw].rule.band = [];
           for (let key in CR.awards[sp].mixed)
@@ -2668,8 +2556,8 @@ function loadAwardJson()
         }
 
         if (
-          CR.awards[sp].awards[aw].rule.endorse.length == 1 &&
-          CR.awards[sp].awards[aw].rule.endorse[0] == "Mixed"
+          CR.awards[sp].awards[aw].rule.endorse.length === 1 &&
+          CR.awards[sp].awards[aw].rule.endorse[0] === "Mixed"
         )
         {
           CR.awards[sp].awards[aw].rule.endorse = [];
@@ -2789,35 +2677,36 @@ function singleCompile(award, obj)
   let test = CR.awards[award.sponsor].awards[award.name];
   let rule = test.rule;
   let comp = newCompileCountObject();
-  for (let mode in rule.mode)
+  
+  for (const mode of rule.mode)
   {
-    comp.modes[rule.mode[mode]] = 0;
-    comp.bands[rule.mode[mode]] = {};
+    comp.modes[mode] = 0;
+    comp.bands[mode] = {};
 
-    for (let band in rule.band)
+    for (const band of rule.band)
     {
-      comp.bands[rule.mode[mode]][rule.band[band]] = 0;
+      comp.bands[mode][band] = 0;
     }
     for (let key in obj)
     {
-      if (rule.mode[mode] in obj[key].bands && Object.keys(obj[key].bands[rule.mode[mode]]).length)
+      if (mode in obj[key].bands && Object.keys(obj[key].bands[mode]).length)
       {
-        comp.modes[rule.mode[mode]] += 1;
+        comp.modes[mode] += 1;
 
-        for (let band in rule.band)
+        for (const band of rule.band)
         {
-          if (rule.band[band] in obj[key].bands[rule.mode[mode]])
-          { comp.bands[rule.mode[mode]][rule.band[band]] += 1; }
+          if (band in obj[key].bands[mode])
+          { comp.bands[mode][band] += 1; }
         }
       }
     }
 
-    if ("score" in rule && rule.score == "band")
+    if ("score" in rule && rule.score === "band")
     {
-      comp.modes[rule.mode[mode]] = 0;
-      for (let band in comp.bands[rule.mode[mode]])
+      comp.modes[mode] = 0;
+      for (let band in comp.bands[mode])
       {
-        comp.modes[rule.mode[mode]] += comp.bands[rule.mode[mode]][band];
+        comp.modes[mode] += comp.bands[mode][band];
       }
     }
   }
@@ -2826,21 +2715,22 @@ function singleCompile(award, obj)
   {
     comp.endorse[mode] = {};
     comp.counts[mode] = {};
-    for (let cnts in rule.count)
+    
+    for (const countLimit of rule.count)
     {
-      comp.counts[mode][rule.count[cnts]] = {
+      comp.counts[mode][countLimit] = {
         num: comp.modes[mode],
-        per: parseInt(Math.min(100, (comp.modes[mode] / rule.count[cnts]) * 100.0))
+        per: ~~Math.min(100, (comp.modes[mode] / countLimit) * 100.0)
       };
     }
 
-    for (let endorse in rule.endorse)
+    for (const endorse of rule.endorse)
     {
-      comp.endorse[mode][rule.endorse[endorse]] = {};
-      for (let cnts in rule.count)
+      comp.endorse[mode][endorse] = {};
+      for (const countLimit of rule.count)
       {
-        comp.endorse[mode][rule.endorse[endorse]][rule.count[cnts]] =
-          comp.bands[mode][rule.endorse[endorse]] >= rule.count[cnts];
+        comp.endorse[mode][endorse][countLimit] =
+          comp.bands[mode][endorse] >= countLimit;
       }
     }
   }
@@ -2851,7 +2741,6 @@ function singleCompile(award, obj)
 function doubleCompile(award, firstLevel)
 {
   let test = CR.awards[award.sponsor].awards[award.name];
-  let rule = test.rule;
 
   for (let k in firstLevel)
   {
@@ -2860,9 +2749,9 @@ function doubleCompile(award, firstLevel)
 
     for (let mode in obj.bands)
     {
-      for (let cnt in test.rule.count)
+      for (const countLimit of test.rule.count)
       {
-        if (obj.counts[mode][test.rule.count[cnt]].num >= test.rule.unique)
+        if (obj.counts[mode][countLimit].num >= test.rule.unique)
         {
           for (let band in obj.bands[mode])
           {
@@ -2887,15 +2776,15 @@ function doubleCompile(award, firstLevel)
 function listShortInstances()
 {
   let shortInstances = [];
-  if (typeof GT.instances != "undefined" && Object.keys(GT.instances).length > 1)
+  if (typeof GT.instances !== "undefined" && Object.keys(GT.instances).length > 1)
   {
     let keys = Object.keys(GT.instances).sort();
-    for (let key in keys)
+    
+    for (const inst of keys)
     {
-      let inst = keys[key];
       let sp = inst.split(" - ");
       let shortInst = sp[sp.length - 1].substring(0, 18);
-      if (GT.instances[inst].canRoster == true) shortInstances.push(shortInst);
+      if (GT.instances[inst].canRoster === true) shortInstances.push(shortInst);
     }
   }
   return shortInstances;
@@ -2903,15 +2792,14 @@ function listShortInstances()
 
 function openInfoTab(evt, tabName, callFunc, callObj)
 {
-  // Declare all variables
   var i, infoTabcontent, infoTablinks;
-  // Get all elements with class="infoTabcontent" and hide them
+
   infoTabcontent = document.getElementsByClassName("infoTabcontent");
   for (i = 0; i < infoTabcontent.length; i++)
   {
     infoTabcontent[i].style.display = "none";
   }
-  // Get all elements with class="infoTablinks" and remove the class "active"
+
   infoTablinks = document.getElementsByClassName("infoTablinks");
   for (i = 0; i < infoTablinks.length; i++)
   {
@@ -2920,20 +2808,19 @@ function openInfoTab(evt, tabName, callFunc, callObj)
       ""
     );
   }
-  // Show the current tab, and add an "active" class to the button that opened the tab
 
   document.getElementById(tabName).style.display = "block";
-  if (typeof evt == "string")
+  if (typeof evt === "string")
   {
     for (i = 0; i < infoTablinks.length; i++)
     {
-      if (infoTablinks[i].id == evt)
+      if (infoTablinks[i].id === evt)
       {
         infoTablinks[i].className += " active";
       }
     }
   }
-  else if (typeof evt.currentTarget != "undefined")
+  else if (typeof evt.currentTarget !== "undefined")
   {
     evt.currentTarget.className += " active";
   }
@@ -2944,7 +2831,7 @@ function openInfoTab(evt, tabName, callFunc, callObj)
 
   if (callFunc)
   {
-    if (typeof callFunc == "function")
+    if (typeof callFunc === "function")
     {
       if (callObj) callFunc(callObj);
       else callFunc();
@@ -2958,7 +2845,7 @@ function ValidateTextInput(inputText, validDiv = null)
   {
     var passed = false;
     inputText.value = inputText.value.toUpperCase();
-    if (/\d/.test(inputText.value) || /[A-Z]/.test(inputText.value))
+    if (HAS_DIGIT_REGEX.test(inputText.value) || HAS_UPPER_REGEX.test(inputText.value))
     {
       passed = true;
     }
@@ -2988,13 +2875,13 @@ function ValidateTextInput(inputText, validDiv = null)
 
 function watcherOnName()
 {
-  watcherName.value = watcherName.value.replace(/[$%.'"\\,<>]/g, "");
+  watcherName.value = watcherName.value.replace(WATCHER_CLEAN_NAME_REGEX, "");
   watcherNameValidate();
 }
 
 function watcherNameValidate()
 {
-  if (watcherName.value.length == 0 || (watcherName.value in CR.watchers && watcherName.value != CR.watcherEditKey))
+  if (watcherName.value.length === 0 || (watcherName.value in CR.watchers && watcherName.value !== CR.watcherEditKey))
   {
     watcherName.style.color = "#000";
     watcherName.style.backgroundColor = "orange";
@@ -3011,19 +2898,19 @@ function watcherNameValidate()
 function watcherTypeChanged(value)
 {
   watcherType.value = value;
-  if (value == "Callsign")
+  if (value === "Callsign")
   {
     watcherTextTh.innerHTML = I18N("roster.controls.hunting.callsign");
   }
-  if (value == "Calling")
+  if (value === "Calling")
   {
     watcherTextTh.innerHTML = I18N("alerts.QRZ.speech");
   }
-  if (value == "Grid")
+  if (value === "Grid")
   {
     watcherTextTh.innerHTML = I18N("roster.controls.hunting.grid");
   }
-  if (value == "Message")
+  if (value === "Message")
   {
     watcherTextTh.innerHTML = I18N("gt.WSJTMessage.Message");
   }
@@ -3040,18 +2927,18 @@ function watcherRegexChanged(checked)
 function watcherOnText()
 {
   var testCallsign = false;
-  if (watcherRegexCheckbox.checked == false)
+  if (!watcherRegexCheckbox.checked)
   {
-    if (watcherType.value == "Message")
+    if (watcherType.value === "Message")
     {
-      watcherText.value = watcherText.value.toUpperCase().replace(/[^A-Z0-9/<>\s]+/g, "");
+      watcherText.value = watcherText.value.toUpperCase().replace(MSG_CLEAN_REGEX, "");
     }
-    else if (watcherType.value == "Calling")
+    else if (watcherType.value === "Calling")
     {
       testCallsign = true;
-      watcherText.value = watcherText.value.toUpperCase().replace(/[^A-Z0-9/\s]+/g, "");
+      watcherText.value = watcherText.value.toUpperCase().replace(CALLING_CLEAN_REGEX, "");
     }
-    else if (watcherType.value == "Grid")
+    else if (watcherType.value === "Grid")
     {
       gridInputValidate(watcherText);
       return;
@@ -3059,18 +2946,18 @@ function watcherOnText()
     else
     {
       testCallsign = true;
-      watcherText.value = watcherText.value.toUpperCase().replace(/[^A-Z0-9/]+/g, "");
+      watcherText.value = watcherText.value.toUpperCase().replace(CALLSIGN_CLEAN_REGEX, "");
     }
   }
   else
   {
     let originalValue = watcherText.value;
-    try {
-      "ABC123".match(watcherText.value);
+    try
+    {
+      new RegExp(watcherText.value);
     }
     catch (e)
     {
-      // Error in user entered regex
       watcherText.value = "";
       watcherTextValidate(true);
       watcherText.value = originalValue;
@@ -3082,7 +2969,7 @@ function watcherOnText()
 
 function watcherTextValidate(testCallsign = false)
 {
-  if (watcherText.value.length == 0)
+  if (watcherText.value.length === 0)
   {
     watcherText.style.color = "#FFF";
     watcherText.style.backgroundColor = "orange";
@@ -3135,7 +3022,7 @@ function saveWatcher()
 {
   watcherName.value = watcherName.value.trim();
   watcherText.value = watcherText.value.trim();
-  if (watcherNameValidate() == false || watcherTextValidate() == false) return;
+  if (!watcherNameValidate() || !watcherTextValidate()) return;
 
   if (CR.watcherEditKey.length > 0 && CR.watcherEditKey in CR.watchers)
   {
@@ -3155,7 +3042,7 @@ function saveWatcher()
 
   if (entry.start)
   {
-    if (watcherStartDate.value.length == 0)
+    if (watcherStartDate.value.length === 0)
     {
       entry.startTime = Date.now();
     }
@@ -3168,7 +3055,7 @@ function saveWatcher()
 
   if (entry.end)
   {
-    if (watcherEndDate.value.length == 0)
+    if (watcherEndDate.value.length === 0)
     {
       entry.endTime = Date.now();
     }
@@ -3178,7 +3065,6 @@ function saveWatcher()
     }
     if (entry.start && entry.endTime <= entry.startTime)
     {
-      // Good for a minute, least we can do :)
       entry.endTime = entry.startTime + 60000;
     }
   }
@@ -3212,12 +3098,10 @@ function addWatcher(value, type)
 function clearWatcher()
 {
   CR.watcherEditKey = "";
-
   watcherName.style.color = "";
   watcherName.style.backgroundColor = "";
   watcherText.style.color = "";
   watcherText.style.backgroundColor = "";
-
   loadWatcherValues("", newWatcherEntry());
 }
 
@@ -3241,7 +3125,6 @@ CR.watcherEditKey = "";
 function editWatcher(key)
 {
   CR.watcherEditKey = key;
-  
   loadWatcherValues(key, CR.watchers[key]);
 }
  
@@ -3253,30 +3136,33 @@ function loadWatcherValues(key, entry)
   watcherText.value = entry.text;
   watcherStartDateCheckbox.checked = entry.start;
   watcherEndDateCheckbox.checked = entry.end;
+  
   let today = Date.now();
   today -= today % 86400000;
+  
   let date = entry.startTime > 0 ? new Date(entry.startTime) : new Date(today);
   watcherStartDate.value = date.toISOString().slice(0, 16);
   date = entry.endTime > 0 ? new Date(entry.endTime) : new Date(today);
   watcherEndDate.value = date.toISOString().slice(0, 16);
+  
   watcherAutoDeleteCheckbox.checked = entry.autoDelete;
   watcherTypeChanged(entry.type);
 }
 
+// Hoist maps and compiled regexes outside the functions so V8 creates them once.
+const ENTITY_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+const BRACE_MAP = { '{': '<', '}': '>' };
+const ENTITY_REGEX = /[&<>"]/g;
+const BRACE_REGEX = /[{}]/g;
+
 function htmlEntities(str)
 {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return String(str).replace(ENTITY_REGEX, (s) => ENTITY_MAP[s]);
 }
 
 function bracesToHTML(str)
 {
-  return String(str)
-  .replace(/{/g, "<")
-  .replace(/}/g, ">");
+  return String(str).replace(BRACE_REGEX, (s) => BRACE_MAP[s]);
 }
 
 function openWatchersTab()
@@ -3287,19 +3173,19 @@ function openWatchersTab()
 
 function wantRenderWatchersTab()
 {
-  if (watcherBoxDiv.style.display != "none")
+  if (watcherBoxDiv.style.display !== "none")
   {
     renderWatchersTab();
   }
 }
 
-function stringCompare(a, b) {
-  return a.toLowerCase() < b.toLowerCase() ? -1 : (a == b) ? 0 : 1;
+function stringCompare(a, b)
+{
+  return a.toLowerCase() < b.toLowerCase() ? -1 : (a === b) ? 0 : 1;
 }
 
 const numberCompare = (a, b) => a - b;
 const boolCompare = (a, b) => Number(a) - Number(b);
-
 
 CR.watcherColumns = {
   watch: { text: "👁️", sort: true, cmp: boolCompare },
@@ -3310,7 +3196,7 @@ CR.watcherColumns = {
   startTime: { text: "Start Date", sort: true, cmp: numberCompare },
   endTime: { text: "End Date", sort: true, cmp: numberCompare },
   edit: { text: "Edit", sort: false },
-  delete: { text: "Delete", sort: false },
+  delete: { text: "Delete", sort: false }
 };
 
 function watcherSortFunc(a, b)
@@ -3320,55 +3206,50 @@ function watcherSortFunc(a, b)
 
 function renderWatchersTab()
 {
-  // If there's no decodes the watcher rules are not checked, so we'll check before each render.
-  // Functionally not nessecary as any expired watcher will not be tested *ever*, but makes some people happy
   let now = Date.now();
   for (let key in CR.watchers)
   {
     let watcher = CR.watchers[key];
-
     if (watcher.end && now > watcher.endTime && watcher.autoDelete)
     {
-        delete CR.watchers[key];
-        if (key in CR.watchersTest) delete CR.watchersTest[key];
+      delete CR.watchers[key];
+      if (key in CR.watchersTest) delete CR.watchersTest[key];
     }
   }
 
   if (Object.keys(CR.watchers).length > 0)
   {
-    let html = ["<div id='watcherTable'><table class='darkTable' align=center><tr>"];
+    let html = ["<div id='watcherTable'><table class='darkTable' align='center'><tr>"];
     
-    for (column in CR.watcherColumns)
+    for (const column in CR.watcherColumns)
     {
-      html.push("<th ");
-      html.push((CR.watcherColumns[column].sort ? "style='cursor:pointer;' onClick='setWatcherSorting(\"" + column + "\");'": "" ));
-      html.push(">" + CR.watcherColumns[column].text);
-      if (CR.rosterSettings.watcherSortColumn == column)
+      html.push(`<th ${CR.watcherColumns[column].sort ? `style='cursor:pointer;' onClick='setWatcherSorting("${column}");'` : ""}>${CR.watcherColumns[column].text}`);
+      if (CR.rosterSettings.watcherSortColumn === column)
       {
-        html.push("<div style='display:inline-block;margin:0px;padding:0px;'>&nbsp;" + (CR.rosterSettings.watcherSortReverse == false ? "▲" : "▼") + "</div>");
+        html.push(`<div style='display:inline-block;margin:0px;padding:0px;'>&nbsp;${!CR.rosterSettings.watcherSortReverse ? "▲" : "▼"}</div>`);
       }
       html.push("</th>");
     }
 
     html.push("</tr>");
 
-    let sorted = Object.keys(CR.watchers).sort( watcherSortFunc );
-  
+    let sorted = Object.keys(CR.watchers).sort(watcherSortFunc);
     if (CR.rosterSettings.watcherSortReverse) sorted.reverse();
 
     sorted.forEach(function (key)
-      {
-        html.push("<tr><td style='cursor:pointer;font-size:larger;' onclick='toggleWatcher(\"" + key + "\")'>" + (CR.watchers[key].watch ? "👀" : "🙈") + "</td>");
-        html.push("<td align=left style='color:yellow;' >" + CR.watchers[key].name + "</td><td>" + CR.watchers[key].type + "</td><td>" + (CR.watchers[key].regex ? "☑️" : "") + "</td>");
-        let text = htmlEntities(CR.watchers[key].text);
-        html.push("<td style='overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:250px;color:cyan;'>" + (CR.watchers[key].regex ? text : formatCallsign(text)) + "</td>");
-        html.push("<td>" + (CR.watchers[key].start ? window.opener.userTimeString(CR.watchers[key].startTime) : "") + "</td>");
-        html.push("<td>" + (CR.watchers[key].end ? window.opener.userTimeString(CR.watchers[key].endTime) : "") + "</td>");
-        html.push("<td style='cursor:pointer;font-size:larger;' onclick='editWatcher(\"" + key + "\")'>📝</td>");
-        html.push("<td style='cursor:pointer;font-size:larger;' onclick='deleteWatcher(\"" + key + "\")'>");
-        html.push(CR.watchers[key].autoDelete ? "🤖" : "🚮");
-        html.push("</td></tr>");
-      });
+    {
+      let watcher = CR.watchers[key];
+      let text = htmlEntities(watcher.text);
+      let callsignDisplay = watcher.regex ? text : formatCallsign(text);
+
+      html.push(`<tr><td style="cursor:pointer;font-size:larger;" onclick="toggleWatcher('${key}')">${watcher.watch ? "👀" : "🙈"}</td>` +
+                `<td align="left" style="color:yellow;">${watcher.name}</td><td>${watcher.type}</td><td>${watcher.regex ? "☑️" : ""}</td>` +
+                `<td style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:250px;color:cyan;">${callsignDisplay}</td>` +
+                `<td>${watcher.start ? window.opener.userTimeString(watcher.startTime) : ""}</td>` +
+                `<td>${watcher.end ? window.opener.userTimeString(watcher.endTime) : ""}</td>` +
+                `<td style="cursor:pointer;font-size:larger;" onclick="editWatcher('${key}')">📝</td>` +
+                `<td style="cursor:pointer;font-size:larger;" onclick="deleteWatcher('${key}')">${watcher.autoDelete ? "🤖" : "🚮"}</td></tr>`);
+    });
     html.push("</table></div>");
     
     watcherEditView.innerHTML = html.join("");
@@ -3391,7 +3272,7 @@ function renderWatchersTab()
 
 function setWatcherSorting(column)
 {
-  if (CR.rosterSettings.watcherSortColumn == column)
+  if (CR.rosterSettings.watcherSortColumn === column)
   {
     CR.rosterSettings.watcherSortReverse = !CR.rosterSettings.watcherSortReverse;
   }
@@ -3400,27 +3281,21 @@ function setWatcherSorting(column)
     CR.rosterSettings.watcherSortColumn = column;
     CR.rosterSettings.watcherSortReverse = false;
   }
-
   renderWatchersTab();
 }
 
 function createMenuHide()
 {
   CR.menuHide = new Menu();
-  let item = new MenuItem({
+  CR.menuHide.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.HideControls"),
-    click: function ()
-    {
-      toggleShowControls();
-    }
-  });
-  CR.menuHide.append(item);
+    click: function () { toggleShowControls(); }
+  }));
 
-  item = new MenuItem({ type: "separator" });
-  CR.menuHide.append(item);
+  CR.menuHide.append(new MenuItem({ type: "separator" }));
 
-  item = new MenuItem({
+  CR.menuHide.append(new MenuItem({
     type: "checkbox",
     label: I18N("roster.menu.Realtime"),
     checked: CR.rosterSettings.realtime,
@@ -3430,27 +3305,21 @@ function createMenuHide()
       CR.menuShow.items[2].checked = item.checked;
       viewRoster();
     }
-  });
-  CR.menuHide.append(item);
+  }));
 }
 
 function createMenuShow()
 {
   CR.menuShow = new Menu();
-  let item = new MenuItem({
+  CR.menuShow.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.ShowControls"),
-    click: function ()
-    {
-      toggleShowControls();
-    }
-  });
-  CR.menuShow.append(item);
+    click: function () { toggleShowControls(); }
+  }));
 
-  item = new MenuItem({ type: "separator" });
-  CR.menuShow.append(item);
+  CR.menuShow.append(new MenuItem({ type: "separator" }));
 
-  item = new MenuItem({
+  CR.menuShow.append(new MenuItem({
     type: "checkbox",
     label: I18N("roster.menu.Realtime"),
     checked: CR.rosterSettings.realtime,
@@ -3460,85 +3329,56 @@ function createMenuShow()
       CR.menuHide.items[2].checked = item.checked;
       viewRoster();
     }
-  });
-  CR.menuShow.append(item);
+  }));
 }
 
 function createCompactMenuHide()
 {
   CR.compactMenuHide = new Menu();
-  let item = new MenuItem({
+  CR.compactMenuHide.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.HideControls"),
-    click: function ()
-    {
-      toggleShowControls();
-    }
-  });
-  CR.compactMenuHide.append(item);
+    click: function () { toggleShowControls(); }
+  }));
 }
 
 function createCompactMenuShow()
 {
   CR.compactMenuShow = new Menu();
-  let item = new MenuItem({
+  CR.compactMenuShow.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.ShowControls"),
-    click: function ()
-    {
-      toggleShowControls();
-    }
-  });
-  CR.compactMenuShow.append(item);
+    click: function () { toggleShowControls(); }
+  }));
 }
 
 function createRestOfMenus()
 {
   CR.callMenu = new Menu();
-  let item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.Lookup"),
-    click: function ()
-    {
-      callLookup(CR.targetHash, "");
-    }
-  });
+    click: function () { callLookup(CR.targetHash, ""); }
+  }));
 
-  CR.callMenu.append(item);
-
-  item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.GenMesg"),
-    click: function ()
-    {
-      callGenMessage(CR.targetHash, "");
-    }
-  });
-  CR.callMenu.append(item);
+    click: function () { callGenMessage(CR.targetHash, ""); }
+  }));
 
-  item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.add.watcher.label"),
-    click: function ()
-    {
-      addWatcher(CR.callRoster[CR.targetHash].DEcall, "Callsign");
-    }
-  });
+    click: function () { addWatcher(CR.callRoster[CR.targetHash].DEcall, "Callsign"); }
+  }));
 
-  CR.callMenu.append(item);
-
-  item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("copy"),
-    click: function ()
-    {
-      navigator.clipboard.writeText(CR.callRoster[CR.targetHash].DEcall);
-    }
-  });
+    click: function () { navigator.clipboard.writeText(CR.callRoster[CR.targetHash].DEcall); }
+  }));
 
-  CR.callMenu.append(item);
-
-  // Saved for later user
   CR.callMenuRotator = new MenuItem({
     type: "normal",
     label: I18N("roster.menu.AimRotator"),
@@ -3551,78 +3391,45 @@ function createRestOfMenus()
   });
 
   CR.callMenu.append(CR.callMenuRotator);
-
-  item = new MenuItem({ type: "separator" });
-  CR.callMenu.append(item);
+  CR.callMenu.append(new MenuItem({ type: "separator" }));
  
-
-  item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.IgnoreCall"),
-    click: function ()
-    {
-      ignoreCallsign(CR.callRoster[CR.targetHash].DEcall);
-    }
-  });
+    click: function () { ignoreCallsign(CR.callRoster[CR.targetHash].DEcall); }
+  }));
 
-  CR.callMenu.append(item);
-
-  item = new MenuItem({
+  CR.callMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.EditIgnores"),
     enabled: true,
-    click: function ()
-    {
-      openIgnores();
-    }
-  });
-
-  CR.callMenu.append(item);
+    click: function () { openIgnores(); }
+  }));
 
   CR.callingMenu = new Menu();
-  item = new MenuItem({
+  CR.callingMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.Lookup"),
-    click: function ()
-    {
-      callingLookup(CR.targetHash, "");
-    }
-  });
+    click: function () { callingLookup(CR.targetHash, ""); }
+  }));
 
-  CR.callingMenu.append(item);
-
-  item = new MenuItem({
+  CR.callingMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.GenMesg"),
-    click: function ()
-    {
-      callingGenMessage(CR.targetHash, "");
-    }
-  });
+    click: function () { callingGenMessage(CR.targetHash, ""); }
+  }));
 
-  CR.callingMenu.append(item);
-
-  item = new MenuItem({
+  CR.callingMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.add.watcher.label"),
-    click: function ()
-    {
-      addWatcher(CR.callRoster[CR.targetHash].DXcall, "Callsign");
-    }
-  });
+    click: function () { addWatcher(CR.callRoster[CR.targetHash].DXcall, "Callsign"); }
+  }));
 
-  CR.callingMenu.append(item);
-
-  item = new MenuItem({
+  CR.callingMenu.append(new MenuItem({
     type: "normal",
     label: I18N("copy"),
-    click: function ()
-    {
-      navigator.clipboard.writeText(CR.callRoster[CR.targetHash].DXcall);
-    }
-  });
-
-  CR.callingMenu.append(item);
+    click: function () { navigator.clipboard.writeText(CR.callRoster[CR.targetHash].DXcall); }
+  }));
 
   CR.callingMenuRotator = new MenuItem({
     type: "normal",
@@ -3638,10 +3445,9 @@ function createRestOfMenus()
 
   CR.columnMenu = new Menu();
 
-  for (const columnIndex in CR.rosterSettings.columnOrder)
+  for (const key of CR.rosterSettings.columnOrder)
   {
-    let key = CR.rosterSettings.columnOrder[columnIndex];
-    if (key != "Callsign")
+    if (key !== "Callsign")
     {
       let itemx = new MenuItem({
         type: "checkbox",
@@ -3653,170 +3459,98 @@ function createRestOfMenus()
           logbookValuesChanged();
         }
       });
-
       CR.columnMenu.append(itemx);
       CR.columnMembers[key] = itemx;
     }
   }
 
   CR.MsgMenu = new Menu();
-
-  item = new MenuItem({
+  CR.MsgMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.add.watcher.label"),
-    click: function ()
-    {
-      addWatcher(CR.callRoster[CR.targetHash].callObj.msg, "Message");
-    }
-  });
-
-  CR.MsgMenu.append(item);
+    click: function () { addWatcher(CR.callRoster[CR.targetHash].callObj.msg, "Message"); }
+  }));
 
   CR.CQMenu = new Menu();
-
-  item = new MenuItem({
+  CR.CQMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.add.watcher.label"),
-    click: function ()
-    {
-      addWatcher(CR.callRoster[CR.targetCQ].DXcall, "Calling");
-    }
-  });
+    click: function () { addWatcher(CR.callRoster[CR.targetCQ].DXcall, "Calling"); }
+  }));
 
-  CR.CQMenu.append(item);
-
-  item = new MenuItem({
+  CR.CQMenu.append(new MenuItem({
     type: "normal",
     label: "Ignore CQ from DXCC",
-    click: function ()
-    {
-      ignoreCQ(CR.callRoster[CR.targetCQ].DXcall, CR.callRoster[CR.targetCQ].callObj.dxcc);
-    }
-  });
+    click: function () { ignoreCQ(CR.callRoster[CR.targetCQ].DXcall, CR.callRoster[CR.targetCQ].callObj.dxcc); }
+  }));
 
-  CR.CQMenu.append(item);
-
-  item = new MenuItem({
+  CR.CQMenu.append(new MenuItem({
     type: "normal",
     label: "Ignore CQ from All",
-    click: function ()
-    {
-      ignoreCQ(CR.callRoster[CR.targetCQ].DXcall, -1);
-    }
-  });
-
-  CR.CQMenu.append(item);
+    click: function () { ignoreCQ(CR.callRoster[CR.targetCQ].DXcall, -1); }
+  }));
 
   CR.CQzMenu = new Menu();
-
-  item = new MenuItem({
+  CR.CQzMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.IgnoreCQZone"),
-    click: function ()
-    {
-      ignoreCQz(CR.callRoster[CR.targetCQz].callObj.cqz);
-    }
-  });
+    click: function () { ignoreCQz(CR.callRoster[CR.targetCQz].callObj.cqz); }
+  }));
 
-  CR.CQzMenu.append(item);
-
-  item = new MenuItem({
+  CR.CQzMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.EditIgnores"),
     enabled: true,
-    click: function ()
-    {
-      openIgnores();
-    }
-  });
-
-  CR.CQzMenu.append(item);
+    click: function () { openIgnores(); }
+  }));
 
   CR.ITUzMenu = new Menu();
-
-  item = new MenuItem({
+  CR.ITUzMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.IgnoreITUZone"),
-    click: function ()
-    {
-      ignoreITUz(CR.callRoster[CR.targetITUz].callObj.itu);
-    }
-  });
+    click: function () { ignoreITUz(CR.callRoster[CR.targetITUz].callObj.itu); }
+  }));
 
-  CR.ITUzMenu.append(item);
-
-  item = new MenuItem({
+  CR.ITUzMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.EditIgnores"),
     enabled: true,
-    click: function ()
-    {
-      openIgnores();
-    }
-  });
-
-  CR.ITUzMenu.append(item);
+    click: function () { openIgnores(); }
+  }));
 
   CR.dxccMenu = new Menu();
-
-  item = new MenuItem({
+  CR.dxccMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.IgnoreDXCC"),
-    click: function ()
-    {
-      ignoreDxcc(CR.targetDxcc);
-    }
-  });
+    click: function () { ignoreDxcc(CR.targetDxcc); }
+  }));
 
-  CR.dxccMenu.append(item);
-
-  item = new MenuItem({
+  CR.dxccMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.EditIgnores"),
     enabled: true,
-    click: function ()
-    {
-      openIgnores();
-    }
-  });
-
-  CR.dxccMenu.append(item);
+    click: function () { openIgnores(); }
+  }));
 
   CR.GridMenu = new Menu();
-
-  item = new MenuItem({
+  CR.GridMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.add.watcher.label"),
-    click: function ()
-    {
-      addWatcher(CR.callRoster[CR.targetHash].callObj.grid, "Grid");
-    }
-  });
+    click: function () { addWatcher(CR.callRoster[CR.targetHash].callObj.grid, "Grid"); }
+  }));
 
-  CR.GridMenu.append(item);
-
-  item = new MenuItem({
+  CR.GridMenu.append(new MenuItem({
     type: "normal",
     label: "Ignore Grid",
-    click: function ()
-    {
-      ignoreGrid(CR.callRoster[CR.targetHash].callObj.grid);
-    }
-  });
+    click: function () { ignoreGrid(CR.callRoster[CR.targetHash].callObj.grid); }
+  }));
 
-  CR.GridMenu.append(item);
-
-  item = new MenuItem({
+  CR.GridMenu.append(new MenuItem({
     type: "normal",
     label: I18N("roster.menu.EditIgnores"),
     enabled: true,
-    click: function ()
-    {
-      openIgnores();
-    }
-  });
-
-  CR.GridMenu.append(item);
+    click: function () { openIgnores(); }
+  }));
 }
 
 function setPstrotatorEnable(enabled)

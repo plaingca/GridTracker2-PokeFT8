@@ -41,7 +41,7 @@
     <script>
 
       function timeNowSec() {
-        return parseInt(Date.now() / 1000);
+        return Math.trunc(Date.now() / 1000);
       }
 
       const C = {};

@@ -205,7 +205,7 @@ function callsignToDxcc(insign)
 
 function timeNowSec()
 {
-  return parseInt(Date.now() / 1000);
+  return Math.trunc(Date.now() / 1000);
 }
 
 const K_15_DAYS_IN_SECONDS = 1296000;

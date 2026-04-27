@@ -1,68 +1,31 @@
-// Basic regexp that identifies a callsign and any pre- and post-indicators.
-const CALLSIGN_REGEXP = /^([A-Z0-9]+\/){0,1}([0-9][A-Z]{1,2}[0-9]|[A-Z]{1,2}[0-9])([A-Z0-9]+)(\/[A-Z0-9/]+){0,1}$/
-/*
-  `^ ... $`
-    to ensure the callsign has no extraneous characters
-
-  `( [A-Z0-9]+ \/ ){0,1}`
-    to match an optional preindicator, separated by `\/` from the rest of the call
-
-  `( [0-9][A-Z]{1,2}[0-9] | [A-Z]{1,2}[0-9] )`
-    to match either number-letter-number, number-letter-letter-number, letter-number and letter-letter-number prefixes
-
-  `( [A-Z0-9]+ )`
-    for the rest of the callsign, which must include at least one more letter or digit after the prefix
-
-  `( \/ [A-Z0-9/]+ ){0,1}`
-    for a optional list of postindicators separated by `\/` from the rest of the call
- */
-
-const GRID_REGEXP = /^[A-Z]{2}[0-9]{2}$/
+const CALLSIGN_REGEXP = /^([A-Z0-9]+\/){0,1}([0-9][A-Z]{1,2}[0-9]|[A-Z]{1,2}[0-9])([A-Z0-9]+)(\/[A-Z0-9/]+){0,1}$/;
+const GRID_REGEXP = /^[A-Z]{2}[0-9]{2}$/;
 
 function processRosterFiltering(callRoster, rosterSettings)
 {
-  // First loop, exclude calls, mostly based on "Exceptions" settings
-  // this whole section is full of individual if's that could be broken out
+  const rs = CR.rosterSettings;
+  const cl = GT.settings.callsignLookups;
+  const instances = GT.instances;
+  const winOpener = window.opener; // Cache cross-context reference
+  const now = rosterSettings.now;
+  const viewHistoryTimeSec = GT.settings.reception.viewHistoryTimeSec;
+  const myDxcc = GT.myDXCC;
+
+  const maxLotwDays = rs.maxLoTW < 27 ? rs.maxLoTW * 30 : Infinity;
+  const maxDT = rs.maxDT;
+  const minDb = rs.minDb;
+  const minFreq = rs.minFreq;
+  const maxFreq = rs.maxFreq;
+
   for (const callHash in callRoster)
   {
-    let entry = callRoster[callHash];
-    let callObj = entry.callObj;
-    let call = entry.DEcall;
+    const entry = callRoster[callHash];
+    const callObj = entry.callObj;
+    const call = entry.DEcall;
+    const msg = entry.message;
 
-    entry.tx = true;
-    callObj.shouldRosterAlert = false;
-    callObj.shouldAudioAlert = false;
-    callObj.AH = {};
-    callObj.audioAlertReason = {};
-    callObj.dxm = null;
-    
-    // The awardReason is the "tooltip" on the callsign in the roster, if we're not award tracking
-    // It's always "Callsign"
-    callObj.awardReason = null;
-    callObj.awardType = null;
-
-    if (!call || !call.match(CALLSIGN_REGEXP))
-    {
-      // console.error(`Invalid Callsign ${call}`, entry)
-      entry.tx = false
-      continue;
-    }
-
-    if (CR.rosterSettings.columns.Spot == true)
-    {
-      callObj.spot = window.opener.getSpotTime(callObj.DEcall + callObj.mode + callObj.band);
-      if (CR.rosterSettings.onlySpot == true && (callObj.spot.when == 0 || (timeNowSec() - callObj.spot.when > GT.settings.reception.viewHistoryTimeSec)))
-      {
-        entry.tx = false;
-        continue;
-      }
-    }
-    else
-    {
-      callObj.spot = { when: 0, snr: 0 };
-    }
-    
-    if (rosterSettings.now - callObj.age > CR.rosterSettings.rosterTime)
+    // --- EXTREMELY FAST FAILURES (Run these first) ---
+    if (now - callObj.age > rs.rosterTime)
     {
       entry.tx = false;
       entry.rosterAlerted = false;
@@ -71,102 +34,107 @@ function processRosterFiltering(callRoster, rosterSettings)
       callObj.reset = true;
       continue;
     }
-    if (!callObj.dxcc)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (!(callObj.instance in GT.instances))
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (GT.instanceCount > 1 && GT.instances[callObj.instance].crEnable == false)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (call in CR.ignoredCalls)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (entry.DXcall in CR.ignoredCQ || entry.DXcall + ":" + callObj.dxcc in CR.ignoredCQ)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (callObj.ituz in CR.ignoredITUz)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (callObj.cqz in CR.ignoredCQz)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (callObj.dxcc in CR.ignoredDxcc)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (callObj.grid in CR.ignoredGrid)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (CR.rosterSettings.cqOnly == true)
-    {
-      if (CR.rosterSettings.wantRRCQ == true)
-      {
-        if (callObj.RR73 == false && callObj.CQ == false)
-        {
-          entry.tx = false;
-          continue;
-        }
-      }
-      else if (callObj.CQ == false)
-      {
-        entry.tx = false;
-        continue;
-      }
-    }
-    if (CR.rosterSettings.requireGrid == true && callObj.grid.length != 4)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (CR.rosterSettings.wantMinDB == true && entry.message.SR < CR.rosterSettings.minDb)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (CR.rosterSettings.wantMaxDT == true && Math.abs(entry.message.DT) > CR.rosterSettings.maxDT)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (CR.rosterSettings.wantMinFreq == true && entry.message.DF < CR.rosterSettings.minFreq)
-    {
-      entry.tx = false;
-      continue;
-    }
-    if (CR.rosterSettings.wantMaxFreq == true && entry.message.DF > CR.rosterSettings.maxFreq)
+
+    // Missing requirements & disabled instances
+    if (!callObj.dxcc || !(callObj.instance in instances))
     {
       entry.tx = false;
       continue;
     }
 
-    if (callObj.dxcc == GT.myDXCC)
+    if (GT.instanceCount > 1 && instances[callObj.instance].crEnable === false)
     {
-      if (CR.rosterSettings.noMyDxcc == true)
+      entry.tx = false;
+      continue;
+    }
+
+    // Use RegExp.test() - Returns Boolean, 10x faster than .match() (No Array Allocation)
+    if (!call || !CALLSIGN_REGEXP.test(call))
+    {
+      entry.tx = false;
+      continue;
+    }
+
+    // Reset base states cleanly without trashing Hidden Classes
+    entry.tx = true;
+    callObj.shouldRosterAlert = false;
+    callObj.shouldAudioAlert = false;
+    callObj.AH = {};               // Will optimize later if AH shape can be static
+    callObj.audioAlertReason = {}; // Same
+    callObj.dxm = null;
+    callObj.awardReason = null;
+    callObj.awardType = null;
+
+    const dxCall = entry.DXcall;
+
+    if (call in CR.ignoredCalls ||
+        callObj.ituz in CR.ignoredITUz ||
+        callObj.cqz in CR.ignoredCQz ||
+        callObj.dxcc in CR.ignoredDxcc ||
+        callObj.grid in CR.ignoredGrid ||
+        dxCall in CR.ignoredCQ ||
+        (dxCall + ":" + callObj.dxcc) in CR.ignoredCQ)
+    {
+      entry.tx = false;
+      continue;
+    }
+
+    if (rs.cqOnly)
+    {
+      if (rs.wantRRCQ)
+      {
+        if (!callObj.RR73 && !callObj.CQ)
+        {
+          entry.tx = false;
+          continue;
+        }
+      }
+      else if (!callObj.CQ)
       {
         entry.tx = false;
         continue;
       }
     }
-    else if (CR.rosterSettings.onlyMyDxcc == true)
+
+    if (rs.requireGrid && callObj.grid.length !== 4)
+    {
+      entry.tx = false;
+      continue;
+    }
+    
+    if (rs.wantMinDB && msg.SR < minDb)
+    {
+      entry.tx = false;
+      continue;
+    }
+    
+    if (rs.wantMinFreq && msg.DF < minFreq)
+    {
+      entry.tx = false;
+      continue;
+    }
+    
+    if (rs.wantMaxFreq && msg.DF > maxFreq)
+    {
+      entry.tx = false;
+      continue;
+    }
+       
+    if (rs.wantMaxDT && (msg.DT > maxDT || msg.DT < -maxDT))
+    {
+      entry.tx = false;
+      continue;
+    }
+
+    if (callObj.dxcc === myDxcc)
+    {
+      if (rs.noMyDxcc)
+      {
+        entry.tx = false;
+        continue;
+      }
+    }
+    else if (rs.onlyMyDxcc)
     {
       entry.tx = false;
       continue;
@@ -175,64 +143,93 @@ function processRosterFiltering(callRoster, rosterSettings)
     let usesOneOf = 0;
     let checkUses = 0;
 
-    if (GT.settings.callsignLookups.lotwUseEnable == true && CR.rosterSettings.usesLoTW == true)
+    if (cl.lotwUseEnable && rs.usesLoTW)
     {
       checkUses++;
-      if (call in GT.lotwCallsigns)
+      const lotwTime = GT.lotwCallsigns[call]; 
+      
+      if (lotwTime !== undefined)
       {
-        usesOneOf++;
-        if (CR.rosterSettings.maxLoTW < 27)
+        // Evaluated with integer math pre-calculated outside the loop
+        if (maxLotwDays === Infinity || (CR.day - lotwTime) <= maxLotwDays)
         {
-          let months = (CR.day - GT.lotwCallsigns[call]) / 30;
-          if (months > CR.rosterSettings.maxLoTW)
-          {
-            usesOneOf--;
-          }
+          usesOneOf++;
         }
       }
     }
 
-    if (GT.settings.callsignLookups.eqslUseEnable == true && CR.rosterSettings.useseQSL == true)
+    if (cl.eqslUseEnable && rs.useseQSL)
     {
       checkUses++;
+      
       if (call in GT.eqslCallsigns)
       {
         usesOneOf++;
       }
     }
 
-    if (GT.settings.callsignLookups.oqrsUseEnable == true && CR.rosterSettings.usesOQRS == true)
+    if (cl.oqrsUseEnable && rs.usesOQRS)
     {
       checkUses++;
+      
       if (call in GT.oqrsCallsigns)
       {
         usesOneOf++;
       }
     }
 
-    if (checkUses > 0 && usesOneOf == 0)
+    if (checkUses > 0 && usesOneOf === 0)
     {
       entry.tx = false;
       continue;
     }
 
+    // By moving this here, we only cross the Chromium window boundary for valid, filtered calls.
+    if (rs.columns.Spot)
+    {
+      callObj.spot = winOpener.getSpotTime(call + callObj.mode + callObj.band);
+      
+      if (rs.onlySpot && (callObj.spot.when === 0 || (now - callObj.spot.when > viewHistoryTimeSec)))
+      {
+        entry.tx = false;
+        continue;
+      }
+    }
+    else
+    {
+      if (!callObj.spot)
+      {
+        callObj.spot = { when: 0, snr: 0 };
+      }
+      else
+      {
+        callObj.spot.when = 0;
+        callObj.spot.snr = 0;
+      }
+    }
+
     if (rosterSettings.isAwardTracker)
     {
       let tx = false;
+      const trackers = CR.awardTracker; // Local cache
 
-      for (const award in CR.awardTracker)
+      for (const award in trackers)
       {
-        if (CR.awardTracker[award].enable)
+        const trk = trackers[award];
+        
+        if (trk.enable)
         {
           tx = testAward(award, callObj);
+          
           if (tx)
           {
-            let x = CR.awardTracker[award];
+            const sponsorData = CR.awards[trk.sponsor];
+            const awardData = sponsorData.awards[trk.name];
 
-            // TODO: Move award reason out of exclusions code?
-            callObj.awardReason = CR.awards[x.sponsor].awards[x.name].tooltip + " (" + CR.awards[x.sponsor].sponsor + ")";
-            callObj.awardType = CR.awards[x.sponsor].awards[x.name].rule.type;
+            callObj.awardReason = awardData.tooltip + " (" + sponsorData.sponsor + ")";
+            callObj.awardType = awardData.rule.type;
             callObj.shouldRosterAlert = true;
+
             if (GT.activeAudioAlerts.wanted.huntAward)
             {
               callObj.AH = { huntAward: 1 };
@@ -241,7 +238,6 @@ function processRosterFiltering(callRoster, rosterSettings)
           }
         }
       }
-
       entry.tx = tx;
     }
   }
