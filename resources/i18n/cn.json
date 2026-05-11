@@ -286,6 +286,7 @@
     "settings.map.animatePaths.label": "活动路径动画效果",
     "settings.map.animatePaths.hover": "其他电台通联路径以动画效果显示",
     "settings.map.animatePaths.speed": "动画速度",
+    "settings.map.equator.enable.label": "显示赤道",
     "settings.map.terminator.label" : "晨昏线 (灰线)",
     "settings.map.terminator.Horizon" : "地平线",
     "settings.map.terminator.Civil" : "民用",

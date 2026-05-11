@@ -328,7 +328,7 @@ function lotwCallback(buffer, flag, cookies, url)
   }
 }
 
-function tryToDeleteLog(filename)
+function tryToDeleteAppFile(filename)
 {
   let finalFile = path.join(GT.appData, filename);
   try

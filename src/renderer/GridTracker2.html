@@ -1780,6 +1780,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           <label id="spotWidthTd">1.5</label>
         </div>
         <div class="flexItem">
+          <label data-i18n="settings.map.equator.enable.label" for="nightMapEnable">Enable Equator</label>
+          <input type="checkbox" id="equatorEnable" onclick="changeEquatorEnable(this);" />
+        </div>
+        <div class="flexItem">
           <label data-i18n="settings.map.terminator.label" >Grayline Terminator</label>
           <input type="range" min="0" max="3" value="1" step="0" class="slider" id="mapTerminatorValue" oninput="mapTerminatorChange();" />
           <label id="mapTerminatorTd">Civil</label>

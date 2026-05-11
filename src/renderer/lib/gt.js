@@ -366,9 +366,10 @@ GT.gtMediaDir = path.resolve(resourcesPath, "media");
 GT.localeString = navigator.language;
 GT.voices = null;
 GT.shapeData = {};
+GT.utilShapes = {};
 GT.countyData = {};
 GT.zipToCounty = {};
-GT.stateToCounty = {};
+GT.fipsToCounty = {};
 GT.cntyToCounty = {};
 GT.us48Data = {};
 GT.lastLookupAddress = null;
@@ -739,7 +740,7 @@ function saveAndCloseApp(shouldRestart = false)
   }
 }
 
-function clearAndReload()
+function clearAndReload(fullReset = true)
 {
   GT.closing = true;
   
@@ -787,7 +788,18 @@ function clearAndReload()
     }
   }
 
-  GT.settings = { };
+  if (fullReset)
+  {
+    GT.settings = { };
+  }
+  else
+  {
+    delete GT.settings.app;
+    delete GT.settings.map;
+    delete GT.settings.legendColors;
+    delete GT.settings.audio;
+  }
+
   saveGridTrackerSettings();
 
   electron.ipcRenderer.sendSync("restartGridTracker2", true);
@@ -1159,6 +1171,7 @@ function LiveCallsign(DEcall, DXcall, grid, mode, band, msg, dxcc, time) {
   this.state = null;
   this.cnty = null;
   this.zipcode = null;
+  this.fips = null;
   this.ituz = null;
   this.cqz = null;
   
@@ -3752,10 +3765,10 @@ function clearQSOcallback(clearFiles, nextFunc)
 
 function clearLogFilesAndCounts()
 {
-  tryToDeleteLog("LogbookOfTheWorld.adif");
-  tryToDeleteLog("LoTW_QSL.adif");
-  tryToDeleteLog("qrz.adif");
-  tryToDeleteLog("clublog.adif");
+  tryToDeleteAppFile("LogbookOfTheWorld.adif");
+  tryToDeleteAppFile("LoTW_QSL.adif");
+  tryToDeleteAppFile("qrz.adif");
+  tryToDeleteAppFile("clublog.adif");
 
   GT.settings.adifLog.lastFetch.lotw_qsl = 0;
 }
@@ -4582,6 +4595,21 @@ function mapMoveEvent(event)
     GT.lastHover.feature = null;
   }
 }
+
+function changeEquatorEnable(check)
+{
+  if (check.checked)
+  {
+    GT.settings.map.equator = true;
+  }
+  else
+  {
+    GT.settings.map.equator = false;
+  }
+
+  drawRangeRings();
+}
+
 
 function changeNightMapEnable(check)
 {
@@ -10189,15 +10217,14 @@ function loadMaidenHeadData()
 
   for (let id in countyData)
   {
-    if (!(countyData[id].properties.st in GT.stateToCounty)) { GT.stateToCounty[countyData[id].properties.st] = Array(); }
-    GT.stateToCounty[countyData[id].properties.st].push(id);
-
     let cnty = countyData[id].properties.st + "," + countyData[id].properties.n.replaceAll(" ", "").toUpperCase();
 
     if (!(cnty in GT.cntyToCounty)) { GT.cntyToCounty[cnty] = toProperCase(countyData[id].properties.n); }
 
     GT.countyData[cnty] = createWorkingObject(cnty);
     GT.countyData[cnty].geo = countyData[id];
+
+    GT.fipsToCounty[id] = cnty;
 
     for (let x in countyData[id].properties.z)
     {
@@ -10389,6 +10416,23 @@ function drawRangeRings()
   updateRangeRingsUI();
 
   GT.layerSources.rangeRings.clear();
+
+  if (GT.settings.map.equator)
+  {
+    let equatorLeft = lineString([[-179.9999, 0], [0, 0]], 1024);
+    let equatorRight = lineString([[0, 0], [179.9999, 0]], 1024);
+    let featureStyle = new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        color: rangeRingColorDiv.style.backgroundColor,
+        width: 1
+      })
+    });
+
+    equatorLeft.setStyle(featureStyle);
+    equatorRight.setStyle(featureStyle); 
+    GT.layerSources.rangeRings.addFeature(equatorLeft);
+    GT.layerSources.rangeRings.addFeature(equatorRight); 
+  }
 
   if (GT.settings.map.showRangeRings == false || GT.settings.map.projection == "EPSG:3857" || GT.settings.map.rangeRingDistance == 0)
   {
@@ -10718,6 +10762,8 @@ function loadMapSettings()
 
   gridDecay.value = GT.settings.app.gridsquareDecayTime;
   changeGridDecay();
+
+  equatorEnable.checked = GT.settings.map.equator;
 
   pathColorValue.value = GT.settings.map.pathColor;
   qrzPathColorValue.value = GT.settings.map.qrzPathColor;

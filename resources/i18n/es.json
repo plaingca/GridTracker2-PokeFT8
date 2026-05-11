@@ -285,6 +285,7 @@
   "settings.map.animatePaths.label": "Animar rutas activas",
   "settings.map.animatePaths.hover": "Alternar animación de rutas de tráfico",
   "settings.map.animatePaths.speed": "Velocidad de animación",
+  "settings.map.equator.enable.label": "Mostrar el ecuador",
   "settings.map.terminator.label" : "Terminador (Línea gris)",     
   "settings.map.terminator.Horizon" : "Horizonte",     
   "settings.map.terminator.Civil" : "Civil",     

@@ -171,6 +171,7 @@ const def_settings = {
     showRangeRings: true,
     rangeRingDistance: 2500,
     rangeRingColor: 0,
+    equator: false,
     trafficDecode: true,
     usRadar: false,
     timezonesEnable: 0,

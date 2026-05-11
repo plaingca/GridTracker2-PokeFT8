@@ -25,7 +25,10 @@ function callsignServicesInit() {
   GT.eqslFile = path.join(GT.appData, "eqsl-callsigns.json");
   GT.oqrsFile = path.join(GT.appData, "cloqrs-callsigns.json");
   GT.cacFile = path.join(GT.appData, "canada-callsigns.txt");
-  GT.ulsFile = path.join(GT.appData, "uls-callsigns.txt");
+  GT.ulsFile = path.join(GT.appData, "uls-fz-callsigns.txt");
+
+  // deprecated; we use the "Fips or Zips" format now
+  tryToDeleteAppFile("uls-callsigns.txt");
 
   const lookups = GT.settings.callsignLookups;
   if (lookups.lotwUseEnable) lotwLoadCallsigns();
@@ -298,7 +301,7 @@ function ulsValuesChanged() { toggleService("uls", ulsLoadCallsigns, ulsSettings
 function ulsDownload() {
   if (window.ulsUpdatedTd) ulsUpdatedTd.innerHTML = "<b><i>Downloading...</i></b>";
   if (window.ulsCountTd) ulsCountTd.innerHTML = 0;
-  getBuffer("https://app2.gridtracker.org/dbs/us.txt", ulsDownloadHandler, null, "https", 443);
+  getBuffer("https://app2.gridtracker.org/dbs/fipszips.txt", ulsDownloadHandler, null, "https", 443);
 }
 function ulsDownloadHandler(data) {
   fs.writeFileSync(GT.ulsFile, data, { flush: true });
@@ -309,6 +312,7 @@ function loadULSFile() {
   if (window.ulsUpdatedTd) ulsUpdatedTd.innerHTML = "<b><i>Processing...</i></b>";
   fs.readFile(GT.ulsFile, "utf-8", processulsCallsigns);
 }
+
 function processulsCallsigns(error, buffer) {
   if (error) console.error("File Read Error: " + error);
   GT.ulsCallsigns = {};
@@ -319,8 +323,10 @@ function processulsCallsigns(error, buffer) {
     while (startPos < endPos) {
       let eol = buffer.indexOf("\n", startPos);
       if (eol === -1) break;
-      // ULS Format assumption: first 7 chars = zip/state, 7th onward = Call
-      GT.ulsCallsigns[buffer.substring(startPos + 7, eol)] = buffer.substring(startPos, startPos + 7);
+      // ULS Format assumption: first char = Z|F then code, then state, 8th onward = Call
+      // Z12345NYCALLSIGN
+      // 012345678      
+      GT.ulsCallsigns[buffer.substring(startPos + 8, eol)] = buffer.substring(startPos, startPos + 8);
       startPos = eol + 1;
     }
   }
@@ -380,13 +386,32 @@ function stateCheck() {
 function lookupKnownCallsign(object) {
   const ulsData = GT.ulsCallsigns[object.DEcall];
   if (ulsData) {
-    if (!object.state) object.state = "US-" + ulsData.substring(5);
-    object.zipcode = ulsData.substring(0, 5);
-    
-    if (!object.cnty && object.zipcode in GT.zipToCounty) {
-      const counties = GT.zipToCounty[object.zipcode];
-      object.qual = counties.length === 1;
-      object.cnty = counties[0];
+    let isZip = ulsData.startsWith("Z");
+    let code = ulsData.substring(1, 6);
+    let state = ulsData.substring(6);
+    if (!object.state)
+    { 
+      object.state = "US-" + state;
+    }
+
+    if (isZip)
+    {
+      object.zipcode = code;
+        
+      if (!object.cnty && GT.zipToCounty[code]) {
+        const counties = GT.zipToCounty[code];
+        object.qual = counties.length === 1;
+        object.cnty = counties[0];
+      }
+    }
+    else
+    {
+      object.fips = code;
+
+      if (!object.cnty && GT.fipsToCounty[code]) {
+        object.qual = true
+        object.cnty = GT.fipsToCounty[code];
+      }
     }
   }
 }
