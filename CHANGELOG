@@ -256,6 +256,13 @@ App:
 App:
   Prevent POTA reporting on old records being sent to GT via ADIF UDP Broadcast
 
+
+Call Roster:
+  Improved exact US county matching
+  RR73 as CQ now includes 73
+Map:
+  Added optional Equator to Map (enable in Settings -> Map -> Show Equator)
+
 ### Fixed
 
 
