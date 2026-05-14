@@ -2428,6 +2428,9 @@ function createSpotTipTable(toolElement)
         sourceStr = `<tr><td>Source</td><td style='color:${color};'>${fullSource}</font></td>`;
       }
 
+      const gridSpotRow =
+        `<tr><td>Grid</td><td style='${lookupGridCellStyle(report.grid)}'>${report.grid}</td></tr>`;
+
       myTooltip.innerHTML = `
         <table id='tooltipTable' class='darkTable'>
           <tr><th colspan=2 style='color:cyan'>Rx Spot</th></tr>
@@ -2435,7 +2438,7 @@ function createSpotTipTable(toolElement)
           <tr><td>dB</td><td style='color:#DD44DD'>${formatSignalReport(Number(report.snr))}</td></tr>
           <tr><td>Age</td><td>${toDHMS(Number(now - report.when))}</td></tr>
           ${report.dxcc > 0 ? `<tr><td>DXCC</td><td style='color:orange;'>${GT.dxccToAltName[report.dxcc]} <font color='lightgreen'>(${GT.dxccInfo[report.dxcc].pp})</font></td>` : ""}
-          <tr><td>Grid</td><td style='color:cyan;cursor:pointer'>${report.grid}</td></tr>
+          ${gridSpotRow}
           <tr><td>Freq</td><td style='color:lightgreen'>${formatMhz(report.freq)} <font color='yellow'>(${report.band})</font></td></tr>
           <tr><td>Mode</td><td style='color:orange'>${report.mode}</td></tr>
           <tr><td>Dist</td><td style='color:cyan'>${dist}${distanceUnit.value.toLowerCase()}</td></tr>
@@ -13352,6 +13355,14 @@ function makeYesNoRow(first, object, key)
   return "";
 }
 
+function lookupGridCellStyle(gridLocator)
+{
+  const g = (gridLocator || "").substr(0, 4);
+  return (g + GT.settings.app.myBand + GT.settings.app.myMode) in GT.tracker.confirmed.grid
+    ? "color:cyan;background-color:black;"
+    : "color:black;background-color:cyan;";
+}
+
 function makeRow(first, object, key, grid = false)
 {
   let value = getLookProp(object, key);
@@ -13362,7 +13373,7 @@ function makeRow(first, object, key, grid = false)
        // only applies to grid at this point. we want to invert
        // the background color of the grid cell if new or
        // unconfirmed and leave as is if confirmed.
-      let style = ((object[key].substr(0, 4) + GT.settings.app.myBand + GT.settings.app.myMode) in GT.tracker.confirmed.grid) ? "color:cyan;background-color:black;" : "color:black;background-color:cyan;";
+      let style = lookupGridCellStyle(object[key]);
       return ("<tr><td>" + first + "</td><td title='Copy to clipboard' style='cursor:pointer;font-weight:bold;" + style + "' onClick='addTextToClipboard(\"" + object[key] + "\")'>" + object[key] + "</td></tr>");
     }
     else
