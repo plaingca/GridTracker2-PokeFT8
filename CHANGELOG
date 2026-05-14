@@ -258,10 +258,16 @@ App:
 
 
 Call Roster:
-  Improved exact US county matching
+  Improved exact US county matching (89% US callsigns -> County without doing a lookup)
   RR73 as CQ now includes 73
 Map:
   Added optional Equator to Map (enable in Settings -> Map -> Show Equator)
+
+
+Map:
+  Added Major Parallels and Meridians in addition to the Equator
+  Moved the Settings -> Map -> "Show Equator" option to a new button "Toggle Major Parallels and Meridians" in the button panel
+  Added Settings -> Map -> "Meridians and Parallels Color"
 
 ### Fixed
 

@@ -4596,20 +4596,12 @@ function mapMoveEvent(event)
   }
 }
 
-function changeEquatorEnable(check)
+function changeEquatorEnable()
 {
-  if (check.checked)
-  {
-    GT.settings.map.equator = true;
-  }
-  else
-  {
-    GT.settings.map.equator = false;
-  }
-
+  GT.settings.map.equator = !GT.settings.map.equator;
+  equatorImg.style.filter = GT.settings.map.equator ? "" : "grayscale(1)";
   drawRangeRings();
 }
-
 
 function changeNightMapEnable(check)
 {
@@ -6509,10 +6501,19 @@ function shapeFeature(
         if (pointInPolygon([testLon, testLat], poly[0])) invertedPolygons.push(index);
       });
       geometry.setCoordinates(polys.map(poly => poly.map(ring => segmentizeRing(ring, antiLon, antiLat))));
+      
+    } else if (type === 'LineString') {
+      let line = geometry.getCoordinates();
+      geometry.setCoordinates(segmentizeRing(line, antiLon, antiLat));
+      
+    } else if (type === 'MultiLineString') {
+      let lines = geometry.getCoordinates();
+      geometry.setCoordinates(lines.map(line => segmentizeRing(line, antiLon, antiLat)));
     }
 
     geometry.transform('EPSG:4326', GT.settings.map.projection);
 
+    // Apply inverted polygons (this will safely be skipped for lines because invertedPolygons.length === 0)
     if (invertedPolygons.length > 0) {
       // Deep copy the cached world ring to prevent OpenLayers mutation bugs
       let clonedWorldRing = K_CACHED_WORLD_RING.map(coord => [coord[0], coord[1]]);
@@ -6539,7 +6540,7 @@ function shapeFeature(
       width: borderWidth
     }),
     fill: new ol.style.Fill({
-      color: fillColor
+      color: fillColor // OpenLayers ignores fill on lines, so leaving this here is perfectly safe
     })
   });
 
@@ -10398,6 +10399,12 @@ function changeRangeRingColor()
   drawRangeRings();
 }
 
+function changeEquatorColor()
+{
+  GT.settings.map.equatorColor = parseInt(equatorColorValue.value);
+  drawRangeRings();
+}
+
 function updateRangeRingsUI()
 {
   let value = (distanceUnit.value != "KM") ? parseFloat(kilometerToUnit(GT.settings.map.rangeRingDistance, distanceUnit.value)).toFixed(1) : GT.settings.map.rangeRingDistance;
@@ -10406,9 +10413,14 @@ function updateRangeRingsUI()
   rangeRingDistanceValue.value = GT.settings.map.rangeRingDistance;
 
   rangeRingColorDiv.style.color = (GT.settings.map.rangeRingColor == 0) ? "#FFF" : "#000";
-  rangeRingColorDiv.style.textShadow = (GT.settings.map.rangeRingColor == 0) ? "#000" : "0 0 2px black, 0 0 8px white";
+  rangeRingColorDiv.style.textShadow = (GT.settings.map.rangeRingColor == 0) ? "" : "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   rangeRingColorDiv.style.backgroundColor = GT.settings.map.rangeRingColor == 0 ? "#000" : GT.settings.map.rangeRingColor == 361 ? "#FFF" : "hsl(" + GT.settings.map.rangeRingColor + ", 100%, 50%)";
   rangeRingColorValue.value = GT.settings.map.rangeRingColor;
+
+  equatorColorDiv.style.color = (GT.settings.map.equatorColor == 0) ? "#FFF" : "#000";
+  equatorColorDiv.style.textShadow = (GT.settings.map.equatorColor == 0) ? "" : "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
+  equatorColorDiv.style.backgroundColor = GT.settings.map.equatorColor == 0 ? "#000" : GT.settings.map.equatorColor == 361 ? "#FFF" : "hsl(" + GT.settings.map.equatorColor + ", 100%, 50%)";
+  equatorColorValue.value = GT.settings.map.equatorColor;
 }
 
 function drawRangeRings()
@@ -10419,19 +10431,56 @@ function drawRangeRings()
 
   if (GT.settings.map.equator)
   {
-    let equatorLeft = lineString([[-179.9999, 0], [0, 0]], 1024);
-    let equatorRight = lineString([[0, 0], [179.9999, 0]], 1024);
-    let featureStyle = new ol.style.Style({
+    
+    // Helper to generate a line with exactly 1000 evenly split steps
+    function generatePoints(start, end, steps, callback) {
+      const points = [];
+      const stepSize = (end - start) / (steps - 1);
+      for (let i = 0; i < steps; i++) {
+        const val = start + (stepSize * i);
+        points.push(callback(val));
+      }
+      return points;
+    }
+
+    const parallels = [23.4363, -23.4363, 66.5637, -66.5637].map(lat => 
+      generatePoints(-180, 180, GT.useTransform ? 2048 : 2 , lon => [Number(lon.toFixed(6)), lat])
+    );
+
+    const meridians = [0.0, 180.0].map(lon => 
+      generatePoints(-90, 90, GT.useTransform ? 2048 : 2, lat => [lon, Number(lat.toFixed(6))])
+    );
+
+    // add equator
+    meridians.push(generatePoints(-180, 180, GT.useTransform ? 2048 : 2, lon => [Number(lon.toFixed(6)), 0.0]));
+
+    const parallelsGeoJSON = {
+      type: "Feature",
+      properties: { name: "para" },
+      geometry: { type: "MultiLineString", coordinates: parallels }
+    };
+
+    const meridiansGeoJSON = {
+      type: "Feature",
+      properties: { name: "merd-equa" },
+      geometry: { type: "MultiLineString", coordinates: meridians }
+    };
+
+    let feature = shapeFeature("eq", meridiansGeoJSON, "eq", "#00000000", equatorColorDiv.style.backgroundColor, 1.0);
+    GT.layerSources.rangeRings.addFeature(feature);
+
+    let dashStyle = new ol.style.Style({
       stroke: new ol.style.Stroke({
-        color: rangeRingColorDiv.style.backgroundColor,
-        width: 1
+        color: equatorColorDiv.style.backgroundColor,
+        width: 1,
+        lineDash: [10, 10]
       })
     });
 
-    equatorLeft.setStyle(featureStyle);
-    equatorRight.setStyle(featureStyle); 
-    GT.layerSources.rangeRings.addFeature(equatorLeft);
-    GT.layerSources.rangeRings.addFeature(equatorRight); 
+    feature = shapeFeature("eq", parallelsGeoJSON, "eq", "#00000000",  equatorColorDiv.style.backgroundColor, 1.0);
+    feature.setStyle(dashStyle);
+    GT.layerSources.rangeRings.addFeature(feature);
+
   }
 
   if (GT.settings.map.showRangeRings == false || GT.settings.map.projection == "EPSG:3857" || GT.settings.map.rangeRingDistance == 0)
@@ -10763,8 +10812,6 @@ function loadMapSettings()
   gridDecay.value = GT.settings.app.gridsquareDecayTime;
   changeGridDecay();
 
-  equatorEnable.checked = GT.settings.map.equator;
-
   pathColorValue.value = GT.settings.map.pathColor;
   qrzPathColorValue.value = GT.settings.map.qrzPathColor;
   brightnessValue.value = GT.settings.map.mapOpacity;
@@ -10804,6 +10851,7 @@ function loadMapSettings()
   predImg.src = GT.predImageArray[GT.settings.map.predMode];
   predImg.style.filter = GT.settings.map.predMode > 0 ? "" : "grayscale(1)";
   gridOverlayImg.style.filter = GT.settings.map.showAllGrids ? "" : "grayscale(1)";
+  equatorImg.style.filter = GT.settings.map.equator ? "" : "grayscale(1)";
 
   GT.bandToColor = { ...GT.pskColors };
 
@@ -10852,11 +10900,13 @@ function setMapColors()
   {
     pathColorDiv.style.color = "#000";
     pathColorDiv.style.backgroundColor = pathColor;
+    pathColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     pathColorDiv.style.color = "#FFF";
     pathColorDiv.style.backgroundColor = pathColor;
+    pathColorDiv.style.textShadow = "";
   }
 
   pathColor = qrzPathColorValue.value == 0 ? "#000" : qrzPathColorValue.value == 361 ? "#FFF" : "hsl(" + qrzPathColorValue.value + ", 100%, 50%)";
@@ -10864,11 +10914,13 @@ function setMapColors()
   {
     qrzPathColorDiv.style.color = "#000";
     qrzPathColorDiv.style.backgroundColor = pathColor;
+    qrzPathColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     qrzPathColorDiv.style.color = "#FFF";
     qrzPathColorDiv.style.backgroundColor = pathColor;
+    qrzPathColorDiv.style.textShadow = "";
   }
 }
 
@@ -10879,11 +10931,13 @@ function setNightMapColors()
   {
     pathNightColorDiv.style.color = "#000";
     pathNightColorDiv.style.backgroundColor = pathColor;
+    pathNightColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     pathNightColorDiv.style.color = "#FFF";
     pathNightColorDiv.style.backgroundColor = pathColor;
+    pathNightColorDiv.style.textShadow = "";
   }
 
   pathColor = GT.settings.map.nightQrzPathColor == 0 ? "#000" : GT.settings.map.nightQrzPathColor == 361 ? "#FFF" : "hsl(" + GT.settings.map.nightQrzPathColor + ", 100%, 50%)";
@@ -10891,11 +10945,13 @@ function setNightMapColors()
   {
     pathNightQrzColorDiv.style.color = "#000";
     pathNightQrzColorDiv.style.backgroundColor = pathColor;
+    pathNightQrzColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     pathNightQrzColorDiv.style.color = "#FFF";
     pathNightQrzColorDiv.style.backgroundColor = pathColor;
+    pathNightQrzColorDiv.style.textShadow = "";
   }
 }
 
@@ -11729,7 +11785,7 @@ function buttonPanelInit()
     {
       if (GT.settings.app.buttonPanelOrder.indexOf(GT.defaultButtons[i]) == -1)
       {
-        GT.settings.app.buttonPanelOrder.unshift(GT.defaultButtons[i]);
+        GT.settings.app.buttonPanelOrder.push(GT.defaultButtons[i]);
       }
     }
 
@@ -13815,11 +13871,13 @@ function spotPathChange()
   {
     spotPathColorDiv.style.color = "#000";
     spotPathColorDiv.style.backgroundColor = pathColor;
+    spotPathColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     spotPathColorDiv.style.color = "#FFF";
     spotPathColorDiv.style.backgroundColor = pathColor;
+    spotPathColorDiv.style.textShadow = "";
   }
 
   spotPathInfoLabel.style.display = (GT.settings.reception.pathColor == -1) ? "" : "none";
@@ -13842,11 +13900,13 @@ function spotPathChange()
   {
     spotNightPathColorDiv.style.color = "#000";
     spotNightPathColorDiv.style.backgroundColor = pathNightColor;
+    spotNightPathColorDiv.style.textShadow = "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   }
   else
   {
     spotNightPathColorDiv.style.color = "#FFF";
     spotNightPathColorDiv.style.backgroundColor = pathNightColor;
+    spotNightPathColorDiv.style.textShadow = "";
   }
 
 
