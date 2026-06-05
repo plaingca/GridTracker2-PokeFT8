@@ -268,6 +268,7 @@ Map:
   Added Major Parallels and Meridians in addition to the Equator
   Moved the Settings -> Map -> "Show Equator" option to a new button "Toggle Major Parallels and Meridians" in the button panel
   Added Settings -> Map -> "Meridians and Parallels Color"
+  
 
 ### Fixed
 
