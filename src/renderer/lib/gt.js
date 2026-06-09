@@ -135,8 +135,10 @@ GT.languages = {
   de: "i18n/de.json",
   fr: "i18n/fr.json",
   it: "i18n/it.json",
-  es: "i18n/es.json"
+  es: "i18n/es.json",
+  ja: "i18n/ja.json"
 };
+
 GT.i18n = {};
 GT.popupWindowHandle = null;
 GT.popupWindowInitialized = false;
@@ -697,6 +699,7 @@ function saveAndCloseApp(shouldRestart = false)
         GT.wsjtUdpServer.dropMembership(GT.settings.app.wsjtIP);
       }
       GT.wsjtUdpServer.close();
+      GT.wsjtUdpServer = null;
     }
     catch (e)
     {
@@ -809,6 +812,7 @@ window.addEventListener("beforeunload", function ()
 {
   saveAndCloseApp();
 });
+
 
 function setWindowTheme()
 {
@@ -8183,6 +8187,14 @@ function openInfoTab(evt, tabName, callFunc, callObj)
   }
 }
 
+function openAboutBox()
+{
+  openSettingsTab(aboutbut, 'aboutDiv');
+  helpDiv.style.display = "none";
+  GT.helpShow = false;
+  rootSettingsDiv.style.display = "inline-block";
+}
+
 function openLogbookSettings()
 {
   openSettingsTab(logbut, 'logbookSettingsDiv');
@@ -11693,9 +11705,7 @@ function postInit()
     nodeTimers.setInterval(downloadCtyDat, 86400000);  // Every 24 hours
     nodeTimers.setInterval(refreshSpotsNoTx, 300000); // Redraw spots every 5 minutes, this clears old ones
     nodeTimers.setTimeout(downloadCtyDat, 120000);    // In 2 minutes, when the dust settles
-    nodeTimers.setTimeout(checkForNewVersion, 30000); // Informative check
-
-    //nodeTimers.setTimeout(downloadWorldVhfActivity, 2000);
+    nodeTimers.setTimeout(checkForNewVersion, 10000); // Informative check
   }
   catch (e)
   {
@@ -11745,19 +11755,44 @@ function registerLegendContextMenus()
   });
 }
 
-function checkForNewVersion()
-{
-  let info = electron.ipcRenderer.sendSync("updateAvailable");
+electron.ipcRenderer.on("versionInfo", (event, info) => {
   if (info != null)
   {
-    if (GT.lastVersionInfo == null || GT.lastVersionInfo.version != info.version)
+    if (GT.gtVersionStr != info.version && GT.lastVersionInfo != info.version)
     {
-      addLastTraffic("<font style='color:lightgreen'>New Version</font><br><font style='color:cyan'>" + info.version + "</font>");
+      if (!info.autoDownload)
+      {
+        // settings.About.label
+        addLastTraffic("<font style='color:lightgreen'>" + I18N("gt.NewVersionAvailable") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='openAboutBox()'>" + I18N("settings.About.label") + "</div>");
+        updateVersionText.innerHTML = "<font style='color:lightgreen'>" + I18N("gt.NewVersionAvailable") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='downloadUpdate()'>" + I18N("gt.Download") + "</div>";
+      }
     }
-  }
 
-  GT.lastVersionInfo = Object.assign({}, info);
-  nodeTimers.setTimeout(checkForNewVersion, 43200000); // Informative check in 12 hours
+    GT.lastVersionInfo = info.version
+  }
+});
+
+function downloadUpdate()
+{
+  electron.ipcRenderer.send("downloadUpdate", null);
+}
+
+electron.ipcRenderer.on("updateDownloaded", (event, info) => {
+  const html = "<font style='color:yellow'>" + I18N("gt.NewVersionDownloaded") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='installAndRestart()'>" + I18N("gt.InstallAndRestart") + "</div>"
+  updateVersionText.innerHTML = html;
+  addLastTraffic(html);
+});
+
+function installAndRestart()
+{
+  saveAndCloseApp(false);
+  electron.ipcRenderer.sendSync("installAndRestart", "exit");
+}
+
+function checkForNewVersion()
+{
+  electron.ipcRenderer.send("updateAvailable");
+  nodeTimers.setTimeout(checkForNewVersion, 86400000); // Informative check in 24 hours
 }
 
 function buttonPanelInit()
@@ -11895,8 +11930,9 @@ function init()
 
   initQSOdata();
 
-  aboutVersionText.innerHTML = gtShortVersion + `<br><span style="font-size:smaller;color:#999;">Electron v${process.versions.electron} OpenLayers: v${ol.util.VERSION}<br>(${GT.Platform} ${os.arch()})</span>`;
-  cSig.innerHTML = cSignature(GT.settings.app.myCall, gtShortVersion);
+  aboutVersionText.innerHTML = gtShortVersion;
+  supportVersionsText.innerHTML = `<span style="font-size:smaller;color:#999;">Electron v${process.versions.electron} OpenLayers: v${ol.util.VERSION}<br>(${GT.Platform} ${os.arch()})</span>`;
+
   GT.currentDay = parseInt(timeNowSec() / 86400);
 
   startupDiv.style.display = "block";

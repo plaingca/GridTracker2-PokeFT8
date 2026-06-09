@@ -702,7 +702,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           onclick="openSettingsTab(event, 'customAlertsDiv')">Custom Alerts</button>
         <button data-i18n="settings.Logbook.label" id="logbut" class="settingsTablinks"
           onclick="openSettingsTab(event, 'logbookSettingsDiv')">Logbook</button>
-        <button data-i18n="settings.About.label" class="settingsTablinks" style="margin-right: 25px"
+        <button data-i18n="settings.About.label" id="aboutbut" class="settingsTablinks" style="margin-right: 25px"
           onclick="openSettingsTab(event, 'aboutDiv')">About</button>
       </div>
       <div id="generalSettingsDiv" class="settingsTabcontent" style="display: block">
@@ -910,12 +910,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     <td>
                       <select id="languageLocale" value="en" onchange="changeLocale();">
                         <option value="en">English</option>
-                        <option value="cn">简体中文</option>
-                        <option value="cnt">繁體中文</option>
                         <option value="de">Deutsch</option>
+                        <option value="es">Español</option>
                         <option value="fr">Français</option>
                         <option value="it">Italiano</option>
-                        <option value="es">Español</option>
+                        <option value="ja">日本語</option>
+                        <option value="cn">简体中文</option>
+                        <option value="cnt">繁體中文</option>
                       </select>
                     </td>
                   </tr>
@@ -2537,6 +2538,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <h2>
           <div id="aboutTitle" >GridTracker2</div>
           <div style="font-size:small; font-weight: normal;" id="aboutVersionText"></div>
+          <div style="font-size:smaller; font-weight: normal;" id="supportVersionsText"></div>
+          <div style="font-size:small; font-weight: bolder;" id="updateVersionText"></div>
         </h2>
         <p>
           GridTracker2 is a warehouse of amateur radio information presented in an easy to use interface<br />
@@ -2547,7 +2550,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <p>Copyright &copy; 2026 Stephen Loomis, NØTTL, Henry Forte, N2VFL, Matthew Chambers, NRØQ<br>
         Sebastian Delmont, KI2D, Christian Bayer, WA4YA, Paul Traina, K6PST<br>
         Jon Angliss, KF5QHQ, Beau Gunderson, N7YHF, Jonathan Fick, KEØYBL<br>
-        Florian Wolters, DF2ET, GridTracker.org<br><span id="cSig" style="font-size:smaller;color:#667;"></span></p>
+        Florian Wolters, DF2ET, GridTracker.org</p>
         
         <img src="img/gridtracker.png" /> <br />
       </div>

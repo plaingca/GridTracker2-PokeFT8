@@ -257,7 +257,6 @@ if (fs.existsSync(windowSettingsPath)) {
 }
 
 let mainWindowClosing = false;
-let updateAvailable = null;
 
 ipcMain.on('getResourcesPath', (event) => {
   event.returnValue = asarResourcesPath;
@@ -276,8 +275,13 @@ ipcMain.on('appVersion', (event) => {
 });
 
 ipcMain.on('updateAvailable', (event) => {
-  event.returnValue = updateAvailable;
+    checkForUpdates();
 });
+
+ipcMain.on('downloadUpdate', (event) => {
+    downloadUpdate();
+});
+
 
 ipcMain.on('showWin', (event, what) => {
   if (allowedWindows[what]?.window) {
@@ -363,6 +367,13 @@ ipcMain.on('spawnScript', (event, scriptPath) => {
   }
 });
 
+ipcMain.on('installAndRestart', (event, what) => {
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.autoRunAppAfterInstall = true;
+    saveWindowPositions();
+    autoUpdater.quitAndInstall(true, true);
+});
+
 ipcMain.on('restartGridTracker2', (event, resetWindowPositions = false) => {
   if (resetWindowPositions == true) {
     if (fs.existsSync(windowSettingsPath))
@@ -382,8 +393,10 @@ ipcMain.on('log', (event, value) => {
   log.error(value);
 });
 
+let mainWindow = null;
+
 function createMainWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     //...allowedWindows['GridTracker2'].options,
     ...allowedWindows['GridTracker2'].static,
     tabbingIdentifier: 'GridTracker2',
@@ -452,7 +465,30 @@ function createMainWindow() {
   mainWindow.loadFile(join(__dirname, '../renderer/GridTracker2.html'));
 }
 
+let autoUpdateInitialized = false;
+
 function checkForUpdates() {
+  if (!autoUpdateInitialized) {
+      if (process.env.DEBUG_AUTO_UPDATING === 'true') {
+      const log = require('electron-log');
+
+      log.transports.file.level = 'debug';
+
+      autoUpdater.logger = log;
+      autoUpdater.forceDevUpdateConfig = true;
+    }
+
+    if (disableAutoUpdate == true)
+    {
+      autoUpdater.autoDownload = false;
+    }
+
+    autoUpdater.on('update-available', notifyOnUpdate);
+    autoUpdater.on('update-downloaded', updateDownloaded);
+
+    autoUpdateInitialized = true;
+  }
+
   try {
     if (disableAutoUpdate == true) {
       autoUpdater.checkForUpdates();
@@ -465,8 +501,26 @@ function checkForUpdates() {
     log.error("Failed to update check");
     log.error(e.message);
   }
-  // Check every 12 hours
-  timers.setTimeout(checkForUpdates, 43200000);
+  // Check every 24 hours
+  timers.setTimeout(checkForUpdates, 86400000);
+}
+
+function downloadUpdate() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
+function notifyOnUpdate(info) {
+  if (mainWindow) {
+    info.autoDownload = autoUpdater.autoDownload;
+    mainWindow.webContents.send("versionInfo", info);
+  }
+}
+
+function updateDownloaded(info) {
+  if (mainWindow) {
+    mainWindow.webContents.send("updateDownloaded", info);
+  }
 }
 
 // This method will be called when Electron has finished
@@ -481,21 +535,6 @@ app.whenReady().then(() => {
     log.error(`${title}\n${content}`);
   };
 
-
-  if (process.env.DEBUG_AUTO_UPDATING === 'true') {
-    const log = require('electron-log');
-
-    log.transports.file.level = 'debug';
-
-    autoUpdater.logger = log;
-    autoUpdater.forceDevUpdateConfig = true;
-  }
-
-  autoUpdater.on('update-available', (info) => {
-    updateAvailable = info;
-  });
-
-  checkForUpdates();
 
   app.on('browser-window-created', (_, window) => {
     // window.title works on Windows, window.tabbingIdentifier works on macOS
@@ -695,8 +734,6 @@ function slugify(string) {
     .replace(/[^A-Za-z0-9\-_]/g, '');
 }
 
-
 process.on('uncaughtException', function (error) {
   log.error(error);
 });
-

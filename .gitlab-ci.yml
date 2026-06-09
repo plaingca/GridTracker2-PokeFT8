@@ -420,10 +420,8 @@ upload-gtserv:
     - ssh-keyscan ${GT_SERV_ADDRESS} >> ~/.ssh/known_hosts
   script:
     - echo ${APPNAME}-${VERSION}
-    - echo ${VERSION} >> current.txt
     - scp -r dist/GridTracker2* ${GT_SERV_USER}@${GT_SERV_ADDRESS}:~/gt2_download/
     - scp -r dist/*.yml ${GT_SERV_USER}@${GT_SERV_ADDRESS}:~/gt2_download/stage/
-    - scp current.txt ${GT_SERV_USER}@${GT_SERV_ADDRESS}:~/gt2_download/stage/
     - scp -r dist/win7/GridTracker2* ${GT_SERV_USER}@${GT_SERV_ADDRESS}:~/gt2_download/win7/
     - scp -r dist/win7/*.yml ${GT_SERV_USER}@${GT_SERV_ADDRESS}:~/gt2_download/win7/stage/
 

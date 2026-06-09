@@ -481,10 +481,10 @@ function processCtyDat(buffer) {
           fs.renameSync(GT.tempDxccInfoPath, GT.dxccInfoPath);
           
           if (window.bigctyUpdatedTd) {
-            bigctyUpdatedTd.innerHTML = `<div style='color:cyan;font-weight:bold'>${I18N("gt.NewVersion.Release")}</div>`;
-            bigctyDetailsTd.innerHTML = "<div class='button' onclick='saveAndCloseApp(true)'>Restart</div>";
+            bigctyUpdatedTd.innerHTML = `<div style='color:cyan;font-weight:bold'>${I18N("gt.NewVersionDownloaded")}</div>`;
+            bigctyDetailsTd.innerHTML = `<div class='button' onclick='saveAndCloseApp(true)'>${I18N("gt.Restart")}</div>`;
           }
-          addLastTraffic(`<font style='color:yellow'>${I18N("gt.NewVersion.Release")} - Big CTY<br><div class='button' onclick='saveAndCloseApp(true)'>Restart</div></font>`);
+          addLastTraffic(`<font style='color:yellow'>${I18N("gt.NewVersionDownloaded")} - Big CTY<br><div class='button' onclick='saveAndCloseApp(true)'>${I18N("gt.Restart")}</div></font>`);
         } else {
           if (window.bigctyUpdatedTd) {
             bigctyUpdatedTd.innerHTML = "<div style='color:orange;font-weight:bold'>Mismatch!</div>";
