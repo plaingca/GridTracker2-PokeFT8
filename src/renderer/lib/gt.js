@@ -2433,7 +2433,7 @@ function createSpotTipTable(toolElement)
       }
 
       const gridSpotRow =
-        `<tr><td>Grid</td><td style='${lookupGridCellStyle(report.grid)}'>${report.grid}</td></tr>`;
+        `<tr><td>Grid</td><td style='${lookupGridCellStyle(report.grid, report.band, report.mode)}'>${report.grid}</td></tr>`;
 
       myTooltip.innerHTML = `
         <table id='tooltipTable' class='darkTable'>
@@ -13391,10 +13391,41 @@ function makeYesNoRow(first, object, key)
   return "";
 }
 
-function lookupGridCellStyle(gridLocator)
+function lookupGridCellStyle(gridLocator, band, mode)
 {
   const g = (gridLocator || "").substr(0, 4);
-  return (g + GT.settings.app.myBand + GT.settings.app.myMode) in GT.tracker.confirmed.grid
+  if (!g) return "color:cyan;";
+
+  const b = band ?? GT.settings.app.myBand ?? "";
+  const m = mode ?? GT.settings.app.myMode ?? "";
+  const reference = GT.activeRoster?.logbook?.referenceNeed ?? GT.settings.roster?.logbook?.referenceNeed ?? "4";
+
+  let suffix;
+  switch (reference)
+  {
+    case "0": // Live Band & Mode
+    case "6": // Award Tracker
+      suffix = `${b}${m}`;
+      break;
+    case "1": // Live Band, Mix Modes
+      suffix = b;
+      break;
+    case "2": // Live Band, Digi Modes
+      suffix = `${b}dg`;
+      break;
+    case "3": // Mix Band, Live Mode
+      suffix = m;
+      break;
+    case "5": // Mix Band, Digi Modes
+      suffix = "dg";
+      break;
+    case "4": // Mix Band & Modes
+    default:
+      suffix = "";
+      break;
+  }
+
+  return (g + suffix) in GT.tracker.confirmed.grid
     ? "color:cyan;background-color:black;"
     : "color:black;background-color:cyan;";
 }
