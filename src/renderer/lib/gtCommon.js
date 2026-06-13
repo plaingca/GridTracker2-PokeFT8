@@ -160,7 +160,7 @@ function getWpx(callsign)
   return String(prefix);
 }
 
-GT.ancPrefixes = ["P", "M", "MM", "AM", "A", "NWS"];
+GT.ancPrefixes = ["R", "P", "M", "MM", "AM", "A", "NWS"];
 
 function callsignToDxcc(insign)
 {

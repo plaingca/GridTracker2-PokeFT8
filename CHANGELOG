@@ -267,11 +267,12 @@ Map:
 App:
   Command-line flag to disable auto updates (--disable-auto-updates) properly honored
   Added Japanese translation / 日本語翻訳を追加しました
+  Fixed (/R) suffix from registering as European Russia
 Map:
   Added Major Parallels and Meridians in addition to the Equator
   Moved the Settings -> Map -> "Show Equator" option to a new button "Toggle Major Parallels and Meridians" in the button panel
   Added Settings -> Map -> "Meridians and Parallels Color"
-  
+
 
 ### Fixed
 
