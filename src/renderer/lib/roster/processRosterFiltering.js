@@ -4,6 +4,7 @@ const GRID_REGEXP = /^[A-Z]{2}[0-9]{2}$/;
 function processRosterFiltering(callRoster, rosterSettings)
 {
   const rs = CR.rosterSettings;
+  const rse = GT.activeRoster.exceptions;
   const cl = GT.settings.callsignLookups;
   const instances = GT.instances;
   const winOpener = window.opener; // Cache cross-context reference
@@ -11,11 +12,11 @@ function processRosterFiltering(callRoster, rosterSettings)
   const viewHistoryTimeSec = GT.settings.reception.viewHistoryTimeSec;
   const myDxcc = GT.myDXCC;
 
-  const maxLotwDays = rs.maxLoTW < 27 ? rs.maxLoTW * 30 : Infinity;
-  const maxDT = rs.maxDT;
-  const minDb = rs.minDb;
-  const minFreq = rs.minFreq;
-  const maxFreq = rs.maxFreq;
+  const maxLotwDays = rse.maxLoTW < 27 ? rse.maxLoTW * 30 : Infinity;
+  const maxDT = rse.maxDT;
+  const minDb = rse.minDb;
+  const minFreq = rse.minFreq;
+  const maxFreq = rse.maxFreq;
 
   for (const callHash in callRoster)
   {
@@ -79,9 +80,9 @@ function processRosterFiltering(callRoster, rosterSettings)
       continue;
     }
 
-    if (rs.cqOnly)
+    if (rse.cqOnly)
     {
-      if (rs.wantRRCQ)
+      if (rse.wantRRCQ)
       {
         if (!callObj.RR73 && !callObj.CQ)
         {
@@ -96,31 +97,31 @@ function processRosterFiltering(callRoster, rosterSettings)
       }
     }
 
-    if (rs.requireGrid && callObj.grid.length !== 4)
+    if (rse.requireGrid && callObj.grid.length !== 4)
     {
       entry.tx = false;
       continue;
     }
     
-    if (rs.wantMinDB && msg.SR < minDb)
+    if (rse.wantMinDB && msg.SR < minDb)
     {
       entry.tx = false;
       continue;
     }
     
-    if (rs.wantMinFreq && msg.DF < minFreq)
+    if (rse.wantMinFreq && msg.DF < minFreq)
     {
       entry.tx = false;
       continue;
     }
     
-    if (rs.wantMaxFreq && msg.DF > maxFreq)
+    if (rse.wantMaxFreq && msg.DF > maxFreq)
     {
       entry.tx = false;
       continue;
     }
        
-    if (rs.wantMaxDT && (msg.DT > maxDT || msg.DT < -maxDT))
+    if (rse.wantMaxDT && (msg.DT > maxDT || msg.DT < -maxDT))
     {
       entry.tx = false;
       continue;
@@ -128,13 +129,13 @@ function processRosterFiltering(callRoster, rosterSettings)
 
     if (callObj.dxcc === myDxcc)
     {
-      if (rs.noMyDxcc)
+      if (rse.noMyDxcc)
       {
         entry.tx = false;
         continue;
       }
     }
-    else if (rs.onlyMyDxcc)
+    else if (rse.onlyMyDxcc)
     {
       entry.tx = false;
       continue;
@@ -143,7 +144,7 @@ function processRosterFiltering(callRoster, rosterSettings)
     let usesOneOf = 0;
     let checkUses = 0;
 
-    if (cl.lotwUseEnable && rs.usesLoTW)
+    if (cl.lotwUseEnable && rse.usesLoTW)
     {
       checkUses++;
       const lotwTime = GT.lotwCallsigns[call]; 
@@ -158,7 +159,7 @@ function processRosterFiltering(callRoster, rosterSettings)
       }
     }
 
-    if (cl.eqslUseEnable && rs.useseQSL)
+    if (cl.eqslUseEnable && rse.useseQSL)
     {
       checkUses++;
       
@@ -168,7 +169,7 @@ function processRosterFiltering(callRoster, rosterSettings)
       }
     }
 
-    if (cl.oqrsUseEnable && rs.usesOQRS)
+    if (cl.oqrsUseEnable && rse.usesOQRS)
     {
       checkUses++;
       
@@ -189,7 +190,7 @@ function processRosterFiltering(callRoster, rosterSettings)
     {
       callObj.spot = winOpener.getSpotTime(call + callObj.mode + callObj.band);
       
-      if (rs.onlySpot && (callObj.spot.when === 0 || (now - callObj.spot.when > viewHistoryTimeSec)))
+      if (rse.onlySpot && (callObj.spot.when === 0 || (now - callObj.spot.when > viewHistoryTimeSec)))
       {
         entry.tx = false;
         continue;

@@ -778,7 +778,7 @@ function setVisual()
   onlySpotDiv.style.display = (CR.rosterSettings.columns.Spot) ? "" : "none";
   huntingMatrixPotaDiv.style.display = (GT.settings.app.potaFeatureEnabled && !GT.settings.map.offlineMode) ? "" : "none";
   rosterBody.style.display = "block";
-  
+   
   resize();
 }
 
@@ -818,11 +818,11 @@ function huntingValueChangedFromAudioAlerts(id, value)
   {
     if (window[id].type === "checkbox")
     {
-      CR.rosterSettings[id] = window[id].checked = value;
+      GT.activeRoster.exceptions[id] = window[id].checked = value;
     }
     else
     {
-      CR.rosterSettings[id] = window[id].value = value;
+      GT.activeRoster.exceptions[id] = window[id].value = value;
     }
     resetAlertReporting(true, true);
     setVisual();
@@ -842,16 +842,16 @@ function huntingValueChanged(element)
 {
   let id = element.id;
   
-  if (id in CR.rosterSettings)
+  if (id in GT.activeRoster.exceptions)
   {
     let value;
     if (element.type === "checkbox")
     {
-      value = CR.rosterSettings[id] = element.checked;
+      value = GT.activeRoster.exceptions[id] = element.checked;
     }
     else
     {
-      value = CR.rosterSettings[id] = element.value;
+      value = GT.activeRoster.exceptions[id] = element.value;
       let view = id + "View";
       if (view in window)
       {
@@ -861,7 +861,7 @@ function huntingValueChanged(element)
     window.opener.huntingValueChangedFromCallRoster(id, value);
   }
 
-  maxLoTWView.innerHTML = CR.rosterSettings.maxLoTW < 27 ? toYM(Number(CR.rosterSettings.maxLoTW)) : "<b>&infin;</b>";
+  maxLoTWView.innerHTML = GT.activeRoster.exceptions.maxLoTW < 27 ? toYM(Number(GT.activeRoster.exceptions.maxLoTW)) : "<b>&infin;</b>";
 
   resetAlertReporting(true, true);
   setVisual();
@@ -1439,50 +1439,13 @@ function addControls()
 
   window.opener.setRosterSpot(CR.rosterSettings.columns.Spot);
 
-  for (const key in GT.activeRoster.wanted)
-  {
-    if (key in window)
-    { 
-      window[key].checked = GT.activeRoster.wanted[key]; 
-    }
-  }
+  applyActiveRoster();
 
   createMenuHide();
   createMenuShow();
   createCompactMenuHide();
   createCompactMenuShow();
   createRestOfMenus();
-
-  referenceNeed.value = GT.activeRoster.logbook.referenceNeed;
-  huntNeed.value = GT.activeRoster.logbook.huntNeed;
-
-  requireGrid.checked = CR.rosterSettings.requireGrid;
-
-  wantMaxDT.checked = CR.rosterSettings.wantMaxDT;
-  wantMinDB.checked = CR.rosterSettings.wantMinDB;
-  wantMinFreq.checked = CR.rosterSettings.wantMinFreq;
-  wantMaxFreq.checked = CR.rosterSettings.wantMaxFreq;
-  wantRRCQ.checked = CR.rosterSettings.wantRRCQ;
-
-  maxDTView.innerHTML = maxDT.value = CR.rosterSettings.maxDT;
-  minDbView.innerHTML = minDb.value = CR.rosterSettings.minDb;
-  minFreqView.innerHTML = minFreq.value = CR.rosterSettings.minFreq;
-  maxFreqView.innerHTML = maxFreq.value = CR.rosterSettings.maxFreq;
-
-  maxLoTW.value = CR.rosterSettings.maxLoTW;
-  maxLoTWView.innerHTML = maxLoTW.value < 27 ? toYM(Number(maxLoTW.value)) : "<b>&infin;</b>";
-
-  onlyHits.checked = CR.rosterSettings.onlyHits;
-  cqOnly.checked = CR.rosterSettings.cqOnly;
-  noMyDxcc.checked = CR.rosterSettings.noMyDxcc;
-  onlyMyDxcc.checked = CR.rosterSettings.onlyMyDxcc;
-
-  usesLoTW.checked = CR.rosterSettings.usesLoTW;
-  useseQSL.checked = CR.rosterSettings.useseQSL;
-  onlySpot.checked = CR.rosterSettings.onlySpot;
-  usesOQRS.checked = CR.rosterSettings.usesOQRS;
-
-  allOnlyNew.checked = CR.rosterSettings.allOnlyNew;
 
   clearRosterOnBandChange.checked = CR.rosterSettings.clearRosterOnBandChange;
   rosterAlwaysOnTop.checked = CR.rosterSettings.rosterAlwaysOnTop;
@@ -1497,6 +1460,48 @@ function addControls()
   document.addEventListener("keydown", onMyKeyDown, false);
   CR.timerInterval = nodeTimers.setInterval(realtimeRoster, 1000);
   updateInstances();
+}
+
+function applyActiveRoster()
+{
+  for (const key in GT.activeRoster.wanted)
+  {
+    if (key in window)
+    { 
+      window[key].checked = GT.activeRoster.wanted[key]; 
+    }
+  }
+
+  referenceNeed.value = GT.activeRoster.logbook.referenceNeed;
+  huntNeed.value = GT.activeRoster.logbook.huntNeed;
+
+  requireGrid.checked = GT.activeRoster.exceptions.requireGrid;
+
+  wantMaxDT.checked = GT.activeRoster.exceptions.wantMaxDT;
+  wantMinDB.checked = GT.activeRoster.exceptions.wantMinDB;
+  wantMinFreq.checked = GT.activeRoster.exceptions.wantMinFreq;
+  wantMaxFreq.checked = GT.activeRoster.exceptions.wantMaxFreq;
+  wantRRCQ.checked = GT.activeRoster.exceptions.wantRRCQ;
+
+  maxDTView.innerHTML = maxDT.value = GT.activeRoster.exceptions.maxDT;
+  minDbView.innerHTML = minDb.value = GT.activeRoster.exceptions.minDb;
+  minFreqView.innerHTML = minFreq.value = GT.activeRoster.exceptions.minFreq;
+  maxFreqView.innerHTML = maxFreq.value = GT.activeRoster.exceptions.maxFreq;
+
+  maxLoTW.value = GT.activeRoster.exceptions.maxLoTW;
+  maxLoTWView.innerHTML = maxLoTW.value < 27 ? toYM(Number(maxLoTW.value)) : "<b>&infin;</b>";
+
+  onlyHits.checked = GT.activeRoster.exceptions.onlyHits;
+  cqOnly.checked = GT.activeRoster.exceptions.cqOnly;
+  noMyDxcc.checked = GT.activeRoster.exceptions.noMyDxcc;
+  onlyMyDxcc.checked = GT.activeRoster.exceptions.onlyMyDxcc;
+
+  usesLoTW.checked = GT.activeRoster.exceptions.usesLoTW;
+  useseQSL.checked = GT.activeRoster.exceptions.useseQSL;
+  onlySpot.checked = GT.activeRoster.exceptions.onlySpot;
+  usesOQRS.checked = GT.activeRoster.exceptions.usesOQRS;
+
+  allOnlyNew.checked = GT.activeRoster.exceptions.allOnlyNew;
 }
 
 function setCompactView()

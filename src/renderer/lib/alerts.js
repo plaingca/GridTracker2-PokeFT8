@@ -792,6 +792,8 @@ function setVisualHunting()
     try
     {
       GT.callRosterWindowHandle.window.setVisual();
+      GT.callRosterWindowHandle.window.applyActiveRoster();
+      applyExceptions();
     }
     catch (e)
     {
@@ -889,19 +891,25 @@ function setVisualAudioAlerts()
   huntingMatrixPotaRow.style.display = (GT.settings.app.potaFeatureEnabled && GT.settings.map.offlineMode == false) ? "" : "none";
 }
 
+function applyExceptions()
+{
+  requireGrid.checked = GT.activeRoster.exceptions.requireGrid;
+  wantRRCQ.checked = GT.activeRoster.exceptions.wantRRCQ;
+  cqOnly.checked = GT.activeRoster.exceptions.cqOnly;
+  noMyDxcc.checked = GT.activeRoster.exceptions.noMyDxcc;
+  onlyMyDxcc.checked = GT.activeRoster.exceptions.onlyMyDxcc;
+  useseQSL.checked = GT.activeRoster.exceptions.useseQSL;
+  onlySpot.checked = GT.activeRoster.exceptions.onlySpot;
+  usesOQRS.checked = GT.activeRoster.exceptions.usesOQRS;
+  allOnlyNew.checked = GT.activeRoster.exceptions.allOnlyNew;
+}
+
 function loadAudioAlertSettings()
 {
   referenceNeed.value = GT.activeRoster.logbook.referenceNeed;
   huntNeed.value = GT.activeRoster.logbook.huntNeed;
-  requireGrid.checked = GT.settings.roster.requireGrid;
-  wantRRCQ.checked = GT.settings.roster.wantRRCQ;
-  cqOnly.checked = GT.settings.roster.cqOnly;
-  noMyDxcc.checked = GT.settings.roster.noMyDxcc;
-  onlyMyDxcc.checked = GT.settings.roster.onlyMyDxcc;
-  useseQSL.checked = GT.settings.roster.useseQSL;
-  onlySpot.checked = GT.settings.roster.onlySpot;
-  usesOQRS.checked = GT.settings.roster.usesOQRS;
-  allOnlyNew.checked = GT.settings.roster.allOnlyNew;
+
+  applyExceptions();
 
   for (const key in GT.settings.audioAlerts.rules)
   {

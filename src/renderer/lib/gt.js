@@ -41,7 +41,7 @@ function loadAllSettings()
 
   GT.scriptPath = path.join(GT.scriptPath, (GT.platform == "windows") ? "cr-alert.bat" : "cr-alert.sh");
 
-  // Apply defaults once if not applied
+  // Apply defaults once
   if (!("defaultsApplied" in GT.settings))
   {
     GT.settings = { ...def_settings };
@@ -50,6 +50,14 @@ function loadAllSettings()
   else
   {
     GT.settings = deepmerge(def_settings, GT.settings, { arrayMerge: (destinationArray, sourceArray) => sourceArray } );
+    for (const key in GT.settings.roster.exceptions)
+    {
+      if (key in GT.settings.roster)
+      {
+        GT.settings.roster.exceptions[key] = GT.settings.roster[key];
+        delete GT.settings.roster[key]
+      }
+    }
   }
 
 
@@ -14418,17 +14426,20 @@ function updateByBandMode()
     {
       GT.settings.ByBandMode.roster[hash] = { 
           wanted: { ...GT.activeRoster.wanted },
-          logbook: { ...GT.activeRoster.logbook }
+          logbook: { ...GT.activeRoster.logbook },
+          exceptions: { ...GT.activeRoster.exceptions },
         };
     }
     else
     {
       GT.settings.ByBandMode.roster[hash] = { 
         wanted: { ...GT.settings.roster.wanted },
-        logbook: { ...GT.settings.roster.logbook }
+        logbook: { ...GT.settings.roster.logbook },
+        exceptions: { ...GT.settings.roster.exceptions },
       };
     }  
   }
+
   if (!(hash in GT.settings.ByBandMode.audioAlerts))
   {
     if (GT.activeAudioAlerts)
@@ -14454,6 +14465,11 @@ function updateByBandMode()
   {
     GT.activeRoster = GT.settings.ByBandMode.roster[hash];
     GT.activeAudioAlerts = GT.settings.ByBandMode.audioAlerts[hash];
+  }
+
+  if (!GT.activeRoster.exceptions)
+  {
+    GT.activeRoster.exceptions = { ...GT.settings.roster.exceptions };
   }
 
   for (const key in GT.activeAudioAlerts.wanted)
