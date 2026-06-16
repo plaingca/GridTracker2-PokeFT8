@@ -65,8 +65,7 @@ function renderRoster(callRoster, rosterSettings)
     // TODO: This is filtering
     if (callObj.shouldRosterAlert == false && rosterSettings.onlyHits == true && callObj.qrz == false)
     { continue; }
-    // Folks complained *shrug*, performance increase anyway
-    // if (callObj.DEcall.match("^[KNW][0-9][A-W|Y|Z](/w+)?$")) { callObj.style.call = "class='oneByOne'"; }
+
     if (callObj.DEcall == GT.instances[callObj.instance].status.DXcall)
     {
       if (GT.instances[callObj.instance].status.TxEnabled == 1)

@@ -575,8 +575,8 @@ const def_settings = {
     watchers: {}
   },
   ByBandMode: {
-    roster: {  },
-    audioAlerts: { }
+    roster: {},
+    audioAlerts: {}
   },
 };
 
