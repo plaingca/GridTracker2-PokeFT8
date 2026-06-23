@@ -686,6 +686,7 @@ GT.tqslFileSelector.onchange = function ()
     if (GT.settings.trustedQsl.binaryFileValid == true)
     {
       tqslFileDiv.style.backgroundColor = "darkblue";
+      findTrustedQSLPaths();
     }
     else
     {
@@ -749,6 +750,7 @@ function findTrustedQSLPaths()
       GT.settings.trustedQsl.stationFileValid = false;
     }
   }
+
   if (GT.settings.trustedQsl.stationFileValid == false)
   {
     if (GT.platform == "windows")
@@ -779,35 +781,8 @@ function findTrustedQSLPaths()
       }
     }
   }
-  if (GT.settings.trustedQsl.stationFileValid == true)
-  {
-    let validate = false;
-    let option = document.createElement("option");
-    option.value = "";
-    option.text = "Select a Station";
-    lotwStation.appendChild(option);
 
-    let buffer = fs.readFileSync(GT.settings.trustedQsl.stationFile, "UTF-8");
-    let parser = new DOMParser();
-    let xmlDoc = parser.parseFromString(buffer, "text/xml");
-    let x = xmlDoc.getElementsByTagName("StationData");
-    for (let i = 0; i < x.length; i++)
-    {
-      option = document.createElement("option");
-      option.value = x[i].getAttribute("name");
-      option.text = x[i].getAttribute("name");
-      if (option.value == GT.settings.adifLog.text.lotwStation)
-      {
-        option.selected = true;
-        validate = true;
-      }
-      lotwStation.appendChild(option);
-    }
-    if (validate)
-    {
-      ValidateText(lotwStation);
-    }
-  }
+  setLotwStationOptions();
 
   if (GT.settings.trustedQsl.binaryFileValid == true)
   {
@@ -868,6 +843,41 @@ function findTrustedQSLPaths()
           GT.settings.trustedQsl.binaryFileValid = true;
         }
       }
+    }
+  }
+}
+
+function setLotwStationOptions()
+{
+  lotwStation.length = 0;
+  let option = document.createElement("option");
+  option.value = "";
+  option.text = "Select a Station";
+  lotwStation.appendChild(option);
+
+  if (GT.settings.trustedQsl.stationFileValid == true)
+  {
+    let validate = false;
+
+    let buffer = fs.readFileSync(GT.settings.trustedQsl.stationFile, "UTF-8");
+    let parser = new DOMParser();
+    let xmlDoc = parser.parseFromString(buffer, "text/xml");
+    let x = xmlDoc.getElementsByTagName("StationData");
+    for (let i = 0; i < x.length; i++)
+    {
+      option = document.createElement("option");
+      option.value = x[i].getAttribute("name");
+      option.text = x[i].getAttribute("name");
+      if (option.value == GT.settings.adifLog.text.lotwStation)
+      {
+        option.selected = true;
+        validate = true;
+      }
+      lotwStation.appendChild(option);
+    }
+    if (validate)
+    {
+      ValidateText(lotwStation);
     }
   }
 }
@@ -3243,3 +3253,5 @@ function sendHRDLogbookEntry(report, port, address)
 
   sendTcpMessage(command, command.length, Number(port), address);
 }
+
+

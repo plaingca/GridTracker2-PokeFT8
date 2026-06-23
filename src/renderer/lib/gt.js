@@ -11567,6 +11567,12 @@ function loadAdifSettings()
   updateAppLogsUI();
   setAdifStartup(loadAdifCheckBox);
   ValidateQrzApi(qrzApiKey);
+
+  lotwStation.addEventListener('mousedown', (event) => {
+    if (event.target.tagName === 'SELECT') {
+      setLotwStationOptions();
+    }
+  });
 }
 
 function startupButtonsAndInputs()
@@ -11708,12 +11714,13 @@ function postInit()
     section = "registerLegendContextMenus";
     registerLegendContextMenus();
     section = "SettingTimers";
-
     nodeTimers.setInterval(removeFlightPathsAndDimSquares, 2000); // Every 2 seconds
     nodeTimers.setInterval(downloadCtyDat, 86400000);  // Every 24 hours
     nodeTimers.setInterval(refreshSpotsNoTx, 300000); // Redraw spots every 5 minutes, this clears old ones
     nodeTimers.setTimeout(downloadCtyDat, 120000);    // In 2 minutes, when the dust settles
     nodeTimers.setTimeout(checkForNewVersion, 10000); // Informative check
+    section = "passwordInputs";
+    stylePasswordInputs();
   }
   catch (e)
   {
@@ -14482,3 +14489,55 @@ function updateByBandMode()
 
   setVisualHunting();
 }
+
+const emojiShow = '👀';
+const emojiHide = '🔒';
+
+function stylePasswordInputs()
+{
+    const passwordInputs = document.querySelectorAll('input[type="password"]');
+
+    passwordInputs.forEach(input => {
+        // Create the wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'password-wrapper';
+        
+        // Wrap the input
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+
+        // Create the button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'password-toggle-btn';
+        toggleBtn.title = 'Toggle Password Visibility';
+        toggleBtn.innerText = emojiShow; 
+
+        const updateIconVisibility = () => {
+            // If there's text, show the button. If empty, hide it completely.
+            toggleBtn.style.display = input.value.length > 0 ? 'inline-block' : 'none';
+        };
+
+        // Run it once on load (catches auto-filled passwords)
+        updateIconVisibility();
+
+        // Listen for every keystroke, paste, or deletion
+        input.addEventListener('input', updateIconVisibility);
+        // -------------------------------------------
+
+        // Toggle logic (click)
+        toggleBtn.addEventListener('click', () => {
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggleBtn.innerText = emojiHide;
+            } else {
+                input.type = 'password';
+                toggleBtn.innerText = emojiShow;
+            }
+            input.focus(); 
+        });
+
+        wrapper.appendChild(toggleBtn);
+    });
+}
+

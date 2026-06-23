@@ -276,6 +276,8 @@ Map:
 
 App:
   Roster / Audio Alerts Band Memory feature now includes exceptions
+Logging:
+  LoTW station list now gathered on-demand
 
 ### Fixed
 

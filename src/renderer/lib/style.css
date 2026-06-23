@@ -1144,3 +1144,35 @@ button:focus {
 .flexItem:hover {
   border-color: #fff;
 }
+
+.password-wrapper {
+    position: relative;
+    display: inline-block; /* Hugs the natural width of the input */
+}
+
+.password-wrapper input {
+    box-sizing: border-box; 
+    padding-right: 30px; /* Gives the typed text room so it doesn't hit the emoji */
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    
+    /* This centers it vertically, then subtracts 2px to nudge it up! */
+    transform: translateY(calc(-50% - 2px)); 
+    
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    outline: none;
+    user-select: none;
+}
+
+.password-toggle-btn:hover {
+    opacity: 0.7;
+}
+
