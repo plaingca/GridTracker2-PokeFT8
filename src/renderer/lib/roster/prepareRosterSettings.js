@@ -3,14 +3,14 @@ function prepareRosterSettings()
   let rosterSettings = {
     bands: {},
     modes: {},
-    onlyHits: GT.activeRoster.exceptions.onlyHits,
+    onlyHits: GT.activeExceptions.onlyHits,
     isAwardTracker: false,
     now: timeNowSec()
   }
 
   if (GT.activeRoster.logbook.referenceNeed == LOGBOOK_AWARD_TRACKER)
   {
-    GT.activeRoster.exceptions.onlyHits = false;
+    GT.activeExceptions.onlyHits = false;
     rosterSettings.isAwardTracker = true;
   }
 

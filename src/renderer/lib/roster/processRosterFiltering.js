@@ -4,7 +4,7 @@ const GRID_REGEXP = /^[A-Z]{2}[0-9]{2}$/;
 function processRosterFiltering(callRoster, rosterSettings)
 {
   const rs = CR.rosterSettings;
-  const rse = GT.activeRoster.exceptions;
+  const rse = GT.activeExceptions;
   const cl = GT.settings.callsignLookups;
   const instances = GT.instances;
   const winOpener = window.opener; // Cache cross-context reference

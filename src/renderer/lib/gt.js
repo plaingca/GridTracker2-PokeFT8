@@ -215,7 +215,9 @@ GT.hotKeys = {};
 GT.forwardIPs = [];
 
 GT.activeRoster = null;
+GT.activeExceptions = null;
 GT.activeAudioAlerts = null;
+GT.activeCustomAlerts = null;
 
 GT.flightPaths = [];
 GT.flightPathOffset = 0;
@@ -3353,11 +3355,30 @@ function changeTrafficDecode()
   trafficDecodeView();
 }
 
+function setWantedByBandModeRowView()
+{
+  includeExceptionsRow.style.display = includeCustomAlertsRow.style.display = GT.settings.app.wantedByBandMode ? "" : "none"
+}
+
 function changeWantedByBandMode()
 {
   GT.settings.app.wantedByBandMode = wantedByBandMode.checked;
+  setWantedByBandModeRowView();
   updateByBandMode();
 }
+
+function changeIncludeExceptions()
+{
+  GT.settings.app.includeExceptions = includeExceptions.checked;
+  updateByBandMode();
+}
+
+function changeIncludeCustomAlerts()
+{
+  GT.settings.app.includeCustomAlerts = includeCustomAlerts.checked;
+  updateByBandMode();
+}
+
 
 function changeWarnOnSoundcardsChanged()
 {
@@ -8239,7 +8260,7 @@ function openSettingsTab(evt, tabName)
       ""
     );
   }
-  displayAlerts();
+  displayCustomAlerts();
   // Show the current tab, and add an "active" class to the button that opened the tab
   document.getElementById(tabName).style.display = "";
   if (typeof evt.currentTarget != "undefined") { evt.currentTarget.className += " active"; }
@@ -10865,6 +10886,10 @@ function loadMapSettings()
 
   trafficDecode.checked = GT.settings.map.trafficDecode;
   wantedByBandMode.checked = GT.settings.app.wantedByBandMode;
+  includeExceptions.checked =  GT.settings.app.includeExceptions;
+  includeCustomAlerts.checked = GT.settings.app.includeCustomAlerts;
+  setWantedByBandModeRowView();
+  
   warnOnSoundcardsChanged.checked = GT.settings.app.warnOnSoundcardsChange;
 
   setSpotImage();
@@ -14425,59 +14450,81 @@ function createFileSelectorHandlers()
 
 function updateByBandMode()
 {
-  let hash = GT.settings.app.myBand + GT.settings.app.myMode;
-
-  if (!(hash in GT.settings.ByBandMode.roster))
-  {
-    if (GT.activeRoster)
-    {
-      GT.settings.ByBandMode.roster[hash] = { 
-          wanted: { ...GT.activeRoster.wanted },
-          logbook: { ...GT.activeRoster.logbook },
-          exceptions: { ...GT.activeRoster.exceptions },
-        };
-    }
-    else
-    {
-      GT.settings.ByBandMode.roster[hash] = { 
-        wanted: { ...GT.settings.roster.wanted },
-        logbook: { ...GT.settings.roster.logbook },
-        exceptions: { ...GT.settings.roster.exceptions },
-      };
-    }  
-  }
-
-  if (!(hash in GT.settings.ByBandMode.audioAlerts))
-  {
-    if (GT.activeAudioAlerts)
-    {
-      GT.settings.ByBandMode.audioAlerts[hash] = { 
-        wanted: { ...GT.activeAudioAlerts.wanted }
-      };
-    }
-    else
-    {
-      GT.settings.ByBandMode.audioAlerts[hash] = { 
-        wanted: { ...GT.settings.audioAlerts.wanted }
-      };
-    }  
-  }
-
   if (GT.settings.app.wantedByBandMode == false || GT.instanceCount > 1)
   {
     GT.activeRoster = GT.settings.roster;
     GT.activeAudioAlerts = GT.settings.audioAlerts;
+    GT.activeExceptions = GT.settings.roster.exceptions;
+    GT.activeCustomAlerts = GT.settings.customAlerts;
   }
   else
   {
+    let hash = GT.settings.app.myBand + GT.settings.app.myMode;
+
+    if (!(hash in GT.settings.ByBandMode.roster))
+    {
+      if (GT.activeRoster)
+      {
+        GT.settings.ByBandMode.roster[hash] = { 
+            wanted: { ...GT.activeRoster.wanted },
+            logbook: { ...GT.activeRoster.logbook },
+          };
+      }
+      else
+      {
+        GT.settings.ByBandMode.roster[hash] = { 
+          wanted: { ...GT.settings.roster.wanted },
+          logbook: { ...GT.settings.roster.logbook },
+        };
+      }  
+    }
+
+    if (!(hash in GT.settings.ByBandMode.exceptions))
+    {
+      if (GT.activeExceptions)
+      {
+        GT.settings.ByBandMode.exceptions[hash] = { ...GT.activeExceptions };
+      }
+      else
+      {
+        GT.settings.ByBandMode.exceptions[hash] = { ...GT.settings.roster.exceptions };
+      }  
+    }
+
+    if (!(hash in GT.settings.ByBandMode.audioAlerts))
+    {
+      if (GT.activeAudioAlerts)
+      {
+        GT.settings.ByBandMode.audioAlerts[hash] = { 
+          wanted: { ...GT.activeAudioAlerts.wanted }
+        };
+      }
+      else
+      {
+        GT.settings.ByBandMode.audioAlerts[hash] = { 
+          wanted: { ...GT.settings.audioAlerts.wanted }
+        };
+      }  
+    }
+
+    if (!(hash in GT.settings.ByBandMode.customAlerts))
+    {
+      if (GT.activeCustomAlerts)
+      {
+        GT.settings.ByBandMode.customAlerts[hash] = { ...GT.activeCustomAlerts };
+      }
+      else
+      {
+        GT.settings.ByBandMode.customAlerts[hash] = { ...GT.settings.customAlerts };
+      }  
+    }
+
     GT.activeRoster = GT.settings.ByBandMode.roster[hash];
     GT.activeAudioAlerts = GT.settings.ByBandMode.audioAlerts[hash];
+    GT.activeExceptions = GT.settings.app.includeExceptions ? GT.settings.ByBandMode.exceptions[hash] : GT.settings.roster.exceptions;
+    GT.activeCustomAlerts = GT.settings.app.includeCustomAlerts ? GT.settings.ByBandMode.customAlerts[hash] : GT.settings.customAlerts;
   }
 
-  if (!GT.activeRoster.exceptions)
-  {
-    GT.activeRoster.exceptions = { ...GT.settings.roster.exceptions };
-  }
 
   for (const key in GT.activeAudioAlerts.wanted)
   {
@@ -14486,6 +14533,8 @@ function updateByBandMode()
       window[key].checked = GT.activeAudioAlerts.wanted[key];
     }
   }
+
+  displayCustomAlerts();
 
   setVisualHunting();
 }
@@ -14510,7 +14559,7 @@ function stylePasswordInputs()
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
         toggleBtn.className = 'password-toggle-btn';
-        toggleBtn.title = 'Toggle Password Visibility';
+        toggleBtn.title = I18N("togglePasswordVisibility");
         toggleBtn.innerText = emojiShow; 
 
         const updateIconVisibility = () => {

@@ -93,7 +93,7 @@ const ROSTER_COLUMNS = {
     tableData: (callObj) => ({
       rawAttrs: callObj.style.calling,
       name: callObj.CQ ? "CQ" : "Calling",
-      html: (GT.activeRoster.exceptions.wantRRCQ && callObj.RR73) ? callObj.RR73 : formatCallsign(callObj.DXcallHTML || callObj.DXcall)
+      html: (GT.activeExceptions.wantRRCQ && callObj.RR73) ? callObj.RR73 : formatCallsign(callObj.DXcallHTML || callObj.DXcall)
     })
   },
 
@@ -246,10 +246,10 @@ const ROSTER_COLUMNS = {
     {
       if (callObj.DEcall in GT.lotwCallsigns)
       {
-        if (GT.activeRoster.exceptions.maxLoTW < 27)
+        if (GT.activeExceptions.maxLoTW < 27)
         {
           let months = (CR.day - GT.lotwCallsigns[callObj.DEcall]) / 30;
-          if (months > GT.activeRoster.exceptions.maxLoTW)
+          if (months > GT.activeExceptions.maxLoTW)
           {
             return {
               style: "color: yellow;",

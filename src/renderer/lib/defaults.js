@@ -61,6 +61,8 @@ const def_settings = {
     clearOnCQ: false,
     crScript: 0,
     wantedByBandMode: false,
+    includeExceptions: false,
+    includeCustomAlerts: false,
     distanceUnit: "MI",
     graylineImgSrc: 0,
     gridViewMode: 3,
@@ -576,7 +578,9 @@ const def_settings = {
   },
   ByBandMode: {
     roster: {},
-    audioAlerts: {}
+    exceptions: {},
+    audioAlerts: {},
+    customAlerts: {}
   },
 };
 

@@ -818,11 +818,11 @@ function huntingValueChangedFromAudioAlerts(id, value)
   {
     if (window[id].type === "checkbox")
     {
-      GT.activeRoster.exceptions[id] = window[id].checked = value;
+      GT.activeExceptions[id] = window[id].checked = value;
     }
     else
     {
-      GT.activeRoster.exceptions[id] = window[id].value = value;
+      GT.activeExceptions[id] = window[id].value = value;
     }
     resetAlertReporting(true, true);
     setVisual();
@@ -842,16 +842,16 @@ function huntingValueChanged(element)
 {
   let id = element.id;
   
-  if (id in GT.activeRoster.exceptions)
+  if (id in GT.activeExceptions)
   {
     let value;
     if (element.type === "checkbox")
     {
-      value = GT.activeRoster.exceptions[id] = element.checked;
+      value = GT.activeExceptions[id] = element.checked;
     }
     else
     {
-      value = GT.activeRoster.exceptions[id] = element.value;
+      value = GT.activeExceptions[id] = element.value;
       let view = id + "View";
       if (view in window)
       {
@@ -861,7 +861,7 @@ function huntingValueChanged(element)
     window.opener.huntingValueChangedFromCallRoster(id, value);
   }
 
-  maxLoTWView.innerHTML = GT.activeRoster.exceptions.maxLoTW < 27 ? toYM(Number(GT.activeRoster.exceptions.maxLoTW)) : "<b>&infin;</b>";
+  maxLoTWView.innerHTML = GT.activeExceptions.maxLoTW < 27 ? toYM(Number(GT.activeExceptions.maxLoTW)) : "<b>&infin;</b>";
 
   resetAlertReporting(true, true);
   setVisual();
@@ -1475,33 +1475,58 @@ function applyActiveRoster()
   referenceNeed.value = GT.activeRoster.logbook.referenceNeed;
   huntNeed.value = GT.activeRoster.logbook.huntNeed;
 
-  requireGrid.checked = GT.activeRoster.exceptions.requireGrid;
+  requireGrid.checked = GT.activeExceptions.requireGrid;
 
-  wantMaxDT.checked = GT.activeRoster.exceptions.wantMaxDT;
-  wantMinDB.checked = GT.activeRoster.exceptions.wantMinDB;
-  wantMinFreq.checked = GT.activeRoster.exceptions.wantMinFreq;
-  wantMaxFreq.checked = GT.activeRoster.exceptions.wantMaxFreq;
-  wantRRCQ.checked = GT.activeRoster.exceptions.wantRRCQ;
+  wantMaxDT.checked = GT.activeExceptions.wantMaxDT;
+  wantMinDB.checked = GT.activeExceptions.wantMinDB;
+  wantMinFreq.checked = GT.activeExceptions.wantMinFreq;
+  wantMaxFreq.checked = GT.activeExceptions.wantMaxFreq;
+  wantRRCQ.checked = GT.activeExceptions.wantRRCQ;
 
-  maxDTView.innerHTML = maxDT.value = GT.activeRoster.exceptions.maxDT;
-  minDbView.innerHTML = minDb.value = GT.activeRoster.exceptions.minDb;
-  minFreqView.innerHTML = minFreq.value = GT.activeRoster.exceptions.minFreq;
-  maxFreqView.innerHTML = maxFreq.value = GT.activeRoster.exceptions.maxFreq;
+  maxDTView.innerHTML = maxDT.value = GT.activeExceptions.maxDT;
+  minDbView.innerHTML = minDb.value = GT.activeExceptions.minDb;
+  minFreqView.innerHTML = minFreq.value = GT.activeExceptions.minFreq;
+  maxFreqView.innerHTML = maxFreq.value = GT.activeExceptions.maxFreq;
 
-  maxLoTW.value = GT.activeRoster.exceptions.maxLoTW;
+  maxLoTW.value = GT.activeExceptions.maxLoTW;
   maxLoTWView.innerHTML = maxLoTW.value < 27 ? toYM(Number(maxLoTW.value)) : "<b>&infin;</b>";
 
-  onlyHits.checked = GT.activeRoster.exceptions.onlyHits;
-  cqOnly.checked = GT.activeRoster.exceptions.cqOnly;
-  noMyDxcc.checked = GT.activeRoster.exceptions.noMyDxcc;
-  onlyMyDxcc.checked = GT.activeRoster.exceptions.onlyMyDxcc;
+  onlyHits.checked = GT.activeExceptions.onlyHits;
+  cqOnly.checked = GT.activeExceptions.cqOnly;
+  noMyDxcc.checked = GT.activeExceptions.noMyDxcc;
+  onlyMyDxcc.checked = GT.activeExceptions.onlyMyDxcc;
 
-  usesLoTW.checked = GT.activeRoster.exceptions.usesLoTW;
-  useseQSL.checked = GT.activeRoster.exceptions.useseQSL;
-  onlySpot.checked = GT.activeRoster.exceptions.onlySpot;
-  usesOQRS.checked = GT.activeRoster.exceptions.usesOQRS;
+  usesLoTW.checked = GT.activeExceptions.usesLoTW;
+  useseQSL.checked = GT.activeExceptions.useseQSL;
+  onlySpot.checked = GT.activeExceptions.onlySpot;
+  usesOQRS.checked = GT.activeExceptions.usesOQRS;
 
-  allOnlyNew.checked = GT.activeRoster.exceptions.allOnlyNew;
+  allOnlyNew.checked = GT.activeExceptions.allOnlyNew;
+
+  let wantedHeader = document.querySelector('h3[data-i18n="roster.secondary.wanted.label"]');
+  let exceptionsHeader = document.querySelector('h3[data-i18n="roster.exceptions.label"]');
+
+  if (GT.settings.app.wantedByBandMode == true && GT.instanceCount == 1) {
+    if (wantedHeader && !document.getElementById('wanted_mode_indicator')) {
+      wantedHeader.insertAdjacentHTML('beforeend', ' <span id="wanted_mode_indicator" class="band-mode-indicator">M</span>');
+      wanted_mode_indicator.title = I18N("settings.Features.BandMemory");
+    }
+    if (GT.settings.app.includeExceptions) {
+      if (exceptionsHeader && !document.getElementById('exceptions_mode_indicator')) {
+        exceptionsHeader.insertAdjacentHTML('beforeend', ' <span id="exceptions_mode_indicator" class="band-mode-indicator">M</span>');
+        exceptions_mode_indicator.title = I18N("settings.Features.BandMemory");
+      }
+    } else {
+      let excIndicator = document.getElementById('exceptions_mode_indicator');
+      if (excIndicator) excIndicator.remove();
+    }
+  } else {
+    let wantedIndicator = document.getElementById('wanted_mode_indicator');
+    if (wantedIndicator) wantedIndicator.remove();
+
+    let excIndicator = document.getElementById('exceptions_mode_indicator');
+    if (excIndicator) excIndicator.remove();
+  }
 }
 
 function setCompactView()

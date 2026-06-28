@@ -47,8 +47,8 @@ function processRosterHunting(callRoster, rosterSettings)
   
   const dayAsStr = CR.dayAsString;
   const myCall = GT.settings.app.myCall;
-  const wantRRCQ = GT.activeRoster.exceptions.wantRRCQ;
-  const cqOnly = GT.activeRoster.exceptions.cqOnly;
+  const wantRRCQ = GT.activeExceptions.wantRRCQ;
+  const cqOnly = GT.activeExceptions.cqOnly;
   const ulsUseEnable = GT.settings.callsignLookups.ulsUseEnable;
   
   // Cache time once for the Watchers lookup to avoid syscalls inside the loop

@@ -112,14 +112,14 @@ function addNewAlert()
     }
   }
   addError.innerHTML = error;
-  displayAlerts();
+  displayCustomAlerts();
 }
 
 function addAlert(value, type, notify, repeat, filename, shortname)
 {
   var newKey = unique(value + type + notify + repeat + filename);
 
-  if (!(newKey in GT.settings.customAlerts))
+  if (!(newKey in GT.activeCustomAlerts))
   {
     // Use Object Literal for V8 optimization
     const alertItem = {
@@ -145,7 +145,7 @@ function addAlert(value, type, notify, repeat, filename, shortname)
       }
     }
 
-    GT.settings.customAlerts[newKey] = alertItem;
+    GT.activeCustomAlerts[newKey] = alertItem;
     return true;
   }
   return false; // we have this alert already
@@ -154,22 +154,22 @@ function addAlert(value, type, notify, repeat, filename, shortname)
 
 function deleteAlert(key)
 {
-  delete GT.settings.customAlerts[key];
-  displayAlerts();
+  delete GT.activeCustomAlerts[key];
+  displayCustomAlerts();
 }
 
 function resetAlert(key)
 {
-  GT.settings.customAlerts[key].lastMessage = "";
-  GT.settings.customAlerts[key].lastTime = 0;
-  GT.settings.customAlerts[key].fired = 0;
-  GT.settings.customAlerts[key].needAck = 0;
-  displayAlerts();
+  GT.activeCustomAlerts[key].lastMessage = "";
+  GT.activeCustomAlerts[key].lastTime = 0;
+  GT.activeCustomAlerts[key].fired = 0;
+  GT.activeCustomAlerts[key].needAck = 0;
+  displayCustomAlerts();
 }
 
 function processCustomAlertMessage(decodeWords, message, band, mode)
 {
-  if (!hasAnyKeys(GT.settings.customAlerts))
+  if (!hasAnyKeys(GT.activeCustomAlerts))
   {
     // no alerts, don't bother
     return false;
@@ -240,9 +240,9 @@ function checkAlerts(
 )
 {
   var hadAlert = false;
-  for (var key in GT.settings.customAlerts)
+  for (var key in GT.activeCustomAlerts)
   {
-    var nalert = GT.settings.customAlerts[key];
+    var nalert = GT.activeCustomAlerts[key];
     if (nalert.type == 0)
     {
       // callsign exatch match
@@ -301,7 +301,7 @@ function checkAlerts(
   }
   if (hadAlert)
   {
-    displayAlerts();
+    displayCustomAlerts();
     return true;
   }
   return false;
@@ -481,11 +481,11 @@ function displayAlertPopUp(what, message, target)
   let html = [];
   let acount = 0;
 
-  if (hasAnyKeys(GT.settings.customAlerts))
+  if (hasAnyKeys(GT.activeCustomAlerts))
   {
-    for (const key in GT.settings.customAlerts)
+    for (const key in GT.activeCustomAlerts)
     {
-      if (GT.settings.customAlerts[key].needAck) acount++;
+      if (GT.activeCustomAlerts[key].needAck) acount++;
     }
 
     html.push("<div id='tableDiv' style='overflow:hidden;'>");
@@ -501,40 +501,40 @@ function displayAlertPopUp(what, message, target)
     html.push("<th>When</th>");
     html.push("</tr>");
 
-    for (var key in GT.settings.customAlerts)
+    for (var key in GT.activeCustomAlerts)
     {
-      if (GT.settings.customAlerts[key].needAck)
+      if (GT.activeCustomAlerts[key].needAck)
       {
         html.push("<tr>");
-        html.push("<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>");
-        if (GT.settings.customAlerts[key].type == 0)
-        { html.push("<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"); }
-        if (GT.settings.customAlerts[key].type == 2)
-        { html.push("<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"); }
-        if (GT.settings.customAlerts[key].type == 4)
+        html.push("<td>" + GT.alertTypeOptions[GT.activeCustomAlerts[key].type] + "</td>");
+        if (GT.activeCustomAlerts[key].type == 0)
+        { html.push("<td style='color:yellow'>" + GT.activeCustomAlerts[key].value + "</td>"); }
+        if (GT.activeCustomAlerts[key].type == 2)
+        { html.push("<td style='color:red'>" + GT.activeCustomAlerts[key].value + "</td>"); }
+        if (GT.activeCustomAlerts[key].type == 4)
         { html.push("<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"); }
-        if (GT.settings.customAlerts[key].type == 5)
+        if (GT.activeCustomAlerts[key].type == 5)
         {
-          html.push("<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>");
+          html.push("<td style='color:lightgreen'>" + GT.activeCustomAlerts[key].value + "*</td>");
         }
-        if (GT.settings.customAlerts[key].type == 6)
+        if (GT.activeCustomAlerts[key].type == 6)
         { 
-          html.push("<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"); 
+          html.push("<td style='color:pink'>" + GT.activeCustomAlerts[key].value + "</td>"); 
         }
 
-        html.push("<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>");
-        html.push("<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>");
+        html.push("<td>" + GT.alertValueOptions[GT.activeCustomAlerts[key].notify] + "</td>");
+        html.push("<td>" + GT.alertRepeatOptions[GT.activeCustomAlerts[key].repeat] + "</td>");
         html.push("<td>" +
-          (GT.settings.customAlerts[key].shortname.length > 0 ? GT.settings.customAlerts[key].shortname : "-") +
+          (GT.activeCustomAlerts[key].shortname.length > 0 ? GT.activeCustomAlerts[key].shortname : "-") +
           "</td>");
-        html.push("<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
+        html.push("<td>" + (GT.activeCustomAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
         html.push("<td style='color:cyan'>" +
-          (GT.settings.customAlerts[key].lastMessage.length > 0
-            ? GT.settings.customAlerts[key].lastMessage
+          (GT.activeCustomAlerts[key].lastMessage.length > 0
+            ? GT.activeCustomAlerts[key].lastMessage
             : "-") +
           "</td>");
-        ageString = userTimeString(GT.settings.customAlerts[key].lastTime * 1000);
-        html.push("<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
+        ageString = userTimeString(GT.activeCustomAlerts[key].lastTime * 1000);
+        html.push("<td>" + (GT.activeCustomAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
         html.push("</tr>");
       }
     }
@@ -550,9 +550,9 @@ function displayAlertPopUp(what, message, target)
 
 function ackAlerts()
 {
-  for (var key in GT.settings.customAlerts)
+  for (var key in GT.activeCustomAlerts)
   {
-    GT.settings.customAlerts[key].needAck = 0;
+    GT.activeCustomAlerts[key].needAck = 0;
   }
 }
 
@@ -623,14 +623,14 @@ GT.alertRepeatOptions["1"] = "Once";
 GT.alertRepeatOptions["2"] = "Inf";
 GT.alertRepeatOptions["3"] = "Inf(Session)";
 
-function displayAlerts()
+function displayCustomAlerts()
 {
   let html = [];
 
-  if (hasAnyKeys(GT.settings.customAlerts))
+  if (hasAnyKeys(GT.activeCustomAlerts))
   {
     html.push("<div style='padding-right:8px;overflow:auto;overflow-x:hidden;height:" +
-      Math.min(Object.keys(GT.settings.customAlerts).length * 24 + 23, 312) +
+      Math.min(Object.keys(GT.activeCustomAlerts).length * 24 + 23, 312) +
       "px;'>");
 
     html.push("<table align='center' class='darkTable' >");
@@ -648,36 +648,36 @@ function displayAlerts()
     html.push("<th>Delete</th>");
     html.push("</tr>");
 
-    for (var key in GT.settings.customAlerts)
+    for (var key in GT.activeCustomAlerts)
     {
       html.push("<tr>");
-      html.push("<td>" + GT.alertTypeOptions[GT.settings.customAlerts[key].type] + "</td>");
-      if (GT.settings.customAlerts[key].type == 0)
-      { html.push("<td style='color:yellow'>" + GT.settings.customAlerts[key].value + "</td>"); }
-      if (GT.settings.customAlerts[key].type == 2)
-      { html.push("<td style='color:red'>" + GT.settings.customAlerts[key].value + "</td>"); }
-      if (GT.settings.customAlerts[key].type == 4)
+      html.push("<td>" + GT.alertTypeOptions[GT.activeCustomAlerts[key].type] + "</td>");
+      if (GT.activeCustomAlerts[key].type == 0)
+      { html.push("<td style='color:yellow'>" + GT.activeCustomAlerts[key].value + "</td>"); }
+      if (GT.activeCustomAlerts[key].type == 2)
+      { html.push("<td style='color:red'>" + GT.activeCustomAlerts[key].value + "</td>"); }
+      if (GT.activeCustomAlerts[key].type == 4)
       { html.push("<td style='color:cyan'>" + GT.settings.app.myCall + "</td>"); }
-      if (GT.settings.customAlerts[key].type == 5)
+      if (GT.activeCustomAlerts[key].type == 5)
       {
-        html.push("<td style='color:lightgreen'>" + GT.settings.customAlerts[key].value + "*</td>");
+        html.push("<td style='color:lightgreen'>" + GT.activeCustomAlerts[key].value + "*</td>");
       }
-      if (GT.settings.customAlerts[key].type == 6)
-      { html.push("<td style='color:pink'>" + GT.settings.customAlerts[key].value + "</td>"); }
+      if (GT.activeCustomAlerts[key].type == 6)
+      { html.push("<td style='color:pink'>" + GT.activeCustomAlerts[key].value + "</td>"); }
 
-      html.push("<td>" + GT.alertValueOptions[GT.settings.customAlerts[key].notify] + "</td>");
-      html.push("<td>" + GT.alertRepeatOptions[GT.settings.customAlerts[key].repeat] + "</td>");
+      html.push("<td>" + GT.alertValueOptions[GT.activeCustomAlerts[key].notify] + "</td>");
+      html.push("<td>" + GT.alertRepeatOptions[GT.activeCustomAlerts[key].repeat] + "</td>");
       html.push("<td>" +
-        (GT.settings.customAlerts[key].shortname.length > 0 ? GT.settings.customAlerts[key].shortname : "-") +
+        (GT.activeCustomAlerts[key].shortname.length > 0 ? GT.activeCustomAlerts[key].shortname : "-") +
         "</td>");
-      html.push("<td>" + (GT.settings.customAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
+      html.push("<td>" + (GT.activeCustomAlerts[key].fired > 0 ? "Yes" : "No") + "</td>");
       html.push("<td style='color:cyan'>" +
-        (GT.settings.customAlerts[key].lastMessage.length > 0
-          ? GT.settings.customAlerts[key].lastMessage
+        (GT.activeCustomAlerts[key].lastMessage.length > 0
+          ? GT.activeCustomAlerts[key].lastMessage
           : "-") +
         "</td>");
-      ageString = userTimeString(GT.settings.customAlerts[key].lastTime * 1000);
-      html.push("<td>" + (GT.settings.customAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
+      ageString = userTimeString(GT.activeCustomAlerts[key].lastTime * 1000);
+      html.push("<td>" + (GT.activeCustomAlerts[key].lastTime > 0 ? ageString : "-") + "</td>");
       html.push("<td style='cursor:pointer' onclick='resetAlert(\"" +
         key +
         "\")'><img src='img/reset_24x48.png' style='height:17px;margin:-1px;margin-bottom:-3px;padding:0px' ></td>");
@@ -889,19 +889,57 @@ function setVisualAudioAlerts()
   usesOQRSDiv.style.display = (GT.settings.callsignLookups.oqrsUseEnable) ? "" : "none";
   onlySpotDiv.style.display = (GT.settings.roster.columns.Spot) ? "" : "none";
   huntingMatrixPotaRow.style.display = (GT.settings.app.potaFeatureEnabled && GT.settings.map.offlineMode == false) ? "" : "none";
+  
+  if (GT.settings.app.wantedByBandMode == true && GT.instanceCount == 1) {
+     let audioAlertsHeader = document.querySelector('h3[data-i18n="settings.alerts.AudioAlert.label"]');
+    let exceptionsHeader = document.querySelector('h3[data-i18n="roster.exceptions.label"]');
+    let customAlertsHeader = document.querySelector('th[data-i18n="settings.alerts.CustomAlerts.label"]');
+
+    if (audioAlertsHeader && !document.getElementById('wanted_mode_indicator')) {
+      audioAlertsHeader.insertAdjacentHTML('beforeend', ' <span id="wanted_mode_indicator" class="band-mode-indicator">M</span>');
+      wanted_mode_indicator.title = I18N("settings.Features.BandMemory");
+    }
+    if (GT.settings.app.includeExceptions) {
+      if (exceptionsHeader && !document.getElementById('exceptions_mode_indicator')) {
+        exceptionsHeader.insertAdjacentHTML('beforeend', ' <span id="exceptions_mode_indicator" class="band-mode-indicator">M</span>');
+        exceptions_mode_indicator.title = I18N("settings.Features.BandMemory");
+      }
+    } else {
+      let excIndicator = document.getElementById('exceptions_mode_indicator');
+      if (excIndicator) excIndicator.remove();
+    }
+    if (GT.settings.app.includeCustomAlerts) {
+      if (customAlertsHeader && !document.getElementById('custom_alerts_mode_indicator')) {
+        customAlertsHeader.insertAdjacentHTML('beforeend', ' <span id="custom_alerts_mode_indicator" class="band-mode-indicator">M</span>');
+        custom_alerts_mode_indicator.title = I18N("settings.Features.BandMemory");
+      }
+    } else {
+      let caIndicator = document.getElementById('custom_alerts_mode_indicator');
+      if (caIndicator) caIndicator.remove();
+    }
+  } else {
+    let wantedIndicator = document.getElementById('wanted_mode_indicator');
+    if (wantedIndicator) wantedIndicator.remove();
+
+    let excIndicator = document.getElementById('exceptions_mode_indicator');
+    if (excIndicator) excIndicator.remove();
+
+    let caIndicator = document.getElementById('custom_alerts_mode_indicator');
+    if (caIndicator) caIndicator.remove();
+  }
 }
 
 function applyExceptions()
 {
-  requireGrid.checked = GT.activeRoster.exceptions.requireGrid;
-  wantRRCQ.checked = GT.activeRoster.exceptions.wantRRCQ;
-  cqOnly.checked = GT.activeRoster.exceptions.cqOnly;
-  noMyDxcc.checked = GT.activeRoster.exceptions.noMyDxcc;
-  onlyMyDxcc.checked = GT.activeRoster.exceptions.onlyMyDxcc;
-  useseQSL.checked = GT.activeRoster.exceptions.useseQSL;
-  onlySpot.checked = GT.activeRoster.exceptions.onlySpot;
-  usesOQRS.checked = GT.activeRoster.exceptions.usesOQRS;
-  allOnlyNew.checked = GT.activeRoster.exceptions.allOnlyNew;
+  requireGrid.checked = GT.activeExceptions.requireGrid;
+  wantRRCQ.checked = GT.activeExceptions.wantRRCQ;
+  cqOnly.checked = GT.activeExceptions.cqOnly;
+  noMyDxcc.checked = GT.activeExceptions.noMyDxcc;
+  onlyMyDxcc.checked = GT.activeExceptions.onlyMyDxcc;
+  useseQSL.checked = GT.activeExceptions.useseQSL;
+  onlySpot.checked = GT.activeExceptions.onlySpot;
+  usesOQRS.checked = GT.activeExceptions.usesOQRS;
+  allOnlyNew.checked = GT.activeExceptions.allOnlyNew;
 }
 
 function loadAudioAlertSettings()
