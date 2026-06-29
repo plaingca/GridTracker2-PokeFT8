@@ -61,7 +61,7 @@ const def_settings = {
     clearOnCQ: false,
     crScript: 0,
     wantedByBandMode: false,
-    includeExceptions: false,
+    includeExceptions: true,
     includeCustomAlerts: false,
     distanceUnit: "MI",
     graylineImgSrc: 0,
