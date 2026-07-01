@@ -170,7 +170,7 @@ const def_settings = {
     qrzPathColor: 1,
     graylineOpacity: 0.1,
     splitQSL: true,
-    showRangeRings: true,
+    showRangeRings: false,
     rangeRingDistance: 2500,
     rangeRingColor: 0,
     equator: false,

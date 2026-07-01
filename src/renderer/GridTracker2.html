@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/proj4.js" type="text/javascript"></script>
   <script src="./lib/ol.js" type="text/javascript"></script>
   <script src="./lib/arc.js" type="text/javascript"></script>
+  <script src="./lib/geocircle.js" type="text/javascript"></script>
   <script src="./lib/moment-with-locales.js" type="text/javascript"></script>
   <script src="./lib/moment-timezone-with-data.js" type="text/javascript"></script>
   <script src="./lib/callsigns.js" type="text/javascript"></script>
@@ -516,6 +517,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </div>
         <div id="equatorButton"  onclick="changeEquatorEnable()" class="iconButton" title="Toggle Major Parallels and Meridians" data-i18n="settings.map.equator.enable.hover">
           <img id="equatorImg" src="img/para-merid.png" class="buttonImg" />
+        </div>
+        <div id="rangeRingsButton"  onclick="changeRangeRingsEnable()" class="iconButton" title="Toggle Range Rings" data-i18n="settings.map.RangeRings.enable.hover">
+          <img id="rangeRingsImg" src="img/range-rings.png" class="buttonImg" />
         </div>
         <div id="radarButton" onclick="toggleRadar()" class="iconButton" title="Toggle US Radar">
           <img id="radarImg" src="img/radar-button.png" class="buttonImg" />
@@ -1777,12 +1781,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           <input type="range" min="0" max="361" value="360" class="slider" id="qrzPathColorValue" oninput="changePathValues()" />
         </div>
         <div class="flexItem">
-          <label>AEQD Range Ring Spacing</label>
-          <input type="range" min="0" max="19500" value="2500" step="100" class="slider" id="rangeRingDistanceValue" oninput="changeRangeRingDistance()" />
+          <label data-i18n="settings.map.RangeRings.spacing.label">Range Rings Spacing</label>
+          <input type="range" min="100" max="19500" value="2500" step="100" class="slider" id="rangeRingDistanceValue" oninput="changeRangeRingDistance()" />
           <label id="rangeRingDistanceTd">2500 km</label>
         </div> 
         <div class="flexItem" id="rangeRingColorDiv">
-          <label>AEQD Range Ring Color</label>
+          <label data-i18n="settings.map.RangeRings.color.label">Range Rings Color</label>
           <input type="range" min="0" max="361" value="0" class="slider" id="rangeRingColorValue" oninput="changeRangeRingColor()" />
         </div>
         <div class="flexItem" id="spotPathColorDiv">

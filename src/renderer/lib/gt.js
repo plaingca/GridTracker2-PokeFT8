@@ -12,6 +12,13 @@ const p = os.platform().toLowerCase();
 GT.platform = p.startsWith("win") ? "windows" : p.includes("darwin") ? "mac" : p.includes("linux") ? "linux" : p;
 GT.Platform = p.startsWith("win") ? "Windows" : p.includes("darwin") ? "Mac" : p.includes("linux") ? "Linux" : p;
 
+const distanceUnitConfig = {
+    KM: { step: 100, max: 19500, min: 100, default: 1000 },
+    MI: { step: 100, max: 12100, min: 62, default: 1000 },  // ~100 km in miles
+    NM: { step: 100, max: 10500, min: 54, default: 1000 },  // ~100 km in nautical miles
+    DG: { step: 1, max: 176, min: 1, default: 10 }  
+};
+
 function loadAllSettings()
 {
   const userDataPath = electron.ipcRenderer.sendSync("getPath", "userData");
@@ -125,6 +132,13 @@ function loadAllSettings()
       console.log("Removing unknown setting: " + key);
       delete GT.settings[key];
     }
+  }
+
+  // Correct Range Ring values from previous versions
+  if (GT.settings.map.rangeRingDistance == 0)
+  {
+      GT.settings.map.showRangeRings = false;
+      GT.settings.map.rangeRingDistance = unitToKilometer(distanceUnitConfig[GT.settings.app.distanceUnit].default, GT.settings.app.distanceUnit);
   }
 
   setWindowTheme();
@@ -4086,6 +4100,10 @@ function tryRecenterAEQD()
     changeMapProjection(false);
     centerOn(GT.settings.app.myGrid, false);
   }
+  else
+  {
+    drawRangeRings();
+  }
 }
 
 function changeMapProjection(honorMemory = true) {
@@ -4636,6 +4654,13 @@ function changeEquatorEnable()
 {
   GT.settings.map.equator = !GT.settings.map.equator;
   equatorImg.style.filter = GT.settings.map.equator ? "" : "grayscale(1)";
+  drawRangeRings();
+}
+
+function changeRangeRingsEnable()
+{
+  GT.settings.map.showRangeRings = !GT.settings.map.showRangeRings;
+  rangeRingsImg.style.filter = GT.settings.map.showRangeRings ? "" : "grayscale(1)";
   drawRangeRings();
 }
 
@@ -10426,16 +10451,36 @@ function displayTimezones()
 }
 
 function kilometerToUnit(value, unit) {
-  let r = { 'KM': 1, 'MI': 0.621371, 'NM': 0.539957, 'DG':0.008 };
+  let r = { 'KM': 1, 'MI': 0.621371, 'NM': 0.539957, 'DG': 0.00899322 };
   if ( unit in r ) return r[unit] * value;
-  else return unit;
+  else return value;
+}
+
+function unitToKilometer(value, unit) {
+  let r = { 'KM': 1, 'MI': 1 / 0.621371, 'NM': 1 / 0.539957, 'DG': 1 / 0.00899322 };
+  if ( unit in r ) return r[unit] * value;
+  else return value;
 }
 
 function changeRangeRingDistance()
 {
-  GT.settings.map.rangeRingDistance = parseInt(rangeRingDistanceValue.value);
+  let val = parseFloat(event.target.value);
+  let unit = GT.settings.app.distanceUnit || 'KM';
+  
+  // Convert slider value back to KM
+  let valInKm = unitToKilometer(val, unit);
+  
+  // --> HARD ENFORCEMENT: Never allow the value below 100 KM <--
+  if (valInKm < 100) {
+      valInKm = 100;
+  }
+
+  GT.settings.map.rangeRingDistance = valInKm;
+  
+  updateRangeRingsUI();
   drawRangeRings();
 }
+
 
 function changeRangeRingColor()
 {
@@ -10451,11 +10496,24 @@ function changeEquatorColor()
 
 function updateRangeRingsUI()
 {
-  let value = (distanceUnit.value != "KM") ? parseFloat(kilometerToUnit(GT.settings.map.rangeRingDistance, distanceUnit.value)).toFixed(1) : GT.settings.map.rangeRingDistance;
-  value += " " + distanceUnit.value.toLowerCase();
-  rangeRingDistanceTd.innerHTML = value;
-  rangeRingDistanceValue.value = GT.settings.map.rangeRingDistance;
+  let currentUnit = GT.settings.app.distanceUnit || "KM";
+  let config = distanceUnitConfig[currentUnit] || distanceUnitConfig['KM'];
 
+  // Convert the internal KM to the display unit, snapped to step to fix float drift
+  let rawLocal = kilometerToUnit(GT.settings.map.rangeRingDistance, currentUnit);
+  let displayValue = Math.round(rawLocal / config.step) * config.step;
+
+  // Update the HTML slider attributes dynamically
+  rangeRingDistanceValue.value = displayValue;
+  rangeRingDistanceValue.min = config.min;
+  rangeRingDistanceValue.step = config.step;
+  rangeRingDistanceValue.max = config.max;
+
+  // Format the text label (Degrees get 1 decimal place, others are whole numbers)
+  let textValue = Math.round(displayValue);
+  rangeRingDistanceTd.innerHTML = textValue + " " + currentUnit.toLowerCase();
+
+  // --- Original Color Management untouched below ---
   rangeRingColorDiv.style.color = (GT.settings.map.rangeRingColor == 0) ? "#FFF" : "#000";
   rangeRingColorDiv.style.textShadow = (GT.settings.map.rangeRingColor == 0) ? "" : "-1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF";
   rangeRingColorDiv.style.backgroundColor = GT.settings.map.rangeRingColor == 0 ? "#000" : GT.settings.map.rangeRingColor == 361 ? "#FFF" : "hsl(" + GT.settings.map.rangeRingColor + ", 100%, 50%)";
@@ -10527,27 +10585,50 @@ function drawRangeRings()
 
   }
 
-  if (GT.settings.map.showRangeRings == false || GT.settings.map.projection == "EPSG:3857" || GT.settings.map.rangeRingDistance == 0)
+  if (GT.settings.map.showRangeRings == false)
   {
     return;
   }
 
-  const center = [GT.settings.map.longitude , GT.settings.map.latitude];    
+  const center = [GT.settings.map.longitude, GT.settings.map.latitude];    
   const distance = GT.settings.map.rangeRingDistance;
+  const geoJsonFormat = new ol.format.GeoJSON();
 
   for (let x = distance; x < 20000; x += distance)
   {
-    let poly = new ol.geom.Polygon.circular(center, parseInt(x * 1000), 359).transform("EPSG:4326", GT.settings.map.projection);
-    let feature = new ol.Feature( { geometry: poly, prop: "range" } );
-    let featureStyle = new ol.style.Style({
-      stroke: new ol.style.Stroke({
-        color: rangeRingColorDiv.style.backgroundColor,
-        width: (x % (distance * 2) == 0) ? 0.2 : 0.4
-      })
-    });
-    feature.setStyle(featureStyle);
-    GT.layerSources.rangeRings.addFeature(feature);
+    let feature = null;
+
+    if (GT.settings.map.projection == "EPSG:3857")
+    {
+      let geoJson = generateGeodesicCircle(GT.settings.map.longitude, GT.settings.map.latitude, x * 2);
+      
+      if (geoJson) {
+        feature = geoJsonFormat.readFeature(geoJson, {
+          dataProjection: 'EPSG:4326', 
+          featureProjection: GT.settings.map.projection
+        });
+        feature.set('prop', 'range');
+      }
+    }
+    else
+    {
+      let poly = new ol.geom.Polygon.circular(center, parseInt(x * 1000), 359).transform("EPSG:4326", GT.settings.map.projection);
+      feature = new ol.Feature({ geometry: poly, prop: "range" });
+    }
+
+    if (feature) {
+      let featureStyle = new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: rangeRingColorDiv.style.backgroundColor,
+          width: (x % (distance * 2) == 0) ? 0.2 : 0.4
+        })
+      });
+      
+      feature.setStyle(featureStyle);
+      GT.layerSources.rangeRings.addFeature(feature);
+    }
   }
+
 }
 
 function drawAllGrids()
@@ -10900,7 +10981,8 @@ function loadMapSettings()
   predImg.style.filter = GT.settings.map.predMode > 0 ? "" : "grayscale(1)";
   gridOverlayImg.style.filter = GT.settings.map.showAllGrids ? "" : "grayscale(1)";
   equatorImg.style.filter = GT.settings.map.equator ? "" : "grayscale(1)";
-
+  rangeRingsImg.style.filter = GT.settings.map.showRangeRings ? "" : "grayscale(1)";
+  
   GT.bandToColor = { ...GT.pskColors };
 
   setGridOpacity();
@@ -10917,11 +10999,29 @@ function loadMapSettings()
 
 function changeDistanceUnit()
 {
-  GT.settings.app.distanceUnit = distanceUnit.value;
-  GT.scaleLine.setUnits(GT.scaleUnits[GT.settings.app.distanceUnit]);
-  updateRangeRingsUI();
+  let newUnit = distanceUnit.value;
+  
+  // Convert current internal KM distance to the new local unit
+  let currentLocalValue = kilometerToUnit(GT.settings.map.rangeRingDistance, newUnit);
+  
+  // Snap to the nearest step of the new unit (e.g., nearest 100 or 0.5)
+  let step = distanceUnitConfig[newUnit].step;
+  let snappedValue = Math.round(currentLocalValue / step) * step;
+
+  // Ensure we don't accidentally exceed the new slider max
+  snappedValue = Math.max(0, Math.min(snappedValue, distanceUnitConfig[newUnit].max));
+
+  // Convert the snapped local unit back to KM and save to settings
+  GT.settings.map.rangeRingDistance = unitToKilometer(snappedValue, newUnit);
+
+  GT.settings.app.distanceUnit = newUnit;
+  GT.scaleLine.setUnits(GT.scaleUnits[newUnit]);
+  
+  // Updating range rings will natively call updateRangeRingsUI()
+  drawRangeRings();
   goProcessRoster();
 }
+
 
 function changeMapNightPathValues()
 {
@@ -11027,8 +11127,6 @@ function changeMapValues()
   {
     GT.layerVectors.gtflags.setVisible(false);
   }
-
-  
 
   changeMapLayer();
 }

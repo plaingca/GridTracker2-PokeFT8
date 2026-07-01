@@ -1,9 +1,6 @@
 /**
  * GeoJSONTerminator (Fixed AEQD Inversion logic for GT2)
  */
-/**
- * GeoJSONTerminator (Fixed AEQD Inversion logic for GT2)
- */
 (function (global, factory) {
   typeof exports === "object" && typeof module !== "undefined"
     ? (module.exports = factory())

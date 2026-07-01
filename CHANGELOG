@@ -278,6 +278,10 @@ App:
   Roster / Audio Alerts Band Memory feature now includes optional exceptions and custom alerts
 Logging:
   LoTW station list now gathered on-demand
+Map:
+  Added Range Rings to Mercator (flat map) projection
+    Includes toggle button on the main panel
+    Includes proper translations for all languages
 
 ### Fixed
 
