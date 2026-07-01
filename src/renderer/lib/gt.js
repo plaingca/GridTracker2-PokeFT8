@@ -10229,7 +10229,16 @@ function createWorkingObject(name)
 
 function loadMaidenHeadData()
 {
-  GT.dxccInfo = require(GT.dxccInfoPath);
+  try {
+    GT.dxccInfo = require(GT.dxccInfoPath);
+  }
+  catch (e)
+  {
+    console.error("Failed to load Ginternal dxcc-info, falling back to asar");
+    // Fallback to asar
+    GT.dxccInfo = require(GT.asarDxccInfoPath);
+    
+  }
 
   if ("version" in GT.dxccInfo[0])
   {

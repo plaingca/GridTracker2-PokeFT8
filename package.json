@@ -1,6 +1,6 @@
 {
   "name": "GridTracker2",
-  "version": "2.260701.0",
+  "version": "2.260701.1",
   "description": "GridTracker2",
   "main": "./src/main/index.js",
   "author": "The GridTracker Team",
