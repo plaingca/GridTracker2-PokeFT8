@@ -4757,14 +4757,14 @@ const mainLayout = {
   },
   hideMenuLeft: {
     menuDiv: { style: { display: "none" } },
-    chevronDiv: { style: { display: "block", left: "6px", top: "67px", right: "" , width: "23px"}, innerHTML: "☰⮞" },
+    chevronDiv: { style: { display: "block", left: "6px", top: "67px", right: "" , width: "23px"}, innerHTML: "☰▶" },
     legendDiv: { style: { right: "2px" } },
     mouseTrackDiv: { style: { left: "35px" } },
     mapDiv: { style: { left: "0", right: "0" } }
   },
   hideMenuRight: {
     menuDiv: { style: { display: "none" } },
-    chevronDiv: { style: { display: "block", right: "7px", top: "28px", left: "", width: "21px" }, innerHTML: "⮜☰"},
+    chevronDiv: { style: { display: "block", right: "7px", top: "28px", left: "", width: "21px" }, innerHTML: "◀☰"},
     legendDiv: { style: { right: "2px" } },
     mouseTrackDiv: { style: { left: "35px" } },
     mapDiv: { style: { left: "0", right: "0" } }
