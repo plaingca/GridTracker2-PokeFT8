@@ -287,7 +287,9 @@ Map:
 App:
   New option to place the Map on the right side of the screen
     Settings -> General -> "Map On Right Side"
-    
+Map:
+  Fix Statute and Nuatical Miles range rings not landing on multiples of 100
+
 ### Fixed
 
 

@@ -14,8 +14,8 @@ GT.Platform = p.startsWith("win") ? "Windows" : p.includes("darwin") ? "Mac" : p
 
 const distanceUnitConfig = {
     KM: { step: 100, max: 19500, min: 100, default: 1000 },
-    MI: { step: 100, max: 12100, min: 62, default: 1000 },  // ~100 km in miles
-    NM: { step: 100, max: 10500, min: 54, default: 1000 },  // ~100 km in nautical miles
+    MI: { step: 100, max: 12100, min: 100, default: 1000 },  // ~100 km in miles
+    NM: { step: 100, max: 10500, min: 100, default: 1000 },  // ~100 km in nautical miles
     DG: { step: 1, max: 176, min: 1, default: 10 }  
 };
 
