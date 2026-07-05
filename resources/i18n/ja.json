@@ -213,6 +213,8 @@
     "settings.general.ClearSettingSure.label": "はい、確認しました！",
     "settings.general.ExportSettings.label": "設定をエクスポート",
     "settings.general.ImportSettings.label": "設定をインポート",
+    "settings.general.MapOnRightSide.label": "マップを右側に表示",
+    "map.showMenu.hover": "クリックしてメニューを表示",
     "settings.lookup.label": "コールサイン検索サービス",
     "settings.lookup.Callook": "C A L L O O K(米国のみ)",
     "settings.lookup.HamQTH": "HamQTH(無料ログインが必要)",

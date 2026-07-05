@@ -213,6 +213,8 @@
     "settings.general.ClearSettingSure.label": "Yes, I'm sure!",
     "settings.general.ExportSettings.label": "Export Settings",
     "settings.general.ImportSettings.label": "Import Settings",
+    "settings.general.MapOnRightSide.label": "Map On Right Side",
+    "map.showMenu.hover": "Click to show menu",
     "settings.lookup.label": "Callsign Lookup Service",
     "settings.lookup.Callook": "C A L L O O K (US Only)",
     "settings.lookup.HamQTH": "HamQTH (Free Login Required)",

@@ -213,6 +213,8 @@
     "settings.general.ClearSettingSure.label": "Sì, ne sono certo!",
     "settings.general.ExportSettings.label": "Parametri di esportazione",
     "settings.general.ImportSettings.label": "Parametri di importazione",
+    "settings.general.MapOnRightSide.label": "Mappa sul lato destro",
+    "map.showMenu.hover": "Clicca per mostrare il menu",
     "settings.lookup.label": "Servizio di ricerca dei nominativi",
     "settings.lookup.Callook": "C A L L O O K (Solo Stati Uniti)",
     "settings.lookup.HamQTH": "HamQTH (È richiesta una connessione gratuita)",

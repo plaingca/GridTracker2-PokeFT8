@@ -214,6 +214,8 @@
     "settings.general.ClearSettingSure.label": "是的,我肯定！",
     "settings.general.ExportSettings.label": "导出设置",
     "settings.general.ImportSettings.label": "导入设置",
+    "settings.general.MapOnRightSide.label": "地图在右侧",
+    "map.showMenu.hover": "点击显示菜单",
     "settings.lookup.label": "呼号信息查找服务",
     "settings.lookup.Callook": "CALLOOK (仅限美国)",
     "settings.lookup.HamQTH": "HamQTH (需要免费登录)",

@@ -214,6 +214,8 @@
     "settings.general.ClearSettingSure.label": "Ja, ich bin sicher!",
     "settings.general.ExportSettings.label": "Einstellungen exportieren",
     "settings.general.ImportSettings.label": "Einstellungen importieren",
+    "settings.general.MapOnRightSide.label": "Karte auf der rechten Seite",
+    "map.showMenu.hover": "Klicken, um das Menü anzuzeigen",
     "settings.lookup.label": "Rufzeichen-Nachschlagen",
     "settings.lookup.Callook": "C A L L O O K (Nur US-Rufzeichen)",
     "settings.lookup.HamQTH": "HamQTH (Gratisaccount benötigt)",

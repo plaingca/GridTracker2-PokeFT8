@@ -57,7 +57,7 @@ const k_max_aeqd_grid_in_miles = 11500.0;
 const def_settings = {
   defaultsApplied: true,
   app: {
-    chatUUID: "",
+    mapRight: false,
     clearOnCQ: false,
     crScript: 0,
     wantedByBandMode: false,

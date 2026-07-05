@@ -35,22 +35,21 @@ html, body {
   }
 }
 
-.mapDivEnd:-webkit-full-screen {
-  height: 100%;
-  width: 100%;
-}
 
-#mapDiv {
+.mapDivClass {
   height: 100%;
   z-index: 0;
   position: absolute;
   top: 0;
   left: 0;
+  padding: 0px;
+  margin: 0px;
+  right: 201px;
   background-color: black;
   overflow: hidden;
 }
 
-.menuDivEnd {
+.menuDivClass {
   position: absolute;
   right: 0;
   top: 0;
@@ -62,85 +61,33 @@ html, body {
   height: 100%;
 }
 
-.mapDivEnd {
-  padding: 0px;
-  margin: 0px;
-  right: 201px;
-  top: 0;
-}
 
-.mapDivFullscreen {
+.chevronDivClass {
   padding: 0px;
   margin: 0px;
-  right: 0;
-  top: 0;
-}
-.menuDivStart {
+  width: 16px;
+  height: 16px;
+  border-width: 1px;
+  border-color: #CCC;
+  border-style: solid;
+  font-weight: bold;
   position: absolute;
-  right: -201px;
-  top: 0;
-  width: 200px;
-  z-index: 1;
-  background-color: black;
-  color: #fff;
+  right: 7px;
+  top: 28px;
+  z-index: 2;
+  background-color: white;
+  -webkit-border-radius: 2px;
+  color: black;
   display: none;
-  height: 100%;
+  transition: border-color 0.2s ease;
 }
 
-.chevronDivStart {
-  padding: 0px;
-  margin: 0px;
-  width: 10px;
-  border-width: 1px;
-  border-color: #aaa;
-  border-style: inset;
-  -webkit-border-radius: 4px;
-  font-weight: bold;
-  position: absolute;
-  right: -301px;
-  top: 40px;
-  z-index: 2;
-  background-color: black;
-  color: #fff;
-  display: block;
+.chevronDivClass:hover {
+  border-color: #333; 
+  background-color: #f5f5f5; 
 }
 
-.chevronDivEnd {
-  padding: 0px;
-  margin: 0px;
-  width: 10px;
-  border-width: 1px;
-  border-color: #aaa;
-  border-style: inset;
-  -webkit-border-radius: 4px;
-  font-weight: bold;
-  position: absolute;
-  right: 0;
-  top: 40px;
-  z-index: 2;
-  background-color: black;
-  color: #fff;
-  display: block;
-}
-.mapDivStart {
-  padding: 0px;
-  margin: 0px;
-  right: 0px;
-  top: 0;
-}
-
-
-.legendDivStart {
-  position: absolute;
-  bottom: 17px;
-  right: 2px;
-  vertical-align: top;
-  display:flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.legendDivEnd {
+.legendDivClass {
   position: absolute;
   bottom: 17px;
   right: 203px;
@@ -155,7 +102,7 @@ html, body {
 	height: 8px;
 }
 
-.mouseTrack {
+.mouseTrackClass {
   position: absolute;
   top: 8px;
   padding: 1px;
@@ -1197,3 +1144,4 @@ button:focus {
 
   vertical-align: middle; 
 }
+

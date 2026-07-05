@@ -213,6 +213,8 @@
   "settings.general.ClearSettingSure.label": "¡Sí, estoy seguro!",
   "settings.general.ExportSettings.label": "Exportar config.",
   "settings.general.ImportSettings.label": "Importar config.",
+  "settings.general.MapOnRightSide.label": "Mapa en el lado derecho",
+  "map.showMenu.hover": "Clic para mostrar el menú",
   "settings.lookup.label": "Servicio de búsqueda de indicativo",
   "settings.lookup.Callook": "C A L L O O K (Solo EE.UU.)",
   "settings.lookup.HamQTH": "HamQTH (Se requiere inicio de sesión gratuito)",

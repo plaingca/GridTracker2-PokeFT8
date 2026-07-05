@@ -2271,7 +2271,7 @@ function toggleFullscreen()
 
 function toggleMenu()
 {
-  (GT.menuShowing == false) ? collapseMenu(false) : collapseMenu(true);
+  (GT.menuShowing == false) ? updateLayout(false) : updateLayout(true);
 }
 
 function toggleHelp()
@@ -3842,14 +3842,6 @@ function displayTime()
   GT.currentDay = ~~(GT.timeNow / 86400);
   GT.currentYear = new Date().getUTCFullYear();
 
-  if (menuDiv.className == "menuDivStart" && GT.menuShowing == true)
-  {
-    menuDiv.className = "menuDivEnd";
-    mapDiv.className = "mapDivEnd";
-    legendDiv.className = "legendDivEnd";
-    GT.map.updateSize();
-  }
-
   currentTime.innerHTML = "<font color='lightblue'>" + userTimeString(null) + "</font>";
   if (GT.lastTimeSinceMessageInSeconds > 0)
   {
@@ -4748,24 +4740,69 @@ function radarRefresh()
   }
 }
 
-function collapseMenu(shouldCollapse)
+const mainLayout = {
+  mapLeft: {
+    chevronDiv: {  style: { display: "none" } },
+    legendDiv: { style: { right: "203px" } },
+    mouseTrackDiv: { style: { left: "35px" } },
+    mapDiv: { style: { left: "0", right: "201px" } },
+    menuDiv: { style: { display: "block", left: "", right: 0 } },
+  },
+  mapRight: {
+    chevronDiv: { style: { display: "none" } },
+    legendDiv: { style: { right: "2px" } },
+    mouseTrackDiv: { style: { left: "236px" } },
+    mapDiv: { style: { left: "201px", right: "0" } },
+    menuDiv: { style: { display: "block", left: 0, right: "" } },
+  },
+  hideMenuLeft: {
+    menuDiv: { style: { display: "none" } },
+    chevronDiv: { style: { display: "block", left: "6px", top: "67px", right: "" , width: "23px"}, innerHTML: "☰⮞" },
+    legendDiv: { style: { right: "2px" } },
+    mouseTrackDiv: { style: { left: "35px" } },
+    mapDiv: { style: { left: "0", right: "0" } }
+  },
+  hideMenuRight: {
+    menuDiv: { style: { display: "none" } },
+    chevronDiv: { style: { display: "block", right: "7px", top: "28px", left: "", width: "21px" }, innerHTML: "⮜☰"},
+    legendDiv: { style: { right: "2px" } },
+    mouseTrackDiv: { style: { left: "35px" } },
+    mapDiv: { style: { left: "0", right: "0" } }
+  }
+};
+
+function updateLayout(shouldCollapseMenu)
 {
-  if (shouldCollapse == true)
+  let layout = GT.settings.app.mapRight ? "mapRight" : "mapLeft";
+  
+  if (shouldCollapseMenu == true)
   {
-    GT.menuShowing = false;
-    mapDiv.className = "mapDivStart";
-    menuDiv.className = "menuDivStart";
-    legendDiv.className = "legendDivStart";
-    chevronDiv.className = "chevronDivEnd";
-  }
-  else
+    layout = (GT.settings.app.mapRight) ? "hideMenuLeft" : "hideMenuRight";
+  } 
+
+  for (const [elementId, config] of Object.entries(mainLayout[layout]))
   {
-    GT.menuShowing = true;
-    chevronDiv.className = "chevronDivStart";
-    displayTime();
+    const el = document.getElementById(elementId);
+
+    if (config.style)
+    {
+      for (const [styleProp, styleValue] of Object.entries(config.style))
+      {
+        el.style[styleProp] = styleValue;
+      }
+    }
+
+    if (config.innerHTML !== undefined)
+    {
+      el.innerHTML = config.innerHTML;
+    }
   }
+
+  GT.menuShowing = !shouldCollapseMenu;
+
   GT.map.updateSize();
 }
+
 
 function mapLoseFocus()
 {
@@ -11570,6 +11607,16 @@ function loadViewSettings()
 
   spotPathChange();
   setLegendGridSettings();
+
+  mapRightValue.checked = GT.settings.app.mapRight;
+
+  updateLayout(false);
+}
+
+function changeMapRight(checkbox)
+{
+  GT.settings.app.mapRight = mapRightValue.checked;
+  updateLayout(false);
 }
 
 function loadMsgSettings()

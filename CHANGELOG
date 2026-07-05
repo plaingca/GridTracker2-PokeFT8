@@ -283,6 +283,11 @@ Map:
     Includes toggle button on the main panel
     Includes proper translations for all languages
 
+
+App:
+  New option to place the Map on the right side of the screen
+    Settings -> General -> "Map On Right Side"
+    
 ### Fixed
 
 

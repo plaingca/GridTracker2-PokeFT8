@@ -77,13 +77,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div id="startupStatusDiv">Initial Startup</div>
   </div>
   <div id="main" style="display: none;">
-    <div id="mapDiv" class="mapDivEnd"></div>
-    <div id="mouseTrackDiv" class="mouseTrack"></div>
+    <div id="mapDiv" class="mapDivClass"></div>
+    <div id="mouseTrackDiv" class="mouseTrackClass"></div>
     <div id="warnSoundcardDiv" class="absoluteCenterDiv" style="display:none;border-color:orange;border-style:solid;border-width: 5px;padding:5px;font-weight:bold;color:cyan;" >
       <div id="warnSoundcardHtml">This is some test text!!!</div>
       <div data-i18n="updatePopup.ok" class="button" style="margin:5px;" onclick="warnSoundcardDiv.style.display='none'"></div>
     </div>
-    <div id="legendDiv" class="legendDivEnd">
+    <div id="legendDiv" class="legendDivClass">
       <div id="spotsDiv" style="border: 1px solid yellow; background-color: black;width:fit-content;padding:2px;" class="roundBorder">
         <table align="center">
           <tr>
@@ -166,8 +166,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </table>
       </div>
     </div>
-    <div id="chevronDiv" class="chevronDivStart" title="Click to show menu" onclick="collapseMenu(false)">≤</div>
-    <div id="menuDiv" class="menuDivEnd">
+    <div id="chevronDiv" class="chevronDivClass" data-i18n="map.showMenu.hover" title="Click me, place holder" onclick="updateLayout(false)">↔</div>
+    <div id="menuDiv" class="menuDivClass">
       <div id="localInfoDiv"
         style="border: 1px solid white; margin: 1px; margin-top: 1px; margin-bottom: 1px; padding: 0px"
         class="roundBorder">
@@ -185,7 +185,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                     overflow: hidden;
                     white-space: nowrap;
                     text-overflow: ellipsis;
-                  " onclick="collapseMenu(true);">
+                  " onclick="updateLayout(true);">
                 GridTracker2
               </div>
             </td>
@@ -709,302 +709,315 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <button data-i18n="settings.About.label" id="aboutbut" class="settingsTablinks" style="margin-right: 25px"
           onclick="openSettingsTab(event, 'aboutDiv')">About</button>
       </div>
-      <div id="generalSettingsDiv" class="settingsTabcontent" style="display: block">
-        <table align="center">
-          <tr>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.UDP.Messages.label"><b>Receive UDP Messages</b></td>
-                  </tr>
-                  <tr>
-                    <td id="lastMsgTimeDiv">No messages yet.</td>
-                  </tr>
-                  <tr>
-                    <td><div id="secondsAgoMsg" class="roundBorderValue">Never</div></td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.UDP.Multicast.label" for="multicastEnable">Multicast?</label>
-                      <input title="Enable / Disable Local Network Multicast" type="checkbox" id="multicastEnable"
-                        onclick="setMulticastEnable(this);" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td id="multicastTD" >
-                      <label data-i18n="settings.general.UDP.IP.label" for="multicastIpInput">IP</label>
-                      <input id="multicastIpInput" type="text" class="inputTextValue" maxlength="15" size="11"
-                        onkeypress="return validIpKeys(event.charCode);"
-                        oninput=" if ( ValidateMulticast(this) ) setMulticastIp();   " />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.UDP.Port.label" for="udpPortInput">Port</label>
-                      <input id="udpPortInput" type="text" class="inputTextValue" maxlength="5" size="5"
-                        onkeypress="return validNumberKeys(event.charCode);"
-                        oninput="if ( ValidatePort(this, null, CheckReceivePortIsNotForwardPort) ) setUdpPort();" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.Fwd.Messages.label1"><b>Forward UDP Messsages</b></td>
-                  </tr>
-                  <tr>
-                    <td data-i18n="settings.general.Fwd.Messages.label2"><i>e.g. GridTracker on another host</i></td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.Fwd.IP.label" for="udpForwardIpInput">IPs</label>
-                      <input id="udpForwardIpInput" type="text" class="inputTextValue" size="15"
-                        onkeypress="return validIpsKeys(event.charCode);"
-                        oninput=" if ( ValidateIPaddresses(this, udpForwardEnable) ) setForwardIp();   " />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.Fwd.Port.label" for="udpForwardPortInput">Port</label>
-                      <input id="udpForwardPortInput" type="text" class="inputTextValue" maxlength="5" size="5"
-                        onkeypress="return validNumberKeys(event.charCode);"
-                        oninput="if ( ValidatePort(this, udpForwardEnable, CheckForwardPortIsNotReceivePort) )  setForwardPort();  " />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.Enabled.label" for="udpForwardEnable">Enabled?</label>
-                      <input title="Enable / Disable UDP Message forwarding" type="checkbox" id="udpForwardEnable"
-                        onclick="setUdpForwardEnable(this);" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.adifBroadcastMessage.label1"><b>Receive ADIF UDP</b></td>
-                  </tr>
-                  <tr>
-                    <td data-i18n="settings.general.adifBroadcastMessage.label2"><b>Broadcasts For Logging</b></td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.UDP.Multicast.label" for="adifBroadcastMulticast">Multicast?</label>
-                      <input title="Enable / Disable Multicast" type="checkbox" id="adifBroadcastMulticast"
-                        onclick="setAdifBroadcastMulticast(this);" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td id="adifBroadcastIpTD" >
-                      <label data-i18n="settings.general.UDP.IP.label" for="adifBroadcastIP">IP</label>
-                      <input id="adifBroadcastIP" type="text" class="inputTextValue" maxlength="15" size="11"
-                        onkeypress="return validIpKeys(event.charCode);"
-                        oninput=" if ( ValidateMulticast(this) ) setAdifBroadcastIp();" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.UDP.Port.label" for="adifBroadcastPort">Port</label>
-                      <input id="adifBroadcastPort" type="text" class="inputTextValue" maxlength="5" size="5"
-                        onkeypress="return validNumberKeys(event.charCode);"
-                        oninput="if ( ValidatePort(this, adifBroadcastEnable, CheckAdifBroadcastPortIsNotReceivePort) ) setAdifBroadcastPort();" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <label data-i18n="settings.general.Enabled.label" for="adifBroadcastEnable">Enabled?</label>
-                      <input title="Enable / Disable ADIF UDP Broadcast Logging" type="checkbox" id="adifBroadcastEnable"
-                        onclick="setAdifBroadcastEnable(this);" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
+    <div id="generalSettingsDiv" class="settingsTabcontent" style="display: block">
+  
+  <table align="center">
+    <tr>
+      <td>
+        <div class="mapItem">
+          <table align="center">
+            <tr>
+              <td data-i18n="settings.general.UDP.Messages.label"><b>Receive UDP Messages</b></td>
             </tr>
             <tr>
-            <td colspan="3">
-              <div class="mapItem" id="multiRigCRDiv" style="display:none;">
-                <table align="center">
-                  <tr align="center">
-                    <td data-i18n="settings.callroster.MultiRig.label" align="center">On QSO Reply</td>
-                  </tr>
-                  <tr align="center">
-                    <td data-i18n="settings.callroster.MultiRig.SwitchView.label" align="center">Switch View To Transmitting
-                      Instance</td>
-                  </tr>
-                  <tr align="center">
-                    <td colspan="2">
-                      <input type="checkbox" id="focusRigValue" onchange="changeFocusRigValue(this);" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
+              <td id="lastMsgTimeDiv">No messages yet.</td>
+            </tr>
+            <tr>
+              <td><div id="secondsAgoMsg" class="roundBorderValue">Never</div></td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.UDP.Multicast.label" for="multicastEnable">Multicast?</label>
+                <input title="Enable / Disable Local Network Multicast" type="checkbox" id="multicastEnable"
+                  onclick="setMulticastEnable(this);" />
+              </td>
+            </tr>
+            <tr>
+              <td id="multicastTD" >
+                <label data-i18n="settings.general.UDP.IP.label" for="multicastIpInput">IP</label>
+                <input id="multicastIpInput" type="text" class="inputTextValue" maxlength="15" size="11"
+                  onkeypress="return validIpKeys(event.charCode);"
+                  oninput=" if ( ValidateMulticast(this) ) setMulticastIp();   " />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.UDP.Port.label" for="udpPortInput">Port</label>
+                <input id="udpPortInput" type="text" class="inputTextValue" maxlength="5" size="5"
+                  onkeypress="return validNumberKeys(event.charCode);"
+                  oninput="if ( ValidatePort(this, null, CheckReceivePortIsNotForwardPort) ) setUdpPort();" />
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+      <td>
+        <div class="mapItem">
+          <table align="center">
+            <tr>
+              <td data-i18n="settings.general.Fwd.Messages.label1"><b>Forward UDP Messsages</b></td>
+            </tr>
+            <tr>
+              <td data-i18n="settings.general.Fwd.Messages.label2"><i>e.g. GridTracker on another host</i></td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.Fwd.IP.label" for="udpForwardIpInput">IPs</label>
+                <input id="udpForwardIpInput" type="text" class="inputTextValue" size="15"
+                  onkeypress="return validIpsKeys(event.charCode);"
+                  oninput=" if ( ValidateIPaddresses(this, udpForwardEnable) ) setForwardIp();   " />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.Fwd.Port.label" for="udpForwardPortInput">Port</label>
+                <input id="udpForwardPortInput" type="text" class="inputTextValue" maxlength="5" size="5"
+                  onkeypress="return validNumberKeys(event.charCode);"
+                  oninput="if ( ValidatePort(this, udpForwardEnable, CheckForwardPortIsNotReceivePort) )  setForwardPort();  " />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.Enabled.label" for="udpForwardEnable">Enabled?</label>
+                <input title="Enable / Disable UDP Message forwarding" type="checkbox" id="udpForwardEnable"
+                  onclick="setUdpForwardEnable(this);" />
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+      <td>
+        <div class="mapItem">
+          <table align="center">
+            <tr>
+              <td data-i18n="settings.general.adifBroadcastMessage.label1"><b>Receive ADIF UDP</b></td>
+            </tr>
+            <tr>
+              <td data-i18n="settings.general.adifBroadcastMessage.label2"><b>Broadcasts For Logging</b></td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.UDP.Multicast.label" for="adifBroadcastMulticast">Multicast?</label>
+                <input title="Enable / Disable Multicast" type="checkbox" id="adifBroadcastMulticast"
+                  onclick="setAdifBroadcastMulticast(this);" />
+              </td>
+            </tr>
+            <tr>
+              <td id="adifBroadcastIpTD" >
+                <label data-i18n="settings.general.UDP.IP.label" for="adifBroadcastIP">IP</label>
+                <input id="adifBroadcastIP" type="text" class="inputTextValue" maxlength="15" size="11"
+                  onkeypress="return validIpKeys(event.charCode);"
+                  oninput=" if ( ValidateMulticast(this) ) setAdifBroadcastIp();" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.UDP.Port.label" for="adifBroadcastPort">Port</label>
+                <input id="adifBroadcastPort" type="text" class="inputTextValue" maxlength="5" size="5"
+                  onkeypress="return validNumberKeys(event.charCode);"
+                  oninput="if ( ValidatePort(this, adifBroadcastEnable, CheckAdifBroadcastPortIsNotReceivePort) ) setAdifBroadcastPort();" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.Enabled.label" for="adifBroadcastEnable">Enabled?</label>
+                <input title="Enable / Disable ADIF UDP Broadcast Logging" type="checkbox" id="adifBroadcastEnable"
+                  onclick="setAdifBroadcastEnable(this);" />
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+    
+    <div style="display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;">
+      
+      <div id="CenterGridDiv" class="mapItem">
+        <table align="center">
+          <tr>
+            <td data-i18n="settings.general.CenterGrid.label">Center Gridsquare</td>
+          </tr>
+          <tr>
+            <td>
+              <input id="homeQTHInput" type="text" class="inputTextValue" maxlength="8" size="8"
+                oninput="{ if ( ValidateGridsquare(this,null) ) { saveCenterGridsquare(); }}" />
             </td>
           </tr>
         </table>
+      </div>
+
+      <div class="mapItem">
+        <table align="center">
+          <tr>
+            <td data-i18n="settings.general.DistanceUnits.label" title="Distance Units">Distance Units</td>
+          </tr>
+          <tr>
+            <td>
+              <select id="distanceUnit" value="KM" onchange="changeDistanceUnit();">
+                <option data-i18n="settings.general.Distance.km" value="KM">Kilometres</option>
+                <option data-i18n="settings.general.Distance.mi" value="MI">Statute Miles</option>
+                <option data-i18n="settings.general.Distance.nm" value="NM">Nautical Miles</option>
+                <option data-i18n="settings.general.Distance.dg" value="DG">Degrees</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="mapItem" id="haltTXDiv" style="display:none;">
+        <table align="center">
+          <tr align="center">
+            <td data-i18n="settings.callroster.MultiRig.label" align="center">On QSO Reply</td>
+          </tr>
+          <tr align="center">
+            <td data-i18n="settings.callroster.MultiRig.HaltTx.label" align="center">Halt TX On All Other Instances</td>
+          </tr>
+          <tr align="center">
+            <td colspan="2">
+              <input type="checkbox" id="haltAllOnTxValue" onchange="changeHaltOntTxValue(this);" />
+            </td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;">
+      
+      <div class="mapItem">
+        <table align="center">
+          <tr>
+            <td data-i18n="settings.general.Language.label" title="Language">Language</td>
+          </tr>
+          <tr>
+            <td>
+              <select id="languageLocale" value="en" onchange="changeLocale();">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="it">Italiano</option>
+                <option value="ja">日本語</option>
+                <option value="cn">简体中文</option>
+                <option value="cnt">繁體中文</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="mapItem">
+        <table align="center">
+          <tr>
+            <td title="Window Theme">Window Theme</td>
+          </tr>
+          <tr>
+            <td>
+              <select id="windowTheme" value="dark" onchange="changeWindowTheme();">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="system">System</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="mapItem" id="multiRigCRDiv" style="display:none;">
+        <table align="center">
+          <tr align="center">
+            <td data-i18n="settings.callroster.MultiRig.label" align="center">On QSO Reply</td>
+          </tr>
+          <tr align="center">
+            <td data-i18n="settings.callroster.MultiRig.SwitchView.label" align="center">Switch View To Transmitting Instance</td>
+          </tr>
+          <tr align="center">
+            <td colspan="2">
+              <input type="checkbox" id="focusRigValue" onchange="changeFocusRigValue(this);" />
+            </td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;">
+      
+      <div class="mapItem">
+        <table align="center">
+          <tr align="center">
+            <td data-i18n="settings.general.MapOnRightSide.label" align="center">map on right, place holder</td>
+          </tr>
+          <tr align="center">
+            <td >
+              <input type="checkbox" id="mapRightValue" onchange="changeMapRight(this);" />
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="mapItem">
         <table align="center">
           <tr>
             <td>
-              <div id="CenterGridDiv" class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.CenterGrid.label">Center Gridsquare</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <input id="homeQTHInput" type="text" class="inputTextValue" maxlength="8" size="8"
-                        oninput="{ if ( ValidateGridsquare(this,null) ) { saveCenterGridsquare(); }}" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.DistanceUnits.label" title="Distance Units">Distance Units</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <select id="distanceUnit" value="KM" onchange="changeDistanceUnit();">
-                        <option data-i18n="settings.general.Distance.km" value="KM">Kilometres</option>
-                        <option data-i18n="settings.general.Distance.mi" value="MI">Statute Miles</option>
-                        <option data-i18n="settings.general.Distance.nm" value="NM">Nautical Miles</option>
-                        <option data-i18n="settings.general.Distance.dg" value="DG">Degrees</option>
-                      </select>
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem" id="haltTXDiv" style="display:none;">
-                <table align="center">
-                  <tr align="center">
-                    <td data-i18n="settings.callroster.MultiRig.label" align="center">On QSO Reply</td>
-                  </tr>
-                  <tr align="center">
-                    <td data-i18n="settings.callroster.MultiRig.HaltTx.label" align="center">Halt TX On All Other Instances</td>
-                  </tr>
-                  <tr align="center">
-                    <td colspan="2">
-                      <input type="checkbox" id="haltAllOnTxValue" onchange="changeHaltOntTxValue(this);" />
-                    </td>
-                  </tr>
-                </table>
-              </div>
+              <div data-i18n="settings.general.ExportSettings.label" class="button" id="exportSettingsButton">
+                Export Settings</div>
             </td>
           </tr>
           <tr>
             <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td data-i18n="settings.general.Language.label" title="Language">Language</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <select id="languageLocale" value="en" onchange="changeLocale();">
-                        <option value="en">English</option>
-                        <option value="de">Deutsch</option>
-                        <option value="es">Español</option>
-                        <option value="fr">Français</option>
-                        <option value="it">Italiano</option>
-                        <option value="ja">日本語</option>
-                        <option value="cn">简体中文</option>
-                        <option value="cnt">繁體中文</option>
-                      </select>
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td title="Window Theme">Window Theme</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <select id="windowTheme" value="dark" onchange="changeWindowTheme();">
-                        <option value="dark">Dark</option>
-                        <option value="light">Light</option>
-                        <option value="system">System</option>
-                      </select>
-                    </td>
-                  </tr>
-                </table>
+              <div data-i18n="settings.general.ImportSettings.label" id="importSettingsButton" class="button">
+                Import Settings
               </div>
             </td>
           </tr>
           <tr>
-            <td>
-              <div class="mapItem">
-                <table align="center">
-                  <tr>
-                    <td>
-                      <div data-i18n="settings.general.ExportSettings.label" class="button" id="exportSettingsButton">
-                        Export Settings</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <div data-i18n="settings.general.ImportSettings.label" 
-                       id="importSettingsButton" class="button" id="importSettingsButton">
-                        Import Settings
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td id="importSettingsInfo">
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </td>
-            <td>
-              <div class="mapItem" style="display: flex; justify-content: center; align-items: center;" >
-                <div data-i18n="settings.general.ResetButtonPanel.label" class="flexButton" onclick="setButtonPanelOrder(GT.defaultButtons)">
-                  Reset-Button-Panel
-                 </div>
-              </div>
-            </td>
-        </tr>
-      </table>
-      <table align="center">
-        <tr>
-          <td>
-            <div class="mapItem">
-              <table align="center">
-                <tr>
-                  <td>
-                    <div data-i18n="settings.general.ClearAllSettings.label" class="button"
-                      onclick="if ( imSureCheck.checked ) { clearAndReload(); }">
-                      Clear All Settings!
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <label data-i18n="settings.general.ClearSettingSure.label" for="imSureCheck">Yes, I'm sure!</label>
-                    <input type="checkbox" id="imSureCheck" title="Must be checked to enable clearing of settings" />
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </td>
-        </tr>
-      </table>
+            <td id="importSettingsInfo"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="mapItem" style="display: flex; justify-content: center; align-items: center;" >
+        <div data-i18n="settings.general.ResetButtonPanel.label" class="flexButton" onclick="setButtonPanelOrder(GT.defaultButtons)">
+          Reset-Button-Panel
+         </div>
+      </div>
+
     </div>
+
+  </div>
+
+  <!-- BOTTOM SECTION: Clear Settings -->
+  <table align="center">
+    <tr>
+      <td>
+        <div class="mapItem">
+          <table align="center">
+            <tr>
+              <td>
+                <div data-i18n="settings.general.ClearAllSettings.label" class="button"
+                  onclick="if ( imSureCheck.checked ) { clearAndReload(); }">
+                  Clear All Settings!
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label data-i18n="settings.general.ClearSettingSure.label" for="imSureCheck">Yes, I'm sure!</label>
+                <input type="checkbox" id="imSureCheck" title="Must be checked to enable clearing of settings" />
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+
     <div id="featuresSettingsDiv" class="settingsTabcontent">
       <div id="featureControlDiv" class="mapItem"  style="border:0">
         <div class="mapItem" style="border:0">
