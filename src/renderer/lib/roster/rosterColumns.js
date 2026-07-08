@@ -47,7 +47,7 @@ const ROSTER_COLUMNS = {
       let acks = GT.acknowledgedCalls || {};
       if (acks[callObj.DEcall])
       {
-        attrs.html = `${attrs.html} <span class='acknowledged'><img class='ackBadge' src='${acks[callObj.DEcall].badge}'></span>`
+        attrs.html = `${attrs.html} <span class='acknowledged'><img class='ackBadge' src='img/emojis/${acks[callObj.DEcall].badge}'></span>`
         attrs.title = `${acks[callObj.DEcall].message}`
       }
 

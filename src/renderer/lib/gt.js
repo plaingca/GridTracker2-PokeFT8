@@ -13702,7 +13702,7 @@ function searchLogForCallsign(call)
   // If 'ack' exists, populate the HTML array using a single-allocation template literal
   if (ack) {
     html = [
-      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="${ack.badge}"> ${ack.message}</h3>`
+      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="img/emojis/${ack.badge}"> ${ack.message}</h3>`
     ];
   }
   let work = {};
