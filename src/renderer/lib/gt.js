@@ -14533,11 +14533,25 @@ function saveGridTrackerSettings()
   try
   {
     const settingsString = JSON.stringify(GT.settings, null, 2);
+
+    try {
+      let existingSettings = fs.readFileSync(filename, "utf8");
+      if (existingSettings === settingsString) {
+        return; 
+      }
+    } catch (err) {
+      // If fs.readFileSync fails (e.g., the file doesn't exist yet on a fresh install),
+      // we just swallow the error and let the code continue down to save the file.
+    }
+
+    // Write to the temporary file
     fs.writeFileSync(tempFilename, settingsString, { flush: true });
 
+    // Verify the temporary file
     let fileBuf = fs.readFileSync(tempFilename, "utf8");
     
     if (fileBuf === settingsString) {
+      // Atomic swap
       fs.renameSync(tempFilename, filename);
     } else {
       throw new Error("Temporary file verification failed.");
@@ -14549,6 +14563,7 @@ function saveGridTrackerSettings()
     alert("Failure to write settings to: " + filename);
   }
 }
+
 
 function captureScreenshot()
 {
