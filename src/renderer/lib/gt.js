@@ -14528,12 +14528,24 @@ function handleKpIndexJSON(json)
 function saveGridTrackerSettings()
 {
   let filename = path.join(GT.appData, "app-settings.json");
+  let tempFilename = path.join(GT.appData, "app-settings.json.tmp");
+  
   try
   {
-    fs.writeFileSync(filename, JSON.stringify(GT.settings, null, 2), { flush: true });
+    const settingsString = JSON.stringify(GT.settings, null, 2);
+    fs.writeFileSync(tempFilename, settingsString, { flush: true });
+
+    let fileBuf = fs.readFileSync(tempFilename, "utf8");
+    
+    if (fileBuf === settingsString) {
+      fs.renameSync(tempFilename, filename);
+    } else {
+      throw new Error("Temporary file verification failed.");
+    }
   }
   catch (e)
   {
+    console.error(e);
     alert("Failure to write settings to: " + filename);
   }
 }
