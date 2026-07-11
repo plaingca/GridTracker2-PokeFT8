@@ -11968,13 +11968,22 @@ electron.ipcRenderer.on("versionInfo", (event, info) => {
 
 function downloadUpdate()
 {
+  GT.lastVersionInfo = "";
   electron.ipcRenderer.send("downloadUpdate", null);
 }
 
 electron.ipcRenderer.on("updateDownloaded", (event, info) => {
-  const html = "<font style='color:yellow'>" + I18N("gt.NewVersionDownloaded") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='installAndRestart()'>" + I18N("gt.InstallAndRestart") + "</div>"
-  updateVersionText.innerHTML = html;
-  addLastTraffic(html);
+  if (info != null)
+  {
+    if (GT.gtVersionStr != info.version && GT.lastVersionInfo != info.version)
+    {
+      const html = "<font style='color:yellow'>" + I18N("gt.NewVersionDownloaded") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='installAndRestart()'>" + I18N("gt.InstallAndRestart") + "</div>"
+      updateVersionText.innerHTML = html;
+      addLastTraffic(html);
+    }
+
+    GT.lastVersionInfo = info.version
+  }
 });
 
 function installAndRestart()
