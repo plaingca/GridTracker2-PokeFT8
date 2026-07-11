@@ -13640,9 +13640,9 @@ function makeRow(first, object, key, grid = false)
   {
     if (grid)
     {
-       // only applies to grid at this point. we want to invert
-       // the background color of the grid cell if new or
-       // unconfirmed and leave as is if confirmed.
+      // only applies to grid at this point. we want to invert
+      // the background color of the grid cell if new or
+      // unconfirmed and leave as is if confirmed.
       let style = lookupGridCellStyle(object[key]);
       return ("<tr><td>" + first + "</td><td title='Copy to clipboard' style='cursor:pointer;font-weight:bold;" + style + "' onClick='addTextToClipboard(\"" + object[key] + "\")'>" + object[key] + "</td></tr>");
     }
@@ -13711,7 +13711,7 @@ function searchLogForCallsign(call)
   // If 'ack' exists, populate the HTML array using a single-allocation template literal
   if (ack) {
     html = [
-      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="img/emojis/${ack.badge}"> ${ack.message}</h3>`
+      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="img/emojis/${ack.b}.png"> ${ack.m}</h3>`
     ];
   }
   let work = {};
