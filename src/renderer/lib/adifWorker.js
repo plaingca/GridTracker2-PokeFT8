@@ -212,9 +212,17 @@ function onAdiLoadComplete(task) {
           finalVucc = vuccGrids.split(",");
           
           if (finalGrid) {
+            // 4 wide search
             let foundGrid = finalVucc.indexOf(finalGrid.substring(0, 4));
             if (foundGrid > -1) {
               finalVucc.splice(foundGrid, 1);
+            }
+            else {
+              // 6 wide search
+              foundGrid = finalVucc.indexOf(finalGrid);
+              if (foundGrid > -1) {
+                finalVucc.splice(foundGrid, 1);
+              }
             }
           } else {
             finalGrid = finalVucc.shift();
