@@ -292,9 +292,10 @@ Map:
 
 
 Adif Parser:
-  Now accepts GRIDSQUARE and VUCC_GRIDS in a record
+  Now accepts both GRIDSQUARE and VUCC_GRIDS in a record
 Call Roster:
-  When sorting "Calling column; "CQ" are before callsigns
+  When sorting "Calling" column "CQ" are grouped
+
 
 ### Fixed
 
