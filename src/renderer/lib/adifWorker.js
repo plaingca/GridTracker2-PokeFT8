@@ -207,13 +207,21 @@ function onAdiLoadComplete(task) {
         let finalVucc = [];
 
         if (!validateGridFromString(finalGrid)) finalGrid = null;
-        if (finalGrid == null && vuccGrids != "") {
+        
+        if (vuccGrids != "") {
           finalVucc = vuccGrids.split(",");
-          finalGrid = finalVucc[0];
-          finalVucc.shift();
+          
+          if (finalGrid) {
+            let foundGrid = finalVucc.indexOf(finalGrid.substring(0, 4));
+            if (foundGrid > -1) {
+              finalVucc.splice(foundGrid, 1);
+            }
+          } else {
+            finalGrid = finalVucc.shift();
+          }
         }
 
-        if (finalVucc.length > 0) qso.vucc_grids = [...finalVucc];
+        if (finalVucc.length > 0) qso.vucc_grids = finalVucc;
 
         if (finalGrid) {
           qso.grid = finalGrid;

@@ -28,6 +28,26 @@ const callObjLocaleComparer = (attr) => (a, b) =>
   return a.callObj[attr].localeCompare(b.callObj[attr]);
 }
 
+const callObjLocaleComparerWithRR73 = (attr) => (a, b) =>
+{
+  let valA = a.callObj[attr];
+  if (a.callObj.CQ) valA = "0" + valA;
+  if (GT.activeExceptions.wantRRCQ && a.callObj.RR73) {
+    valA = "0CQ" + a.callObj.RR73;
+  }
+
+  let valB = b.callObj[attr];
+  if (b.callObj.CQ) valB = "0" + valB;
+  if (GT.activeExceptions.wantRRCQ && b.callObj.RR73) {
+    valB = "0CQ" + b.callObj.RR73;
+  }
+
+  if (valA == null) return 1;
+  if (valB == null) return -1;
+
+  return valA.localeCompare(valB);
+}
+
 const ROSTER_COLUMNS = {
 
   Callsign: {
@@ -89,7 +109,7 @@ const ROSTER_COLUMNS = {
   },
 
   Calling: {
-    compare: callObjLocaleComparer("DXcall"),
+    compare: callObjLocaleComparerWithRR73("DXcall"),
     tableData: (callObj) => ({
       rawAttrs: callObj.style.calling,
       name: callObj.CQ ? "CQ" : "Calling",

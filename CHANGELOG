@@ -290,6 +290,12 @@ App:
 Map:
   Fix Statute and Nuatical Miles range rings not landing on multiples of 100
 
+
+Adif Parser:
+  Now accepts GRIDSQUARE and VUCC_GRIDS in a record
+Call Roster:
+  When sorting "Calling column; "CQ" are before callsigns
+
 ### Fixed
 
 
