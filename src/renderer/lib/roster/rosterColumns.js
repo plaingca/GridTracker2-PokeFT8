@@ -100,12 +100,15 @@ const ROSTER_COLUMNS = {
 
   Grid: {
     compare: callObjSimpleComparer("grid"),
-    tableData: (callObj) => ({
-      rawAttrs: callObj.style.grid,
-      onClick: `centerOn("${callObj.grid}")`,
-      name: "Grid",
-      html: (callObj.grid.length > 0 ? callObj.gridHTML || callObj.grid : "&nbsp;")
-    })
+    tableData: (callObj) => {
+      const grid = callObj.grid ? callObj.grid.substring(0, 4) : "";
+      return {
+        rawAttrs: callObj.style.grid,
+        onClick: `centerOn("${callObj.grid}")`,
+        name: "Grid",
+        html: (grid.length > 0 ? (!callObj.gridQualified ? `${grid} ◇` : (callObj.gridHTML ? callObj.gridHTML.replace(callObj.grid, grid) : grid)) : "&nbsp;")
+      };
+    }
   },
 
   Calling: {
