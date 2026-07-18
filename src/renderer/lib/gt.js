@@ -5943,7 +5943,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       {
         let spotGrid = GT.receptionReports.spots[spotHash].grid;
         if (spotGrid && spotGrid.length > 0) {
-          theirQTH = spotGrid;
+          theirQTH = spotGrid.substring(0,4);
           validQTH = true;
           spotHadGrid = true;
         }
@@ -14026,7 +14026,7 @@ function addNewMqttPskSpot(json)
   if (json.rl && json.rl.length >= 4 && rosterHash in GT.liveCallsigns) {
     const entry = GT.liveCallsigns[rosterHash];
     if (!entry.grid || !entry.gridQualified) {
-      entry.grid = json.rl;
+      entry.grid = json.rl.substring(0, 4);
       entry.gridQualified = true;
       updateLiveDistance(entry);
     }
