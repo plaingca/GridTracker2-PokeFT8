@@ -486,7 +486,9 @@ GT.qslLockImageArray = ["img/qsl_unlocked_32.png", "img/qsl_locked_32.png"];
 GT.alertImageArray = ["img/unmuted-button.png", "img/muted-button.png"];
 GT.spotImageArray = ["img/spots.png", "img/spots.png", "img/heat.png"];
 GT.maidenheadModeImageArray = ["img/mh4_32.png", "img/mh6_32.png"];
-GT.predImageArray = ["img/no-pred.png", "img/muf.png", "img/fof2.png", "img/epi.png", "img/auf.png"];
+GT.predImageArray = ["img/no-pred.png", "img/muf.png", "img/fof2.png", "img/epi.png", "img/auf.png", "img/tropo.png"];
+
+GT.tropoData = { nodes: {}, alert_id: 0, refresh: 128, timeout: null };
 
 GT.viewInfo = {};
 GT.viewInfo[0] = ["qsoGrids", "Grids", 0, 0, 0];
@@ -4544,6 +4546,7 @@ function renderMap()
 
   GT.map.on("pointerdown", mouseDownEvent);
   GT.map.on("pointerup", mouseUpEvent);
+  GT.map.on('moveend', mapMoveEndEvent);
 
   document.getElementById("menuDiv").style.display = "block";
 
@@ -4639,6 +4642,18 @@ function mapMoveEvent(event)
   {
     GT.lastHover.functor.out(GT.lastHover.feature);
     GT.lastHover.feature = null;
+  }
+}
+
+function mapMoveEndEvent(event)
+{
+  if (GT.settings.map.predMode === 5)
+  {
+    stopTropoTimer();
+
+    GT.tropoData.refresh = 128;
+    GT.tropoData.alert_id = 0;
+    GT.tropoData.timeout = nodeTimers.setTimeout(fetchTropoLayer, 1000);
   }
 }
 
@@ -11912,9 +11927,10 @@ function registerLegendContextMenus()
 {
   predButton.addEventListener('contextmenu', (event) => {
     event.preventDefault();
+    const menu = new Menu();
+    
     if (GT.settings.map.predMode > 0)
     {
-      const menu = new Menu();
       menu.append(new MenuItem({
         type: "checkbox",
         label: I18N("legend.title"),
@@ -11925,9 +11941,25 @@ function registerLegendContextMenus()
           predDiv.style.display = (GT.settings.map.predLegend) ? "" : "none";
         }
       }));
-      menu.popup();
+
+      menu.append(new MenuItem({ type: "separator" }));
     }
+    
+    GT.predLayers.forEach((layerKey, index) => {
+      menu.append(new MenuItem({
+        type: "radio",
+        label: I18N(layerKey),
+        checked: (GT.settings.map.predMode === index),
+        click: function ()
+        {
+          directPredLayer(index);
+        }
+      }));
+    });
+    
+    menu.popup();
   });
+
 
   buttonSpotsBoxDiv.addEventListener('contextmenu', (event) => {
     event.preventDefault();
@@ -14444,9 +14476,15 @@ function createPredLayer()
 
 function cyclePredLayer()
 {
-  GT.settings.map.predMode = (GT.settings.map.predMode + 1) % 5;
+  GT.settings.map.predMode = (GT.settings.map.predMode + 1) % 6;
   displayPredLayer();
-  
+}
+
+
+function directPredLayer(layer)
+{
+  GT.settings.map.predMode = layer;
+  displayPredLayer();
 }
 
 function predInit()
@@ -14456,6 +14494,9 @@ function predInit()
   GT.predViews[2] = { fof2Title, fof2BarTr, fof2RangeTr }
   GT.predViews[3] = { epiTitle, epiTimeOffsetTr, epiBarTr, epiRangeTr };
   GT.predViews[4] = { aufTitle, aufPercentTr, aufBarTr };
+  GT.predViews[5] = { tropoTitle, tropoBarTr, tropoRangeTr };
+
+  GT.predLayers = ["gt.Disabled", "predlayer.muf.label", "predlayer.fof2.label",    "predlayer.epi.label", "predlayer.auf.label", "predlayer.tropo.label"];
 }
 
 function displayPredLayer()
@@ -14504,12 +14545,22 @@ function predLayerRefreh()
       GT.PredLayer = null;
     }
 
-    GT.PredLayer = createPredLayer();
+    if (GT.settings.map.predMode == 5) {
+      GT.PredLayer = createTropoLayer();
+    } else {
+      GT.PredLayer = createPredLayer();
+    }
+
     GT.map.addLayer(GT.PredLayer);
     if (oldLayer)
     {
       GT.map.removeLayer(oldLayer);
+      oldLayer = null;
     }
+  }
+
+  if (GT.settings.map.predMode !== 5) {
+    stopTropoTimer();
   }
 }
 
