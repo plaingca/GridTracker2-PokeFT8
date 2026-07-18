@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/pota.js" type="text/javascript"></script>
   <script src="./lib/services/pstrotator.js" type="text/javascript"></script>
   <script src="./lib/acLog.js" type="text/javascript"></script>
+  <script src="./lib/tropo.js" type="text/javascript"></script>
   <script src="./lib/gt.js" type="text/javascript"></script>
   <script src="./lib/mqttPsk.js" type="text/javascript"></script>
   <script src="./lib/countyLookup.js" type="text/javascript"></script>
@@ -103,10 +104,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <div id="predDiv" style="border: 1px solid rgb(0, 247, 255); width:fit-content; background-color: black; margin-top: 1px; padding:2px;" class="roundBorder">
         <table align="center">
           <tr style="font-weight: bold;">
-            <td id="mufTitle"  colspan="3">Maximum Usable Frequency</td>
-            <td id="fof2Title" colspan="3">Critical Frequency NVIS</td>
-            <td id="epiTitle"  colspan="3">Es Probability Index</td>
-            <td id="aufTitle"  colspan="3">Probability of Aurora</td>
+            <td id="mufTitle"   data-i18n="predlayer.muf.label"   colspan="3">Maximum Usable Frequency</td>
+            <td id="fof2Title"  data-i18n="predlayer.fof2.label"  colspan="3">Critical Frequency NVIS</td>
+            <td id="epiTitle"   data-i18n="predlayer.epi.label"   colspan="3">Es Probability Index</td>
+            <td id="aufTitle"   data-i18n="predlayer.auf.label"   colspan="3">Probability of Aurora</td>
+            <td id="tropoTitle" data-i18n="predlayer.tropo.label" colspan="3">Tropospheric Inversion VHF</td>
           </tr>
           <tr id="epiTimeOffsetTr">
             <td id="epiTimeOffsetTd">0</td>
@@ -147,6 +149,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           </tr>
           <tr id="aufBarTr">
             <td colspan="3" class="barGraph"><img style="width:170px; height:8px" src="img/auf_bar.png" /></td>
+          </tr>
+          <tr id="tropoBarTr">
+            <td colspan="3" style="background: linear-gradient(90deg, rgb(0, 255, 0) 0%, rgb(255, 255, 0) 50%, rgb(255, 0, 0) 100%); width: 170px;" class="barGraph"></td>
+          </tr>
+          <tr id="tropoRangeTr">
+            <td align="left">0km</td>
+            <td></td>
+            <td align="right">&gt;500km</td>
           </tr>
           <tr id="mufRangeTr">
             <td align="left">&lt;5</td>
