@@ -1171,6 +1171,7 @@ function LiveCallsign(DEcall, DXcall, grid, mode, band, msg, dxcc, time) {
   this.DEcall = DEcall;
   this.DXcall = DXcall;
   this.grid = grid;
+  this.gridQualified = false;
   this.mode = mode;
   this.band = band;
   this.msg = msg;
@@ -1266,6 +1267,7 @@ function addLiveCallsign(
   {
     // Pass finalDXcall to DEcall, and finalDEcall to DXcall (matching original parameter swap)
     let newCallsign = new LiveCallsign(finalDXcall, finalDEcall, finalGrid, mode, band, finalMsg, finalDxcc, finalTime);
+    if (finalGrid.length > 0) newCallsign.gridQualified = true;
     newCallsign.wspr = wspr;
 
     if (finalDxcc > -1)
@@ -1319,8 +1321,13 @@ function addLiveCallsign(
       callsign.msg = finalMsg;
       callsign.dxcc = finalDxcc;
       callsign.wspr = wspr;
-      if (finalGrid.length > callsign.grid.length) callsign.grid = finalGrid;
-      if (finalGrid.length == callsign.grid.length && finalGrid != callsign.grid) callsign.grid = finalGrid;
+      if (finalGrid.length > callsign.grid.length) {
+        callsign.grid = finalGrid;
+        callsign.gridQualified = true;
+      } else if (finalGrid.length == callsign.grid.length && finalGrid != callsign.grid) {
+        callsign.grid = finalGrid;
+        callsign.gridQualified = true;
+      }
       // callsign.field = callsign.grid.substring(0, 2);
       if (finalRSTsent != null) callsign.RSTsent = finalRSTsent;
       if (finalRSTrecv != null) callsign.RSTrecv = finalRSTrecv;
@@ -1801,7 +1808,7 @@ function insertMessageInRoster(newMessage, msgDEcallsign, msgDXcallsign, callObj
             message: newMessage,
             callObj: activeCallObj,
             DXcall: msgDXcallsign,
-            DEcall: msgDEcallsign
+            DEcall: msgDEcallsign,
         };
     } else {
         entry.message = newMessage;
@@ -1815,6 +1822,14 @@ function delayedRosterUpdate()
 {
   GT.rosterUpdateTimer = null;
   goProcessRoster();
+}
+
+function updateLiveDistance(callsign)
+{
+  if (!callsign.grid) return;
+  const LL = squareToCenter(callsign.grid);
+  callsign.distance = MyCircle.distance(GT.myLat, GT.myLon, LL.a, LL.o);
+  callsign.heading = MyCircle.bearing(GT.myLat, GT.myLon, LL.a, LL.o);
 }
 
 function openCallRosterWindow(toggle = true)
@@ -5906,6 +5921,9 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
 
     let callsign = null;
 
+    let decodeHadGrid = (theirQTH !== "");
+    let spotHadGrid = false;
+
     let hash = msgDEcallsign + newMessage.OB + newMessage.OM;
     if (hash in GT.liveCallsigns)
     {
@@ -5916,15 +5934,19 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         validQTH = true;
       }
     }
- 
+
 
     if (theirQTH == "")
     {
       let spotHash = msgDEcallsign + newMessage.OM + newMessage.OB;
       if (spotHash in GT.receptionReports.spots)
       {
-        theirQTH = GT.receptionReports.spots[spotHash].grid;
-        validQTH = true;
+        let spotGrid = GT.receptionReports.spots[spotHash].grid;
+        if (spotGrid && spotGrid.length > 0) {
+          theirQTH = spotGrid;
+          validQTH = true;
+          spotHadGrid = true;
+        }
       }
     }
 
@@ -5961,6 +5983,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         dxcc,                 // dxcc
         theTimeStamp          // time
       );
+      if (theirQTH.length > 0) newCallsign.gridQualified = true;
       
       newCallsign.RSTsent = newMessage.SR;
       newCallsign.delta = newMessage.DF;
@@ -5991,6 +6014,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       if (validQTH)
       {
         callsign.grid = theirQTH;
+        if (decodeHadGrid || spotHadGrid) callsign.gridQualified = true;
       }
 
       callsign.time = theTimeStamp;
@@ -13351,7 +13375,7 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
 
     if (lookup.cnty == null)
     {
-      if (!(lookup.county.startsWith(lookup.state + ","))) { 
+      if (!(lookup.county.startsWith(lookup.state + ","))) {
         lookup.county = lookup.state + "," + lookup.county;
       }
       lookup.cnty = lookup.county.toUpperCase().replaceAll(" ", "");
@@ -13377,6 +13401,25 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
     else
     {
       lookup.cnty = null;
+    }
+  }
+
+  if (lookup.call && lookup.grid) {
+    if (GT.instances) {
+      for (const instKey in GT.instances) {
+        const inst = GT.instances[instKey];
+        if (inst && inst.status && inst.status.Band && inst.status.MO) {
+          const hash = lookup.call + inst.status.Band + inst.status.MO;
+          const entry = GT.liveCallsigns[hash];
+          if (entry) {
+            if (!entry.grid) {
+              entry.grid = lookup.grid;
+              entry.gridQualified = false;
+              updateLiveDistance(entry);
+            }
+          }
+        }
+      }
     }
   }
 
@@ -13977,6 +14020,17 @@ function addNewMqttPskSpot(json)
   if (isNaN(json.f)) return;
   
   let hash = call + json.md + json.b;
+  let rosterHash = call + json.b + json.md;
+
+  // Update call roster if station is already present and has no high-confidence grid
+  if (json.rl && json.rl.length >= 4 && rosterHash in GT.liveCallsigns) {
+    const entry = GT.liveCallsigns[rosterHash];
+    if (!entry.grid || !entry.gridQualified) {
+      entry.grid = json.rl;
+      entry.gridQualified = true;
+      updateLiveDistance(entry);
+    }
+  }
 
   if (hash in GT.receptionReports.spots)
   {
