@@ -291,11 +291,21 @@ Map:
   Fix Statute and Nuatical Miles range rings not landing on multiples of 100
 
 
-Adif Parser:
-  Now accepts both GRIDSQUARE and VUCC_GRIDS in a record
-Call Roster:
-  When sorting "Calling" column "CQ" are grouped
 
+
+Adif Parser:
+  Now accepts both GRIDSQUARE and VUCC_GRIDS within a single record.
+
+Call Roster:
+  Improved the "Calling" column sorting so that "CQ" calls are now cleanly grouped together.
+
+App / Core:
+  Improved Grid resolution for decodes using PSK, RTSN, and Lookups (Contributed by WA4YA).
+  Note: A grid resolution derived via Lookup is indicated as a possibility ( ◇ ), rather than a guarantee.
+
+Map / UI:
+  Added a new Tropospheric Inversion VHF prediction layer (Contributed by WA4YA).
+  Added a context menu to the Prediction button (Right-Click) for direct, quick selection of prediction layers.
 
 ### Fixed
 

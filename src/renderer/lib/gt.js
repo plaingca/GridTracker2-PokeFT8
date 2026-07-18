@@ -13416,6 +13416,7 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
               entry.grid = lookup.grid;
               entry.gridQualified = false;
               updateLiveDistance(entry);
+              goProcessRoster();
             }
           }
         }
