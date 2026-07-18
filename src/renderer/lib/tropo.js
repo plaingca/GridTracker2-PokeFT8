@@ -214,7 +214,7 @@ function dxviewSpokesToFeature(node) {
 function createTropoLayer() {
   if (!GT.tropoData.tropoSource)
   {
-    GT.tropoData.tropoSource = new ol.source.Vector();
+    GT.tropoData.tropoSource = new ol.source.Vector( { attributions: "<a href='https://vhf.dxview.org/' target='_blank' title='Visit dxview.org'>DXView</a>", });
   }
   let layer = new ol.layer.Vector({
       source: GT.tropoData.tropoSource,
