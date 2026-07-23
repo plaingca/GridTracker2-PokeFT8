@@ -293,19 +293,23 @@ Map:
 
 
 
-Adif Parser:
+ADIF Parser:
   Now accepts both GRIDSQUARE and VUCC_GRIDS within a single record.
 
 Call Roster:
-  Improved the "Calling" column sorting so that "CQ" calls are now cleanly grouped together.
+  Improved sorting in the "Calling" column so that "CQ" calls are now cleanly grouped together.
 
 App / Core:
-  Improved Grid resolution for decodes using PSK, RTSN, and Lookups (Contributed by WA4YA).
-  Note: A grid resolution derived via Lookup is indicated as a possibility ( ◇ ), rather than a guarantee.
+  Improved grid resolution for decodes using PSK, RTSN, and Lookups (Contributed by WA4YA).
+    Note: A grid resolution derived via Lookup is now indicated with a diamond ( ◇ ) symbol, denoting a possibility rather than a guarantee.
+  Addeded Translations:
+    Nederlands, Polski, Português (Brasil e Portugal), Quebecois
 
 Map / UI:
   Added a new Tropospheric Inversion VHF prediction layer (Contributed by WA4YA).
-  Added a context menu to the Prediction button (Right-Click) for direct, quick selection of prediction layers.
+    Added a right-click context menu to the Prediction button for quick, direct selection of prediction layers.
+  Improved the "RX Spots" Max Age setting by adding a duration picker for manually entered times.
+    Added a right-click context menu to the Spots button for quick, direct selection of the RX Spot mode (Spots / Heatmap).
 
 ### Fixed
 

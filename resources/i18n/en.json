@@ -36,6 +36,8 @@
     "predlayer.epi.label": "Es Probability Index",
     "predlayer.auf.label": "Probability of Aurora",
     "predlayer.tropo.label": "Tropospheric Inversion VHF",
+    "spotlayer.RX.Spots": "RX Spots",
+    "spotlayer.RX.Heatmap": "RX Heatmap",
     "MenuButton.hover": "Click to hide menu",
     "info.frequency.hover": "Frequency (Band)",
     "info.WsjtMode.hover": "Mode",

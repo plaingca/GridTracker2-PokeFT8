@@ -85,17 +85,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <div data-i18n="updatePopup.ok" class="button" style="margin:5px;" onclick="warnSoundcardDiv.style.display='none'"></div>
     </div>
     <div id="legendDiv" class="legendDivClass">
-      <div id="spotsDiv" style="border: 1px solid yellow; background-color: black;width:fit-content;padding:2px;" class="roundBorder">
-        <table align="center">
+      <div id="spotsDiv" style="border: 1px solid yellow; background-color: black; width: fit-content; padding: 2px;" class="roundBorder">
+        <table align="center" style="width: 100%;">
           <tr>
-            <td colspan="2" id="spotCountDiv">Spots: 0</td>
+            <td colspan="2" id="spotCountDiv" style="text-align: center; font-weight: bold;">Spots: 0</td>
           </tr>
           <tr>
-            <td colspan="2" align="center" id="spotHistoryTimeTd"></td>
+            <td colspan="2" align="center" style="white-space: nowrap; padding-bottom: 4px;">
+              <span data-i18n="gt.SpotMaxAge">Max Age: </span>
+              <span style="display: inline-flex; align-items: center; background-color: darkblue; color:yellow; border: 1px solid #666; border-radius: 4px; padding: 2px 4px; font-family: monospace; font-size: 1.1em;">
+                <input type="number" id="spotHistoryH" min="0" max="24" value="00" title="Hours"
+                  style="width: 20px; text-align: right; background: transparent; color: inherit; border: none; outline: none; padding: 0;"
+                  onfocus="this.select()" onchange="syncSpotSlider();" onkeyup="if(event.key === 'Enter') syncSpotSlider();" />
+                <span style="padding: 0 2px;">:</span>
+                <input type="number" id="spotHistoryM" min="0" max="59" value="15" title="Minutes"
+                  style="width: 20px; text-align: left; background: transparent; color: inherit; border: none; outline: none; padding: 0;"
+                  onfocus="this.select()" onchange="syncSpotSlider();" onkeyup="if(event.key === 'Enter') syncSpotSlider();" />
+              </span>
+            </td>
           </tr>
           <tr>
             <td colspan="2">
               <input type="range" min="1" max="1440" value="15" step="1" class="slider" id="spotHistoryTimeValue"
+                style="width: 100%; box-sizing: border-box;"
                 oninput="changeSpotValues();" onkeyup="redrawSpots();" onmouseup="redrawSpots();" />
             </td>
           </tr>
@@ -910,6 +922,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                 <option value="es">Español</option>
                 <option value="fr">Français</option>
                 <option value="it">Italiano</option>
+                <option value="nl">Nederlands</option>
+                <option value="pl">Polski</option>
+                <option value="br">Português (Brasil)</option>
+                <option value="pt">Português (Portugal)</option>
+                <option value="qb">Quebecois</option>
                 <option value="ja">日本語</option>
                 <option value="cn">简体中文</option>
                 <option value="cnt">繁體中文</option>

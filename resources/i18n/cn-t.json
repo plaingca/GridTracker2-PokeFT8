@@ -37,6 +37,8 @@
     "predlayer.epi.label": "Es 層機率指數",
     "predlayer.auf.label": "極光機率",
     "predlayer.tropo.label": "VHF 對流層逆溫",
+    "spotlayer.RX.Spots": "RX 接收報告",
+    "spotlayer.RX.Heatmap": "RX 熱力圖",
     "MenuButton.hover": "單擊隱藏選單",
     "info.frequency.hover": "頻率 (波段)",
     "info.WsjtMode.hover": "模式",

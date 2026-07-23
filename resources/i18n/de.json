@@ -36,6 +36,8 @@
     "predlayer.epi.label": "Es-Wahrscheinlichkeitsindex",
     "predlayer.auf.label": "Polarlicht-Wahrscheinlichkeit",
     "predlayer.tropo.label": "VHF Troposphärische Inversion",
+    "spotlayer.RX.Spots": "RX-Spots",
+    "spotlayer.RX.Heatmap": "RX-Heatmap",
     "MenuButton.hover": "Klicken um Menü zu verstecken",
     "info.frequency.hover": "Frequenz (Band)",
     "info.WsjtMode.hover": "Modus",

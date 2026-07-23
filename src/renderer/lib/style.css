@@ -1145,3 +1145,10 @@ button:focus {
   vertical-align: middle; 
 }
 
+#spotHistoryH::-webkit-inner-spin-button,
+#spotHistoryH::-webkit-outer-spin-button,
+#spotHistoryM::-webkit-inner-spin-button,
+#spotHistoryM::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

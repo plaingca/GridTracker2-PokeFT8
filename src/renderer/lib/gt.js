@@ -156,9 +156,14 @@ GT.languages = {
   cnt: "i18n/cn-t.json",
   de: "i18n/de.json",
   fr: "i18n/fr.json",
+  qb: "i18n/fr-ca.json",
   it: "i18n/it.json",
   es: "i18n/es.json",
-  ja: "i18n/ja.json"
+  ja: "i18n/ja.json",
+  br: "i18n/pt-br.json",
+  pt: "i18n/pt-pt.json",
+  nl: "i18n/nl.json",
+  pl: "i18n/pl.json",
 };
 
 GT.i18n = {};
@@ -2034,6 +2039,19 @@ function onMyKeyDown(event)
     helpDiv.style.display = "none";
     GT.helpShow = false;
     event.preventDefault();
+  }
+
+  if (spotsDiv.style.display !== "none")
+  {
+    let activeId = document.activeElement ? document.activeElement.id : "";
+    if (activeId === "spotHistoryH" || activeId === "spotHistoryM")
+    {
+      if ((event.key >= '0' && event.key <= '9') || 
+          ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(event.key)) 
+      {
+        return; 
+      }
+    }
   }
 
   if (rootSettingsDiv.style.display == "none")
@@ -11621,9 +11639,18 @@ function loadViewSettings()
   spotHistoryTimeValue.value = parseInt(
     GT.settings.reception.viewHistoryTimeSec / 60
   );
-  spotHistoryTimeTd.innerHTML =
-    "Max Age: " + toDHM(Number(GT.settings.reception.viewHistoryTimeSec));
 
+  let mins = parseInt(spotHistoryTimeValue.value);
+
+  // Split slider minutes into Hours and Minutes for the inputs
+  let hInput = document.getElementById("spotHistoryH");
+  let mInput = document.getElementById("spotHistoryM");
+  
+  if (hInput && mInput) {
+    // padStart ensures it always shows "05" instead of "5"
+    hInput.value = String(Math.floor(mins / 60)).padStart(2, '0');
+    mInput.value = String(mins % 60).padStart(2, '0');
+  }
 
   spotPathColorValue.value = GT.settings.reception.pathColor;
   spotNightPathColorValue.value = GT.settings.reception.pathNightColor;
@@ -11987,9 +12014,9 @@ function registerLegendContextMenus()
 
   buttonSpotsBoxDiv.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-    if (GT.spotView != 0)
+    const menu = new Menu();
+    if (GT.settings.app.spotView != 0)
     {
-      const menu = new Menu();
       menu.append(new MenuItem({
         type: "checkbox",
         label: I18N("legend.title"),
@@ -12000,8 +12027,22 @@ function registerLegendContextMenus()
           spotsDiv.style.display = GT.settings.map.spotLegend ? "" : "none";
         }
       }));
-      menu.popup();
+      menu.append(new MenuItem({ type: "separator" }));
     }
+
+    GT.spotLayers.forEach((layerKey, index) => {
+      menu.append(new MenuItem({
+        type: "radio",
+        label: I18N(layerKey),
+        checked: (GT.settings.app.spotView === index),
+        click: function ()
+        {
+          directSpotLayer(index);
+        }
+      }));
+    });
+    
+    menu.popup();
   });
 }
 
@@ -14192,20 +14233,54 @@ function redrawSpots()
 
 function updateSpotCountDiv()
 {
-  spotCountDiv.innerHTML = "Spots: " + GT.spotTotalCount;
+  spotCountDiv.innerHTML = I18N("spotlayer.RX.Spots") + ":&nbsp;" + GT.spotTotalCount;
 }
 
 function changeSpotValues()
 {
-  GT.settings.reception.viewHistoryTimeSec = parseInt(spotHistoryTimeValue.value) * 60;
-  spotHistoryTimeTd.innerHTML = "Max Age: " + toDHM(Number(GT.settings.reception.viewHistoryTimeSec));
+  let mins = parseInt(spotHistoryTimeValue.value);
 
+  // Split slider minutes into Hours and Minutes for the inputs
+  let hInput = document.getElementById("spotHistoryH");
+  let mInput = document.getElementById("spotHistoryM");
+  
+  if (hInput && mInput) {
+    // padStart ensures it always shows "05" instead of "5"
+    hInput.value = String(Math.floor(mins / 60)).padStart(2, '0');
+    mInput.value = String(mins % 60).padStart(2, '0');
+  }
 
+  GT.settings.reception.viewHistoryTimeSec = mins * 60;
   GT.settings.reception.mergeSpots = spotMergeValue.checked;
 
   setTrophyOverlay(GT.currentOverlay);
   if (GT.rosterSpot) goProcessRoster();
 }
+
+function syncSpotSlider() 
+{
+  let hInput = document.getElementById("spotHistoryH");
+  let mInput = document.getElementById("spotHistoryM");
+  if (!hInput || !mInput) return;
+  
+  // Grab typed values, default to 0 if they deleted the text
+  let h = parseInt(hInput.value, 10) || 0;
+  let m = parseInt(mInput.value, 10) || 0;
+  
+  // Convert back to total slider minutes
+  let val = (h * 60) + m;
+  
+  // Validate bounds (1 minute to 24 hours)
+  if (val < 1) val = 1;
+  if (val > 1440) val = 1440;
+  
+  // Update the slider and trigger render
+  spotHistoryTimeValue.value = val;
+  changeSpotValues(); // Re-runs to fix the input visually (e.g. if they typed "90" mins, it fixes it to 1h 30m)
+  redrawSpots();
+}
+
+
 
 function mapTransChange()
 {
@@ -14314,6 +14389,15 @@ function cycleSpotsView()
   GT.spotView++;
   GT.spotView %= 3;
 
+  GT.settings.app.spotView = GT.spotView;
+  setSpotImage();
+
+  setTrophyOverlay(GT.currentOverlay);
+}
+
+function directSpotLayer(index)
+{
+  GT.spotView = index;
   GT.settings.app.spotView = GT.spotView;
   setSpotImage();
 
@@ -14551,7 +14635,9 @@ function predInit()
   GT.predViews[4] = { aufTitle, aufPercentTr, aufBarTr };
   GT.predViews[5] = { tropoTitle, tropoBarTr, tropoRangeTr };
 
-  GT.predLayers = ["gt.Disabled", "predlayer.muf.label", "predlayer.fof2.label",    "predlayer.epi.label", "predlayer.auf.label", "predlayer.tropo.label"];
+  GT.predLayers = ["gt.Disabled", "predlayer.muf.label", "predlayer.fof2.label", "predlayer.epi.label", "predlayer.auf.label", "predlayer.tropo.label"];
+
+  GT.spotLayers = ["gt.Disabled", "spotlayer.RX.Spots", "spotlayer.RX.Heatmap"];
 }
 
 function displayPredLayer()
