@@ -1754,7 +1754,7 @@ function leftClickGtFlag(feature)
   let e = window.event;
   if ((e.which && e.which == 1) || (e.button && e.button == 1))
   {
-    startLookup(GT.gtFlagPins[feature.key].call, GT.gtFlagPins[feature.key].grid);
+    startLookup(GT.rtsnPins[feature.key].call, GT.rtsnPins[feature.key].grid);
   }
   return false;
 }
@@ -2527,7 +2527,7 @@ function createSpotTipTable(toolElement)
 function createFlagTipTable(feature)
 {
   let key = feature.key;
-  let pin = GT.gtFlagPins[key];
+  let pin = GT.rtsnPins[key];
   let dxcc = callsignToDxcc(pin.call);
   let dxccName = GT.dxccToAltName[dxcc];
   let hash = pin.call + GT.settings.app.myBand + GT.settings.app.myMode;
@@ -5841,6 +5841,10 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     newF = newMessage.DF;
   }
 
+  // Cache these to avoid repeated property lookups on newMessage
+  const band = newMessage.OB;
+  const mode = newMessage.OM;
+
   let theTimeStamp = timeNowSec() - (timeNowSec() % 86400) + ~~(newMessage.TM / 1000);
 
   let theMessage = useReformedMessage ? reformedMessage : newMessage.Msg;
@@ -5940,23 +5944,41 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     let callsign = null;
 
     let decodeHadGrid = (theirQTH !== "");
+    let rtsnHadGrid = false;
     let spotHadGrid = false;
 
-    let hash = msgDEcallsign + newMessage.OB + newMessage.OM;
-    if (hash in GT.liveCallsigns)
-    {
-      callsign = GT.liveCallsigns[hash];
-      if (theirQTH == "" && callsign.grid.length)
-      {
+    const hash = msgDEcallsign + band + mode;
+
+    const liveCall = GT.liveCallsigns[hash];
+    if (liveCall !== undefined) {
+      callsign = liveCall;
+      if (theirQTH === "" && callsign.grid.length > 0) {
         theirQTH = callsign.grid;
         validQTH = true;
+        decodeHadGrid = true;
       }
     }
 
+    if (theirQTH === "") {
+      // RTSN member, no spot required, we know them and their grid
+      const callDict = GT.rtsnCallsigns[msgDEcallsign];
+      if (callDict !== undefined) {
+        for (const cid in callDict) {
+          const entry = GT.rtsnPins[cid];
+          if (entry.band === band && entry.mode === mode) {
+            theirQTH = entry.grid.substring(0, 4);
+            validQTH = true;
+            rtsnHadGrid = true;
+            break; 
+          }
+        }
+      }
+    }
 
     if (theirQTH == "")
     {
-      let spotHash = msgDEcallsign + newMessage.OM + newMessage.OB;
+      // PSK-MQTT fallback check
+      const spotHash = msgDEcallsign + mode + band;
       if (spotHash in GT.receptionReports.spots)
       {
         let spotGrid = GT.receptionReports.spots[spotHash].grid;
@@ -5971,15 +5993,15 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
     let canPath = false;
     if (
       (GT.settings.app.gtBandFilter.length == 0 ||
-        (GT.settings.app.gtBandFilter == "auto" && newMessage.OB == GT.settings.app.myBand) ||
-        newMessage.OB == GT.settings.app.gtBandFilter) &&
+        (GT.settings.app.gtBandFilter == "auto" && band == GT.settings.app.myBand) ||
+        band == GT.settings.app.gtBandFilter) &&
       (GT.settings.app.gtModeFilter.length == 0 ||
-        (GT.settings.app.gtModeFilter == "auto" && newMessage.OM == GT.settings.app.myMode) ||
-        newMessage.OM == GT.settings.app.gtModeFilter ||
+        (GT.settings.app.gtModeFilter == "auto" && mode == GT.settings.app.myMode) ||
+        mode == GT.settings.app.gtModeFilter ||
         GT.settings.app.gtModeFilter == "Digital")
     )
     {
-      qthToBox(theirQTH, msgDEcallsign, CQ, false, msgDXcallsign, newMessage.OB, null, hash, true);
+      qthToBox(theirQTH, msgDEcallsign, CQ, false, msgDXcallsign, band, null, hash, true);
       canPath = true;
     }
 
@@ -5995,8 +6017,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         msgDEcallsign,        // DEcall
         msgDXcallsign.trim(), // DXcall
         theirQTH,             // grid
-        newMessage.OM,        // mode
-        newMessage.OB,        // band
+        mode,        // mode
+        band,        // band
         newMessage.Msg,       // msg
         dxcc,                 // dxcc
         theTimeStamp          // time
@@ -6032,7 +6054,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       if (validQTH)
       {
         callsign.grid = theirQTH;
-        if (decodeHadGrid || spotHadGrid) callsign.gridQualified = true;
+        if (decodeHadGrid || rtsnHadGrid || spotHadGrid) callsign.gridQualified = true;
       }
 
       callsign.time = theTimeStamp;
@@ -6048,8 +6070,8 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
       if (callsign.cqz == null ) callsign.cqz = cqZoneFromCallsign(callsign.DEcall, callsign.dxcc);
     }
 
-    callsign.mode = newMessage.OM;
-    callsign.band = newMessage.OB;
+    callsign.mode = mode;
+    callsign.band = band;
     callsign.instance = newMessage.instance;
     callsign.grid = callsign.grid.substr(0, 4);
     callsign.CQ = CQ;
@@ -6138,7 +6160,7 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         {
           const instanceHash = GT.instances[newMessage.instance].instanceHash;
           const call = callsign.DEcall;
-          if (GT.gtCallsigns[call] !== undefined) {
+          if (GT.rtsnCallsigns[call] !== undefined) {
             const spotColl = GT.spotCollector;
             let spotMap = spotColl[instanceHash];
 
@@ -6193,9 +6215,9 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
           // Our msgDEcallsign is not sending a CQ.
           // Let's see if we can locate who he's talking to in our known list
           let DEcallsign = null;
-          if (callsign.DXcall + newMessage.OB + newMessage.OM in GT.liveCallsigns)
+          if (callsign.DXcall + band + mode in GT.liveCallsigns)
           {
-            DEcallsign = GT.liveCallsigns[callsign.DXcall + newMessage.OB + newMessage.OM];
+            DEcallsign = GT.liveCallsigns[callsign.DXcall + band + mode];
           }
           else if (msgDXcallsign == GT.settings.app.myCall && GT.settings.app.myGrid in GT.liveCallsigns)
           {
@@ -6390,27 +6412,17 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
   let bgColor = "black";
   if (newMessage.LC > 0) bgColor = "#880000";
 
-  GT.lastMessages.unshift(
-    "<tr style='background-color:" +
-    bgColor +
-    "'><td style='color:lightblue'>" +
-    userTimeString(theTimeStamp * 1000) +
-    "</td><td style='color:orange'>" +
-    newMessage.SR +
-    "</td><td style='color:gray'>" +
-    newMessage.DT.toFixed(1) +
-    "</td><td style='color:lightgreen'>" +
-    newF +
-    "</td><td>" +
-    newMessage.MO +
-    "</td><td style='color:" +
-    (CQ ? "cyan" : "white") +
-    "'>" +
-    htmlEntities(theMessage) +
-    "</td><td style='color:yellow'>" +
-    countryName +
-    "</td></tr>"
-  );
+  GT.lastMessages.unshift(`
+    <tr style='background-color:${bgColor}'>
+      <td style='color:lightblue'>${userTimeString(theTimeStamp * 1000)}</td>
+      <td style='color:orange'>${newMessage.SR}</td>
+      <td style='color:gray'>${newMessage.DT.toFixed(1)}</td>
+      <td style='color:lightgreen'>${newF}</td>
+      <td>${mode}</td>
+      <td style='color:${CQ ? "cyan" : "white"}'>${htmlEntities(theMessage)}</td>
+      <td style='color:yellow'>${countryName}</td>
+    </tr>
+  `);
 
   while (GT.lastMessages.length > 100) GT.lastMessages.pop();
 }
@@ -8579,6 +8591,7 @@ function renderStatsBox()
     for (const [i, qsoObj] of Object.entries(GT.QSOhash)) 
     {
       let finalGrid = qsoObj.grid;
+      let vuccGrids = qsoObj.vucc_grids;
       let didConfirm = qsoObj.confirmed;
       let band = qsoObj.band;
       let mode = qsoObj.mode;
@@ -8819,6 +8832,18 @@ function renderStatsBox()
         if (!(gridCheck in gridData)) gridData[gridCheck] = newStatObject();
 
         workObject(gridData[gridCheck], false, band, mode, type, didConfirm);
+      }
+
+      if (vuccGrids && vuccGrids.length > 0)
+      {
+        for (let vuccIdx = 0; vuccIdx < vuccGrids.length; vuccIdx++)
+        {
+          let gridCheck = vuccGrids[vuccIdx].substr(0, 4);
+
+          if (!(gridCheck in gridData)) gridData[gridCheck] = newStatObject();
+
+          workObject(gridData[gridCheck], false, band, mode, type, didConfirm);
+        }
       }
     }
 
@@ -9464,8 +9489,8 @@ function updateGTFlagViews()
     GT.layerVectors.gtflags.setVisible(false);
     clearGtFlags();
     // Clear list
-    GT.gtFlagPins = {};
-    GT.gtCallsigns = {};
+    GT.rtsnPins = {};
+    GT.rtsnCallsigns = {};
 
     conditionsButton.style.background = "";
     conditionsButton.innerHTML = "<img src=\"img/conditions.png\" class=\"buttonImg\" />";
@@ -9589,7 +9614,6 @@ function setOamsBandActivity(checkbox)
 {
   GT.settings.app.oamsBandActivity = checkbox.checked;
   updateBandActivityViews();
-
 }
 
 function setOamsBandActivityNeighbors(checkbox)
@@ -14008,7 +14032,7 @@ class SpotReport {
   }
 }
 
-function addNewOAMSSpot(parts) {
+function addNewRTSNSpot(parts) {
   nodeTimers.clearTimeout(GT.redrawSpotsTimeout);
 
   // 3. Array Destructuring makes grabbing parts much cleaner

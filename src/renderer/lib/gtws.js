@@ -37,8 +37,8 @@ GT.oamsDenied = false;
 GT.lastConnectAttempt = 0;
 GT.gtEngineInterval = null;
 GT.gtChatSocket = null;
-GT.gtFlagPins = {};
-GT.gtCallsigns = {};
+GT.rtsnPins = {};
+GT.rtsnCallsigns = {};
 GT.wsStatusTimer = null;
 GT.gtState = ChatState.none;
 GT.gtNeedUsersList = true;
@@ -277,7 +277,7 @@ function gtAddCalls(jsmesg)
   const callkeys = jsmesg.c.split(",");
 
  for (const cid of callkeys) {
-    if (!(cid in GT.gtFlagPins)) {
+    if (!(cid in GT.rtsnPins)) {
       addNewCall(cid);
     }
   }
@@ -286,13 +286,13 @@ function gtAddCalls(jsmesg)
 function gtRemoveCalls(jsmesg) {
 
   const gtFlagsLayer = GT.layerSources.gtflags;
-  const gtFlagPins = GT.gtFlagPins;
-  const gtCallsigns = GT.gtCallsigns;
+  const rtsnPins = GT.rtsnPins;
+  const rtsnCallsigns = GT.rtsnCallsigns;
 
   const callkeys = jsmesg.c.split(",");
   
   for (const cid of callkeys) {
-    const pinObj = gtFlagPins[cid];
+    const pinObj = rtsnPins[cid];
     if (!pinObj) continue;
 
     if (pinObj.pin && gtFlagsLayer.hasFeature(pinObj.pin)) {
@@ -302,16 +302,16 @@ function gtRemoveCalls(jsmesg) {
 
 
     const call = pinObj.call;
-    if (gtCallsigns[call]) {
-      delete gtCallsigns[call][cid]; // Delete the specific CID first
+    if (rtsnCallsigns[call]) {
+      delete rtsnCallsigns[call][cid]; // Delete the specific CID first
       
       // If no more CIDs exist for this call, delete the call itself
-      if (Object.keys(gtCallsigns[call]).length === 0) {
-        delete gtCallsigns[call];
+      if (Object.keys(rtsnCallsigns[call]).length === 0) {
+        delete rtsnCallsigns[call];
       }
     }
 
-    delete GT.gtFlagPins[cid];
+    delete GT.rtsnPins[cid];
   }
 }
 
@@ -326,9 +326,9 @@ function redrawPins()
 
   const features = [];
 
-  for (const cid in GT.gtFlagPins)
+  for (const cid in GT.rtsnPins)
   {
-    const pinObj = GT.gtFlagPins[cid];
+    const pinObj = GT.rtsnPins[cid];
 
     pinObj.pin = null;
     makeGtPin(pinObj);
@@ -399,15 +399,15 @@ function addNewCall(cid) {
     fCall
   );
 
-  GT.gtFlagPins[cid] = pinData;
+  GT.rtsnPins[cid] = pinData;
 
   // 5. Caching the dictionary lookup.
   // When objects are used as Maps, V8 downgrades them to "Dictionary Mode" (Hash Maps).
   // Lookups in Dictionary Mode are slower, so we look it up exactly once.
-  let callDict = GT.gtCallsigns[call];
+  let callDict = GT.rtsnCallsigns[call];
   if (callDict === undefined) {
     callDict = {};
-    GT.gtCallsigns[call] = callDict;
+    GT.rtsnCallsigns[call] = callDict;
   }
   callDict[cid] = true;
 
@@ -426,8 +426,8 @@ function gtChatNewList(jsmesg)
   clearGtFlags();
 
   // starting clean if we're getting a new chat list
-  GT.gtFlagPins = {}
-  GT.gtCallsigns = {};
+  GT.rtsnPins = {}
+  GT.rtsnCallsigns = {};
 
   const callkeys = jsmesg.c.split(",");
 
@@ -568,7 +568,7 @@ function gtSpotMessage(jsmesg)
     const parts = jsmesg.O.split("|");
     if (parts.length == 5)
     {
-      addNewOAMSSpot(parts);
+      addNewRTSNSpot(parts);
     }
   }
 }

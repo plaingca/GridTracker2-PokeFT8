@@ -302,7 +302,7 @@ Call Roster:
 App / Core:
   Improved grid resolution for decodes using PSK, RTSN, and Lookups (Contributed by WA4YA).
     Note: A grid resolution derived via Lookup is now indicated with a diamond ( ◇ ) symbol, denoting a possibility rather than a guarantee.
-  Addeded Translations:
+  Added Translations:
     Nederlands, Polski, Português (Brasil e Portugal), Quebecois
 
 Map / UI:
