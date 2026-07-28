@@ -101,9 +101,11 @@
             <tr align="center">
               <td>Decode Delay On Focus</td>
             </tr>
-            <td  align="center" colspan="1">
-              <input type="checkbox" id="rosterDelayOnFocus" onchange="rosterDelayOnFocusValueChanged(this)" />
-            </td>
+            <tr align="center"></tr>
+              <td  align="center" colspan="1">
+                <input type="checkbox" id="rosterDelayOnFocus" onchange="rosterDelayOnFocusValueChanged(this)" />
+              </td>
+            </tr>
             <tr align="center">
               <td  style="display:none;" id="rosterDelayTimeTd">1500ms</td>
             </tr>
@@ -119,8 +121,8 @@
           <div class="button" style="margin: 5px; font:larger; padding:5px;" id="compactModeDiv" onclick="compactModeChanged()">Compact Mode</div>
         </div>
         <div class="mapItem" id="compactEnityDiv">
-          <label>Compact Mode Entity<label><br />
-              <select id="compactEntitySelect" onchange="compactEntityChanged()"></select>
+          Compact Mode Entity<br />
+          <select id="compactEntitySelect" onchange="compactEntityChanged()"></select>
         </div>
         <br />
         <div class="mapItem">
@@ -406,10 +408,10 @@
         <div id="ignoresEditView"></div>
       </div>
     </div>
-    <div id="MainCallRoster" style="display:block;";>
+    <div id="MainCallRoster" style="display:block;">
       <header id="RosterControls">
         <div id="TransmitControls">
-          <div id="txrxdec" style="background-color: Green; border-style: outset; border-color: yellow;" class="roundBorder">
+          <div id="txrxdec" style="background-color: Green; border-style: outset; border-color: yellow; padding-top:2px;" class="roundBorder">
           Waiting…
           </div>
           <div class="button" style="margin: 3px;" onclick="window.opener.haltAllTx(true);" data-i18n="roster.haltTX">Halt Tx</div>
