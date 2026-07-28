@@ -267,18 +267,18 @@ function fetchTropoLayer()
   
   if (GT.settings.map.predMode !== 5) 
   {
-      return;
+    return;
   }
 
   // Gets the center of the screen
   const center = GT.map.getView().getCenter(); 
 
   // Calculates true meters per pixel at the current latitude, regardless of projection
-  const pointResolution = ol.proj.getPointResolution(
+  const pointResolution = Math.min(ol.proj.getPointResolution(
       GT.map.getView().getProjection(),
       GT.map.getView().getResolution(),
       center
-  );
+  ) , 10000);
 
   // True radians per pixel (using meters / Earth radius in meters)
   const resRads = pointResolution / 6371000; 
