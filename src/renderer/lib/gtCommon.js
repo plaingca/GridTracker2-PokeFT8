@@ -186,8 +186,13 @@ function callsignToDxcc(insign)
 
     if (parts.length == 2)
     {
-        if (parts[0] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[0]]].dxcc);
-        if (parts[1] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[1]]].dxcc);
+      if (parts[0] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[0]]].dxcc);
+      if (parts[1] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[1]]].dxcc);
+
+      if (parts[1].length < parts[0].length)
+      {
+        callsign = parts[1];
+      }
     }
 
     if (callsign in GT.directCallToDXCC) { return Number(GT.directCallToDXCC[callsign]); }
