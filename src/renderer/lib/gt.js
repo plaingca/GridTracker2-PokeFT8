@@ -11984,8 +11984,9 @@ function postInit()
     registerLegendContextMenus();
     section = "SettingTimers";
     nodeTimers.setInterval(removeFlightPathsAndDimSquares, 2000); // Every 2 seconds
-    nodeTimers.setInterval(downloadCtyDat, 86400000);  // Every 24 hours
+    nodeTimers.setInterval(downloadCtyDat, 86400000); // Every 24 hours
     nodeTimers.setInterval(refreshSpotsNoTx, 300000); // Redraw spots every 5 minutes, this clears old ones
+    nodeTimers.setInterval(saveAllSettings, 900000);  // Save settings (if they have changed) every 10 minutes
     nodeTimers.setTimeout(downloadCtyDat, 120000);    // In 2 minutes, when the dust settles
     nodeTimers.setTimeout(checkForNewVersion, 10000); // Informative check
     section = "passwordInputs";

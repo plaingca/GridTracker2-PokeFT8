@@ -311,6 +311,17 @@ Map / UI:
   Improved the "RX Spots" Max Age setting by adding a duration picker for manually entered times.
     Added a right-click context menu to the Spots button for quick, direct selection of the RX Spot mode (Spots / Heatmap).
 
+
+
+App:
+  Fixed issue with some compound callsign suffixes not being recognized
+  Added 10 minute auto-save of settings (if changed)
+  Further improved grid resolution using RTSN (Real-time Spotting Network)
+Map:
+  Added 6m Es blobs to Tropospheric Inversion VHF prediction layer (by WA4YA)
+Scores:
+  Fixed missing count of VUCC grids
+
 ### Fixed
 
 
