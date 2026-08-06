@@ -163,12 +163,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <td colspan="3" class="barGraph"><img style="width:170px; height:8px" src="img/auf_bar.png" /></td>
           </tr>
           <tr id="tropoBarTr">
-            <td colspan="3" style="background: linear-gradient(90deg, rgb(0, 255, 0) 0%, rgb(255, 255, 0) 50%, rgb(255, 0, 0) 100%); width: 170px;" class="barGraph"></td>
+            <td style="width: 170px;" class="barGraph">
+              <div style="display: flex; height: 100%;">
+                <div style="flex-grow: 3; background: linear-gradient(90deg, rgb(0, 255, 0) 0%, rgb(255, 255, 0) 50%, rgb(255, 0, 0) 100%);"></div>
+                <div style="flex-grow: 1; background: #a85cf7; margin-left: 2px;"></div>
+              </div>
+            </td>
           </tr>
           <tr id="tropoRangeTr">
-            <td align="left">0km</td>
-            <td></td>
-            <td align="right">&gt;500km</td>
+            <td>
+              <div style="display: flex;">
+                <div style="flex: 3; display: flex;">
+                  <div style="flex: 1; text-align: left;">0km</div>
+                  <div style="flex: 1; text-align: left;">2m TI</div>
+                  <div style="flex: 1; text-align: right;">&gt;500km</div>
+                </div>
+                <div style="flex: 1; text-align: center; margin-left: 2px;">
+                  <span style="color: #a85cf7">6m Es</span>
+                </div>
+              </div>
+            </td>
           </tr>
           <tr id="mufRangeTr">
             <td align="left">&lt;5</td>
