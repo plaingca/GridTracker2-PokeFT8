@@ -11910,6 +11910,7 @@ function startupEventsAndTimers()
   nodeTimers.setInterval(displayTime, 1000);
   nodeTimers.setInterval(reportDecodes, 60000);
   nodeTimers.setInterval(oamsBandActivityCheck, 300000);
+  nodeTimers.setInterval(goProcessRoster, 5000);
 }
 
 function initSettingsTabs()

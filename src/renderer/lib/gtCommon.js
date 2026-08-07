@@ -160,53 +160,139 @@ function getWpx(callsign)
   return String(prefix);
 }
 
-GT.ancPrefixes = ["R", "P", "M", "MM", "AM", "A", "NWS"];
+const OPERATIONAL_MODIFIERS = new Set([
+  "P",     // Portable
+  "M",     // Mobile
+  "MM",    // Maritime Mobile
+  "AM",    // Aeronautical Mobile
+  "QRP",   // Low Power
+  "QRO",   // High Power
+  "R",     // Rover
+  "ROV",   // Rover
+  "B",     // Beacon
+  "J",     // JOTA (Jamboree on the Air)
+  "T",     // Testing
+  "AE",    // Amateur Extra upgrade indicator (US)
+  "AG",    // General upgrade indicator (US)
+  "KT",    // Technician upgrade indicator (US)
+  "LH",    // Lighthouse
+  "FF",    // Flora & Fauna
+  "WFF",   // World Flora & Fauna
+  "SOTA",  // Summits on the Air
+  "POTA",  // Parks on the Air
+  "IOTA",  // Islands on the Air
+  "LOTA",  // Lighthouses on the Air
+  "SWL"    // Shortwave Listener
+]);
 
-function callsignToDxcc(insign)
-{
-  let callsign = insign;
+function callsignToDxcc(callsign) {
+  // 1. Raw string exact match (e.g., explicitly mapped VP2V/W1AW)
+  if (GT.directCallToDXCC[callsign]) return Number(GT.directCallToDXCC[callsign]);
 
-  if (!/\d/.test(callsign) || !/[a-zA-Z]/.test(callsign))
-  {
-    return -1;
+  // 2. Strip SSID (CPU-fast string slicing)
+  let call = callsign;
+  const dashIndex = callsign.lastIndexOf('-');
+  if (dashIndex > -1) call = callsign.substring(0, dashIndex);
+
+  if (call.indexOf('/') === -1) {
+    if (GT.directCallToDXCC[call]) return Number(GT.directCallToDXCC[call]);
+    return lookupPrefix(call);
   }
 
-  if (callsign in GT.directCallToDXCC) { return Number(GT.directCallToDXCC[callsign]); }
+  const parts = call.split('/');
+  
+  if (parts.includes('MM') || parts.includes('AM')) return 0; // Maritime and Air Mobile strictly 0 (none)
 
-  if (callsign.includes("/"))
-  {
-    let parts = callsign.split("/");
-    if (GT.ancPrefixes.includes(parts[parts.length - 1]))
-    {
-      if (parts[parts.length - 1] == "MM")  return 0;
-      parts.pop();
+  let possibleBaseCalls = [];
+  let prefixOverride = null;
+  let zoneOverride = null;
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    
+    if (OPERATIONAL_MODIFIERS.has(part)) continue; // Ignore /QRP, /M, etc.
+    
+    if (part.length === 1 && part >= '0' && part <= '9') {
+      zoneOverride = part; // Single digit zone modifier (e.g., /1)
+      continue;
     }
 
-    callsign = parts[0];
+    // POSITION SENSITIVITY: Regional Indicators (e.g., LU1ABC/F)
+    // If a single letter is at the very END of the callsign, it is an internal 
+    // regional/province indicator, NOT a geographic DXCC override.
+    if (part.length === 1 && part >= 'A' && part <= 'Z' && i === parts.length - 1) {
+      continue; 
+    }
 
-    if (parts.length == 2)
-    {
-      if (parts[0] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[0]]].dxcc);
-      if (parts[1] in GT.prefixToDXCC) return Number(GT.dxccInfo[GT.prefixToDXCC[parts[1]]].dxcc);
+    possibleBaseCalls.push(part);
+  }
 
-      if (parts[1].length < parts[0].length)
-      {
-        callsign = parts[1];
+  let baseCall = possibleBaseCalls[0] || parts[0];
+  if (possibleBaseCalls.length > 1) {
+    for (let i = 1; i < possibleBaseCalls.length; i++) {
+      const p = possibleBaseCalls[i];
+      if (p.length > baseCall.length) {
+        baseCall = p;
+      } else if (p.length === baseCall.length) {
+        // TIE-BREAKER for KH0/K0H (both length 3)
+        // If the current candidate is a known explicit prefix block but the new one isn't,
+        // the new one is the base call (K0H) and the other is the geographic override (KH0).
+        if (GT.prefixToDXCC[baseCall] && !GT.prefixToDXCC[p]) {
+          baseCall = p;
+        }
       }
     }
-
-    if (callsign in GT.directCallToDXCC) { return Number(GT.directCallToDXCC[callsign]); }
   }
 
-  for (let x = callsign.length; x > 0; x--)
-  {
-    if (callsign.substr(0, x) in GT.prefixToDXCC)
-    {
-      return Number(GT.dxccInfo[GT.prefixToDXCC[callsign.substr(0, x)]].dxcc);
+  // Identify Geographic Override
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part !== baseCall && 
+        !OPERATIONAL_MODIFIERS.has(part) && 
+        !(part.length === 1 && part >= '0' && part <= '9') &&
+        !(part.length === 1 && part >= 'A' && part <= 'Z' && i === parts.length - 1)) {
+      prefixOverride = part;
+      break;
+    }
+  }
+
+  let basePrefix = baseCall;
+  for (let i = baseCall.length - 1; i >= 0; i--) {
+    if (baseCall[i] >= '0' && baseCall[i] <= '9') {
+      basePrefix = baseCall.substring(0, i + 1);
+      break;
+    }
+  }
+
+  let activePrefix = prefixOverride ? prefixOverride : basePrefix;
+
+  if (zoneOverride) {
+    const lastCharCode = activePrefix.charCodeAt(activePrefix.length - 1);
+    // 48 is '0', 57 is '9' in ASCII
+    if (lastCharCode >= 48 && lastCharCode <= 57) {
+      activePrefix = activePrefix.substring(0, activePrefix.length - 1) + zoneOverride;
+    } else {
+      activePrefix += zoneOverride;
+    }
+  }
+
+  if (!prefixOverride && !zoneOverride) {
+    if (GT.directCallToDXCC[baseCall]) return Number(GT.directCallToDXCC[baseCall]);
+  }
+
+  return lookupPrefix(activePrefix);
+}
+
+function lookupPrefix(prefixStr) {
+  for (let x = prefixStr.length; x > 0; x--) {
+    let sub = prefixStr.substring(0, x);
+    if (GT.prefixToDXCC[sub]) {
+      return Number(GT.dxccInfo[GT.prefixToDXCC[sub]].dxcc);
     }
   }
   return -1;
 }
+
 
 function timeNowSec()
 {
