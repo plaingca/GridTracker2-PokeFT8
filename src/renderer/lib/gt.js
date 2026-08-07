@@ -5357,7 +5357,7 @@ function handleInstanceStatus(newMessage)
   let DXcall = newMessage.DXcall.trim();
   let DXcallDXCC = -1;
 
-  if (DXcall.length > 1)
+  if (DXcall.length > 0)
   {
     if (!(newMessage.instance in GT.lastTransmitCallsign)) { GT.lastTransmitCallsign[newMessage.instance] = ""; }
 
@@ -10373,6 +10373,8 @@ function loadMaidenHeadData()
     GT.dxccToADIFName[info.dxcc] = info.aname;
     GT.altNameToDXCC[info.name] = info.dxcc;
     GT.dxccToCountryCode[info.dxcc] = info.cc;
+
+    GT.prefixToDXCC[info.pp] = key;
 
     for (let i = 0; i < info.prefix.length; i++) {
       GT.prefixToDXCC[info.prefix[i]] = key;
