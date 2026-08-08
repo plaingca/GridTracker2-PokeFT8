@@ -150,6 +150,9 @@ const gtShortVersion = "v" + gtVersionStr;
 const gtUserAgent = "GridTracker/" + gtVersionStr;
 const backupAdifHeader = "GridTracker v" + gtVersion + " <EOH>\r\n";
 
+GT.lastVersionInfo = null;
+GT.lastDownloadedVersion = null;
+
 GT.languages = {
   en: "i18n/en.json",
   cn: "i18n/cn.json",
@@ -546,7 +549,6 @@ GT.lastTransmitCallsign = {};
 GT.lastStatusCallsign = {};
 GT.lastTxMessage = null;
 GT.lastMapView = null;
-GT.lastVersionInfo = null;
 GT.wsStatusTimer = null;
 GT.hoverFunctors = {};
 GT.lastHover = { feature: null, functor: null };
@@ -12077,7 +12079,7 @@ function registerLegendContextMenus()
 electron.ipcRenderer.on("versionInfo", (event, info) => {
   if (info != null)
   {
-    if (GT.gtVersionStr != info.version && GT.lastVersionInfo != info.version)
+    if (gtVersionStr != info.version && GT.lastVersionInfo != info.version)
     {
       if (!info.autoDownload)
       {
@@ -12093,21 +12095,20 @@ electron.ipcRenderer.on("versionInfo", (event, info) => {
 
 function downloadUpdate()
 {
-  GT.lastVersionInfo = "";
   electron.ipcRenderer.send("downloadUpdate", null);
 }
 
 electron.ipcRenderer.on("updateDownloaded", (event, info) => {
   if (info != null)
   {
-    if (GT.gtVersionStr != info.version && GT.lastVersionInfo != info.version)
+    if (gtVersionStr != info.version && GT.lastDownloadedVersion != info.version)
     {
       const html = "<font style='color:yellow'>" + I18N("gt.NewVersionDownloaded") + "</font><br><font style='color:cyan'>" + info.version + "</font><br><div class='button' onclick='installAndRestart()'>" + I18N("gt.InstallAndRestart") + "</div>"
       updateVersionText.innerHTML = html;
       addLastTraffic(html);
+      
+      GT.lastDownloadedVersion = info.version;
     }
-
-    GT.lastVersionInfo = info.version
   }
 });
 

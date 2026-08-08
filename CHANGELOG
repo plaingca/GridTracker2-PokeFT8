@@ -320,7 +320,7 @@ App:
 Map:
   Added 6m Es blobs to Tropospheric Inversion VHF prediction layer (by WA4YA)
 Scores:
-  Fixed missing count of VUCC grids
+  Fixed grid tally mismatch
 
 ### Fixed
 
