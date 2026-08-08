@@ -385,6 +385,7 @@ ipcMain.on('restartGridTracker2', (event, resetWindowPositions = false) => {
   {
     saveWindowPositions();
   }
+  event.returnValue = true;
   app.relaunch();
   app.exit();
 });
@@ -466,6 +467,7 @@ function createMainWindow() {
 }
 
 let autoUpdateInitialized = false;
+let autoUpdateTimer = null;
 
 function checkForUpdates() {
   if (!autoUpdateInitialized) {
@@ -501,8 +503,9 @@ function checkForUpdates() {
     log.error("Failed to update check");
     log.error(e.message);
   }
-  // Check every 24 hours
-  timers.setTimeout(checkForUpdates, 86400000);
+
+  if (autoUpdateTimer) timers.clearTimeout(autoUpdateTimer);
+  autoUpdateTimer = timers.setTimeout(checkForUpdates, 86400000);
 }
 
 function downloadUpdate() {
