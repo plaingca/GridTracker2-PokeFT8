@@ -371,23 +371,30 @@ ipcMain.on('installAndRestart', (event, what) => {
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.autoRunAppAfterInstall = true;
     saveWindowPositions();
-    autoUpdater.quitAndInstall(true, true);
+    
+    event.returnValue = true;
+    
+    timers.setTimeout(() => {
+        autoUpdater.quitAndInstall(true, true);
+    }, 100);
 });
 
 ipcMain.on('restartGridTracker2', (event, resetWindowPositions = false) => {
   if (resetWindowPositions == true) {
-    if (fs.existsSync(windowSettingsPath))
-    {
+    if (fs.existsSync(windowSettingsPath)) {
       fs.unlinkSync(windowSettingsPath);
     }
   }
-  else
-  {
+  else {
     saveWindowPositions();
   }
-  event.returnValue = true;
-  app.relaunch();
-  app.exit();
+  
+  event.returnValue = true; 
+  
+  timers.setTimeout(() => {
+      app.relaunch();
+      app.exit();
+  }, 100);
 });
 
 ipcMain.on('log', (event, value) => {
