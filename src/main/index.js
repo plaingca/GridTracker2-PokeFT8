@@ -367,10 +367,19 @@ ipcMain.on('spawnScript', (event, scriptPath) => {
   }
 });
 
+let isShuttingDown = false; 
+
 ipcMain.on('installAndRestart', (event, what) => {
+    if (isShuttingDown) {
+        event.returnValue = true;
+        return; // Ignore duplicate clicks
+    }
+    isShuttingDown = true;
+
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.autoRunAppAfterInstall = true;
-    saveWindowPositions();
+    
+    saveWindowPositions(); 
     
     event.returnValue = true;
     
@@ -380,21 +389,26 @@ ipcMain.on('installAndRestart', (event, what) => {
 });
 
 ipcMain.on('restartGridTracker2', (event, resetWindowPositions = false) => {
-  if (resetWindowPositions == true) {
-    if (fs.existsSync(windowSettingsPath)) {
-      fs.unlinkSync(windowSettingsPath);
+    if (isShuttingDown) {
+        event.returnValue = true;
+        return;
     }
-  }
-  else {
-    saveWindowPositions();
-  }
+    isShuttingDown = true;
+
+    if (resetWindowPositions === true) {
+        if (fs.existsSync(windowSettingsPath)) {
+            fs.unlinkSync(windowSettingsPath);
+        }
+    } else {
+        saveWindowPositions();
+    }
   
-  event.returnValue = true; 
+    event.returnValue = true; 
   
-  timers.setTimeout(() => {
-      app.relaunch();
-      app.exit();
-  }, 100);
+    timers.setTimeout(() => {
+        app.relaunch();
+        app.exit();
+    }, 100);
 });
 
 ipcMain.on('log', (event, value) => {
