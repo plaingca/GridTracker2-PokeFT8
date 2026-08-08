@@ -717,12 +717,8 @@ function saveAllSettings()
   }
 }
 
-function saveAndCloseApp(shouldRestart = false)
+function closeOpenSockets()
 {
-  GT.closing = true;
-  saveAllSettings();
-  saveReceptionReports();
-
   if (GT.wsjtUdpServer != null)
   {
     try
@@ -769,6 +765,15 @@ function saveAndCloseApp(shouldRestart = false)
   }
 
   closePskMqtt();
+}
+
+function saveAndCloseApp(shouldRestart = false)
+{
+  GT.closing = true;
+  saveAllSettings();
+  saveReceptionReports();
+
+  closeOpenSockets();
 
   if (shouldRestart == true)
   {
@@ -780,49 +785,7 @@ function clearAndReload(fullReset = true)
 {
   GT.closing = true;
   
-  if (GT.wsjtUdpServer != null)
-  {
-    try
-    {
-      if (multicastEnable.checked == true && GT.settings.app.wsjtIP != "")
-      {
-        GT.wsjtUdpServer.dropMembership(GT.settings.app.wsjtIP);
-      }
-      GT.wsjtUdpServer.close();
-    }
-    catch (e)
-    {
-      console.error(e);
-    }
-  }
-
-  if (GT.adifBroadcastServer != null)
-  {
-    try
-    {
-      if (adifBroadcastMulticast.checked == true && GT.settings.app.adifBroadcastIP != "")
-      {
-        GT.adifBroadcastServer.dropMembership(GT.settings.app.adifBroadcastIP);
-      }
-      GT.adifBroadcastServer.close();
-    }
-    catch (e)
-    {
-      console.error(e);
-    }
-  }
-
-  if (GT.forwardUdpServer != null)
-  {
-    try
-    {
-      GT.forwardUdpServer.close();
-    }
-    catch (e)
-    {
-      console.error(e);
-    }
-  }
+  closeOpenSockets();
 
   if (fullReset)
   {
@@ -2488,13 +2451,19 @@ function createSpotTipTable(toolElement)
 
       let sourceStr = "";
       if ("source" in report) {
-        let color = report.source == "O" ? "cyan;font-size: larger" : "orange";
-        let fullSource = report.source == "O" ? "GT-RTSN" : report.source == "M" ? "PSK-MQTT" : "PSK-Reporter";
-        sourceStr = `<tr><td>Source</td><td style='color:${color};'>${fullSource}</font></td>`;
+        sourceStr = `<tr><td>Source</td><td>`;
+        if ("O" in report.source)
+        {
+          sourceStr += `<span style="color:cyan">GT-RTSN </span>`;
+        }
+        if ("M" in report.source)
+        {
+          sourceStr += `<span style="color:orange">PSK-MQTT</span>`;
+        }
+        sourceStr += `</td></tr>`;
       }
 
-      const gridSpotRow =
-        `<tr><td>Grid</td><td style='${lookupGridCellStyle(report.grid, report.band, report.mode)}'>${report.grid}</td></tr>`;
+      const gridSpotRow = `<tr><td>Grid</td><td style='${lookupGridCellStyle(report.grid, report.band, report.mode)}'>${report.grid}</td></tr>`;
 
       myTooltip.innerHTML = `
         <table id='tooltipTable' class='darkTable'>
@@ -14011,6 +13980,16 @@ function loadReceptionReports()
     if (fs.existsSync(GT.spotsPath))
     {
       GT.receptionReports = require(GT.spotsPath);
+      // Convert old single spot source to new object type allowing for multiple sources
+      for (const spot of Object.values(GT.receptionReports.spots))
+      {
+        if (typeof spot.source === "string")
+        {
+          const key = spot.source;
+          spot.source = {};
+          spot.source[key] = true;
+        }
+      }
     }
   }
   catch (e)
@@ -14032,7 +14011,7 @@ class SpotReport {
     this.snr = 0;
     this.freq = 0;
     this.color = 0;
-    this.source = 0;
+    this.source = {};
     this.bearing = 0; // Pre-allocate for tooltip usage later
   }
 }
@@ -14061,7 +14040,7 @@ function addNewRTSNSpot(parts) {
   
   // 7. Math.trunc() is much faster and cleaner than parseInt() for math
   report.color = clamp(Math.trunc((Math.trunc(snr) + 25) * 9), 0, 255);
-  report.source = "O";
+  report.source.O = true;
 
   // Restart the timer
   GT.redrawSpotsTimeout = nodeTimers.setTimeout(redrawSpots, 250);
@@ -14117,7 +14096,7 @@ function addNewMqttPskSpot(json)
   report.snr = json.rp;
   report.freq = json.f;
   report.color = clamp(parseInt((parseInt(report.snr) + 25) * 9), 0, 255);
-  report.source = "M";
+  report.source.M = true;
   GT.redrawSpotsTimeout = nodeTimers.setTimeout(redrawSpots, 250);
 }
 
