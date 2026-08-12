@@ -317,306 +317,101 @@ function initQSOdata() {
   };
 }
 
-function trackQSO(details, currentYear, currentDay, currentSecond) {
-  // V8 OPTIMIZATION: Destructuring locals once avoids repeated object property lookups
-  const { 
-    DEcall, band, mode, time, digital, phone, grid4, 
-    dxcc, px, cont, state, cnty, ituz, cqz, confirmed, pota 
-  } = details;
 
-  // V8 OPTIMIZATION: 'new Date(ms)' is native and much faster than creating a 1970 date and calling setSeconds
-  const qsoDate = new Date(time * 1000);
-  const isCurrentYear = (qsoDate.getUTCFullYear() === currentYear);
+function mark(obj, baseKey, baseVal, includePhone, details, bandMode, bandDg, bandPh) {
+  obj[baseKey] = baseVal;
+  obj[baseKey + details.mode] = true;
+  obj[baseKey + details.band] = true;
+  obj[baseKey + bandMode] = true;
+
+  if (details.digital) {
+    obj[baseKey + "dg"] = true;
+    obj[baseKey + bandDg] = true;
+  }
   
-  // V8 MATH OPTIMIZATION: ~~ is a bitwise NOT-NOT, which does native C++ integer truncation. 
-  // parseInt() forces V8 to convert the float to a string, then parse it back to an int!
-  const isCurrentDay = (~~(time / 86400) === currentDay);
+  if (includePhone && details.phone) {
+    obj[baseKey + "ph"] = true;
+    obj[baseKey + bandPh] = true;
+  }
+}
 
-  // V8 CHARCODE OPTIMIZATION: charCodeAt bypasses string allocations 
-  if (
-    DEcall.length === 3 &&
-    DEcall.charCodeAt(0) !== 65 && // 'A'
-    DEcall.charCodeAt(2) !== 88 && // 'X'
-    isKnownCallsignUS(dxcc) &&
-    (currentSecond - time) > K_15_DAYS_IN_SECONDS
-  ) {
-    // Any 1x1 QSO in the US over 15 days is not considered worked for hunting purposes
-    return;
+
+function applyTracking(tracker, isWorked, details, isCurrentYear, currentYear, workedDxm, bandMode, bandDg, bandPh) {
+  const { DEcall, grid4, vucc_grids, ituz, cqz, dxcc, px, cont, state, cnty } = details;
+
+  if (DEcall) mark(tracker.call, DEcall, true, false, details, bandMode, bandDg, bandPh);
+  if (grid4) mark(tracker.grid, grid4, true, false, details, bandMode, bandDg, bandPh);
+
+  for (let i = 0, len = vucc_grids.length; i < len; i++) {
+    mark(tracker.grid, vucc_grids[i].substring(0, 4), true, false, details, bandMode, bandDg, bandPh);
   }
 
-  // CACHE LOCAL REFERENCES: Prevents looking up 'GT -> tracker -> worked -> call' dozens of times
-  const worked = GT.tracker.worked;
+  if (ituz) mark(tracker.ituz, ituz + "|", true, false, details, bandMode, bandDg, bandPh);
   
-  // PRE-COMPUTE STRINGS: Prevent allocating the exact same strings multiple times
-  const bandMode = band + mode;
-  const bandDg = band + "dg";
-  const bandPh = band + "ph";
-
-  // --- WORKED LOGIC ---
-  const wCall = worked.call;
-  wCall[DEcall + bandMode] = true;
-  wCall[DEcall] = true;
-  wCall[DEcall + mode] = true;
-  wCall[DEcall + band] = true;
-  
-  if (digital) {
-    wCall[DEcall + "dg"] = true;
-    wCall[DEcall + bandDg] = true;
-  }
-
-  if (grid4) {
-    const wGrid = worked.grid;
-    wGrid[grid4] = true;
-    wGrid[grid4 + mode] = true;
-    wGrid[grid4 + band] = true;
-    wGrid[grid4 + bandMode] = true;
-
-    if (digital) {
-      wGrid[grid4 + "dg"] = true;
-      wGrid[grid4 + bandDg] = true;
-    }
-  }
-
-  if (ituz) {
-    const wItuz = worked.ituz;
-    const iBase = ituz + "|"; // Coerces natively, faster than String(ituz)
-    wItuz[iBase + bandMode] = true;
-    wItuz[iBase] = true;
-    wItuz[iBase + mode] = true;
-    wItuz[iBase + band] = true;
-    if (digital) {
-      wItuz[iBase + "dg"] = true;
-      wItuz[iBase + bandDg] = true;
-    }
-  }
-
   if (cqz) {
-    const wCqz = worked.cqz;
-    const cBase = cqz + "|";
-    wCqz[cBase + bandMode] = true;
-    wCqz[cBase] = true;
-    wCqz[cBase + mode] = true;
-    wCqz[cBase + band] = true;
-    if (digital) {
-      wCqz[cBase + "dg"] = true;
-      wCqz[cBase + bandDg] = true;
-    }
-    if (isCurrentYear) {
-      worked.dxm[`${cqz}z${currentYear}`] = true;
-    }
+    mark(tracker.cqz, cqz + "|", true, false, details, bandMode, bandDg, bandPh);
+    if (isWorked && isCurrentYear) workedDxm[cqz + "z" + currentYear] = true; 
   }
 
   if (dxcc > 0) {
-    const wDxcc = worked.dxcc;
-    const dBase = dxcc + "|";
-    wDxcc[dBase + bandMode] = true;
-    wDxcc[dBase] = true;
-    wDxcc[dBase + mode] = true;
-    wDxcc[dBase + band] = true;
-    if (digital) {
-      wDxcc[dBase + "dg"] = true;
-      wDxcc[dBase + bandDg] = true;
-    }
-    if (phone) {
-      wDxcc[dBase + "ph"] = true;
-      wDxcc[dBase + bandPh] = true;
-    }
-    if (isCurrentYear) {
-      worked.dxm[`${dxcc}c${currentYear}`] = true;
-    }
+    mark(tracker.dxcc, dxcc + "|", true, true, details, bandMode, bandDg, bandPh);
+    if (isWorked && isCurrentYear) workedDxm[dxcc + "c" + currentYear] = true;
   }
 
-  if (px) {
-    const wPx = worked.px;
-    wPx[px + bandMode] = true;
-    wPx[px] = DEcall;
-    wPx[px + mode] = true;
-    wPx[px + band] = true;
-    if (digital) {
-      wPx[px + "dg"] = true;
-      wPx[px + bandDg] = true;
-    }
-    if (phone) {
-      wPx[px + "ph"] = true;
-      wPx[px + bandPh] = true;
-    }
+  if (px) mark(tracker.px, px, DEcall, true, details, bandMode, bandDg, bandPh); 
+  if (cont) mark(tracker.cont, cont, true, false, details, bandMode, bandDg, bandPh);
+  if (state) mark(tracker.state, state, true, false, details, bandMode, bandDg, bandPh);
+  if (cnty) mark(tracker.cnty, cnty, true, false, details, bandMode, bandDg, bandPh);
+}
+
+function trackQSO(details, currentYear, currentDay, currentSecond) {
+  const { DEcall, time, dxcc, pota, confirmed, band, mode } = details;
+
+  const qsoDate = new Date(time * 1000);
+  const isCurrentYear = (qsoDate.getUTCFullYear() === currentYear);
+  const isCurrentDay = (~~(time / 86400) === currentDay);
+
+  if (
+    DEcall.length === 3 &&
+    DEcall.charCodeAt(0) !== 65 &&
+    DEcall.charCodeAt(2) !== 88 &&
+    isKnownCallsignUS(dxcc) &&
+    (currentSecond - time) > K_15_DAYS_IN_SECONDS
+  ) {
+    return;
   }
 
-  if (cont) {
-    const wCont = worked.cont;
-    wCont[cont + bandMode] = true;
-    wCont[cont] = true;
-    wCont[cont + mode] = true;
-    wCont[cont + band] = true;
-    if (digital) {
-      wCont[cont + "dg"] = true;
-      wCont[cont + bandDg] = true;
-    }
-  }
+  const bandMode = band + mode;
+  const bandDg = band + "dg";
+  const bandPh = band + "ph";
+  
+  const worked = GT.tracker.worked;
 
-  if (state) {
-    const wState = worked.state;
-    wState[state] = true;
-    wState[state + mode] = true;
-    wState[state + band] = true;
-    wState[state + bandMode] = true;
-    if (digital) {
-      wState[state + "dg"] = true;
-      wState[state + bandDg] = true;
-    }
-  }
+  // Process WORKED
+  applyTracking(worked, true, details, isCurrentYear, currentYear, worked.dxm, bandMode, bandDg, bandPh);
 
-  if (cnty) {
-    const wCnty = worked.cnty;
-    wCnty[cnty] = true;
-    wCnty[cnty + mode] = true;
-    wCnty[cnty + band] = true;
-    wCnty[cnty + bandMode] = true;
-    if (digital) {
-      wCnty[cnty + "dg"] = true;
-      wCnty[cnty + bandDg] = true;
-    }
-  }
-
+  // Process POTA (Worked Only)
   if (pota) {
     const wPota = worked.pota;
     const sDay = "" + currentDay;
     const potasList = pota.split(",");
-    const len = potasList.length;
     
-    // V8 OPTIMIZATION: 'for...in' loops check prototypes and are terrible for arrays. 
-    for (let i = 0; i < len; i++) {
+    for (let i = 0, len = potasList.length; i < len; i++) {
       const p = potasList[i].trim();
       if (isCurrentDay) {
-        wPota[`${sDay}.${DEcall}.${p}.${bandMode}`] = true;
-        wPota[`${sDay}.${p}.${bandMode}`] = true;
+        wPota[sDay + "." + DEcall + "." + p + "." + bandMode] = true;
+        wPota[sDay + "." + p + "." + bandMode] = true;
       }
       wPota[p] = true;
     }
   }
 
-  // --- CONFIRMED LOGIC ---
+  // Process CONFIRMED
   if (confirmed) {
-    const trackerConfirmed = GT.tracker.confirmed;
-
-    const cCall = trackerConfirmed.call;
-    cCall[DEcall + bandMode] = true;
-    cCall[DEcall] = true;
-    cCall[DEcall + mode] = true;
-    cCall[DEcall + band] = true;
-    if (digital) {
-      cCall[DEcall + "dg"] = true;
-      cCall[DEcall + bandDg] = true;
-    }
-
-    if (grid4) {
-      const cGrid = trackerConfirmed.grid;
-      cGrid[grid4 + bandMode] = true;
-      cGrid[grid4] = true;
-      cGrid[grid4 + mode] = true;
-      cGrid[grid4 + band] = true;
-      if (digital) {
-        cGrid[grid4 + "dg"] = true;
-        cGrid[grid4 + bandDg] = true;
-      }
-    }
-
-    if (ituz) {
-      const cItuz = trackerConfirmed.ituz;
-      const iBase = ituz + "|";
-      cItuz[iBase + bandMode] = true;
-      cItuz[iBase] = true;
-      cItuz[iBase + mode] = true;
-      cItuz[iBase + band] = true;
-      if (digital) {
-        cItuz[iBase + "dg"] = true;
-        cItuz[iBase + bandDg] = true;
-      }
-    }
-
-    if (cqz) {
-      const cCqz = trackerConfirmed.cqz;
-      const cBase = cqz + "|";
-      cCqz[cBase + bandMode] = true;
-      cCqz[cBase] = true;
-      cCqz[cBase + mode] = true;
-      cCqz[cBase + band] = true;
-      if (digital) {
-        cCqz[cBase + "dg"] = true;
-        cCqz[cBase + bandDg] = true;
-      }
-    }
-
-    if (dxcc > 0) {
-      const cDxcc = trackerConfirmed.dxcc;
-      const dBase = dxcc + "|";
-      cDxcc[dBase + bandMode] = true;
-      cDxcc[dBase] = true;
-      cDxcc[dBase + mode] = true;
-      cDxcc[dBase + band] = true;
-      if (digital) {
-        cDxcc[dBase + "dg"] = true;
-        cDxcc[dBase + bandDg] = true;
-      }
-      if (phone) {
-        cDxcc[dBase + "ph"] = true;
-        cDxcc[dBase + bandPh] = true;
-      }
-    }
-
-    if (state) {
-      const cState = trackerConfirmed.state;
-      cState[state] = true;
-      cState[state + mode] = true;
-      cState[state + band] = true;
-      cState[state + bandMode] = true;
-      if (digital) {
-        cState[state + "dg"] = true;
-        cState[state + bandDg] = true;
-      }
-    }
-
-    if (cnty) {
-      const cCnty = trackerConfirmed.cnty;
-      cCnty[cnty] = true;
-      cCnty[cnty + mode] = true;
-      cCnty[cnty + band] = true;
-      cCnty[cnty + bandMode] = true;
-      if (digital) {
-        cCnty[cnty + "dg"] = true;
-        cCnty[cnty + bandDg] = true;
-      }
-    }
-
-    if (px) {
-      const cPx = trackerConfirmed.px;
-      cPx[px + bandMode] = true;
-      cPx[px] = DEcall;
-      cPx[px + mode] = true;
-      cPx[px + band] = true;
-      if (digital) {
-        cPx[px + "dg"] = true;
-        cPx[px + bandDg] = true;
-      }
-      if (phone) {
-        cPx[px + "ph"] = true;
-        cPx[px + bandPh] = true;
-      }
-    }
-
-    if (cont) {
-      const cCont = trackerConfirmed.cont;
-      cCont[cont + bandMode] = true;
-      cCont[cont] = true;
-      cCont[cont + mode] = true;
-      cCont[cont + band] = true;
-      if (digital) {
-        cCont[cont + "dg"] = true;
-        cCont[cont + bandDg] = true;
-      }
-    }
+    applyTracking(GT.tracker.confirmed, false, details, isCurrentYear, currentYear, null, bandMode, bandDg, bandPh);
   }
 }
+
 
 /* eslint-disable */
 
