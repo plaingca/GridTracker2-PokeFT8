@@ -322,6 +322,10 @@ Map:
 Scores:
   Fixed grid tally mismatch
 
+
+Call Roster:
+  Added VUCC_GRIDS to worked/confirmed grids
+
 ### Fixed
 
 
