@@ -7845,6 +7845,17 @@ function searchWorked(dxcc, band, mode)
   renderLogbookView();
 }
 
+function searchWorkedGrid(grid, band)
+{
+  resetSearch();
+  GT.gridSearch = grid;
+  if (band && band.length > 0)
+  {
+    GT.filterBand = band;
+  }
+  renderLogbookView();
+}
+
 function getBandSlots()
 {
   const bands = (GT.myDXCC in GT.callsignDatabaseUSplus) ? GT.us_bands : GT.non_us_bands;
@@ -7931,6 +7942,7 @@ function showZonesBox()
 function showWASPlusBox()
 {
   let html = [getCurrentBandModeHTML()];
+  let band = GT.settings.app.gtBandFilter == "auto" ? GT.settings.app.myBand : GT.settings.app.gtBandFilter || "";
 
   html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.WASWACBox.WAS") + "</b><br>");
   html.push(displayItemList(GT.wasZones, "#00DDDD"));
@@ -7941,13 +7953,13 @@ function showWASPlusBox()
   html.push("</div>");
 
   html.push("<div style='vertical-align:top;display:inline-block;margin-right:8px;overflow:auto;overflow-x:hidden;color:cyan;'><b>" + I18N("gt.viewInfo.us48Data") + "</b><br>");
-  html.push(displayItemList(GT.us48Data, "#DDDD00"));
+  html.push(displayItemList(GT.us48Data, "#DDDD00", key => `searchWorkedGrid("${key}", "${band}")`));
   html.push("</div>");
 
   setStatsDiv("wasPlusListDiv", html.join(""));
 }
 
-function displayItemList(table, color)
+function displayItemList(table, color, clickFn = null)
 {
   const entries = Object.entries(table);
   const itemCount = entries.length;
@@ -7970,6 +7982,7 @@ function displayItemList(table, color)
 
   const confirmedStyle = "color:" + color + ";";
   const workedStyle = "color:" + color + ";background-clip:content-box;box-shadow: 0 0 8px 3px inset;";
+  const workedClickStyle = "color:" + color + ";background-clip:content-box;box-shadow: 0 0 8px 3px inset;cursor:pointer;";
   const neededStyle = "color:#000000;background-color:" + color + ";text-shadow: 0px 0px 1px black;";
 
   let rows = [];
@@ -7998,20 +8011,29 @@ function displayItemList(table, color)
           : key;
 
       let style;
+      let rowAttr = "";
       if (item.confirmed === true)
       {
         style = confirmedStyle;
       }
       else if (item.worked === true)
       {
-        style = workedStyle;
+        if (clickFn)
+        {
+          style = workedClickStyle;
+          rowAttr = " onclick='" + clickFn(key) + "'";
+        }
+        else
+        {
+          style = workedStyle;
+        }
       }
       else
       {
         style = neededStyle;
       }
 
-      rows.push("<tr><td align='left' style='" + style + "'>" + name + "</td></tr>");
+      rows.push("<tr><td align='left' style='" + style + "'" + rowAttr + ">" + name + "</td></tr>");
     });
 
   rows.push("</table></div>");
