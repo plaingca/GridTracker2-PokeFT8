@@ -131,6 +131,12 @@ function searchWorked(dxcc, band, mode)
   window.opener.searchWorked(dxcc, band, mode);
 }
 
+function searchWorkedGrid(grid, band)
+{
+  openInfoTab(qsobox, "workedBoxDiv", "renderLogbookView");
+  window.opener.searchWorkedGrid(grid, band);
+}
+
 function addTextToClipboard(data)
 {
   navigator.clipboard.writeText(data);
