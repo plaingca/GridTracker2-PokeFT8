@@ -44,7 +44,7 @@ win:build:
   before_script:
     - npm install
   script:
-    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
+    - '@{ CARTO_API_KEY = $env:CARTO_API_KEY } | ConvertTo-Json -Compress | Set-Content ./src/main/map_keys.json'
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
@@ -100,7 +100,7 @@ win7:build:
     - copy dev-app-update.win7.yml dev-app-update.yml
     - npm install
   script:
-    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
+    - '@{ CARTO_API_KEY = $env:CARTO_API_KEY } | ConvertTo-Json -Compress | Set-Content ./src/main/map_keys.json'
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
