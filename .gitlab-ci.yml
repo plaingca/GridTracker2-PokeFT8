@@ -44,6 +44,7 @@ win:build:
   before_script:
     - npm install
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
@@ -99,6 +100,7 @@ win7:build:
     - copy dev-app-update.win7.yml dev-app-update.yml
     - npm install
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - $env:VERSION = node -e "console.log(require('./package.json').version)"
     - echo "VERSION=$env:VERSION" >> build.env
     - $env:APPNAME = node -e "console.log(require('./package.json').name)"
@@ -158,6 +160,7 @@ mac:build:
     - npm install
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - export VERSION=$(node -e "console.log(require('./package.json').version)")
     - export CSC_LINK=.secure_files/mac-signing-certificate.p12
     - echo "VERSION=$VERSION" >> build.env
@@ -189,6 +192,7 @@ lin:build:
     - apt update -y && apt install flatpak flatpak-builder -y
     - flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - export VERSION=$(node -e "console.log(require('./package.json').version)")
     - echo "VERSION=$VERSION" >> build.env
     - export APPNAME=$(node -e "console.log(require('./package.json').name)")
@@ -223,6 +227,7 @@ arm64:build:
     - flatpak install flathub org.freedesktop.Platform/aarch64/23.08 -y
     - flatpak info --show-commit --user org.freedesktop.Platform/aarch64/23.08
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - export VERSION=$(node -e "console.log(require('./package.json').version)")
     - echo "VERSION=$VERSION" >> build.env
     - export APPNAME=$(node -e "console.log(require('./package.json').name)")
@@ -263,6 +268,7 @@ arm32:build:
     - flatpak install flathub org.freedesktop.Platform/aarch64/23.08 -y
     - flatpak info --show-commit --user org.freedesktop.Platform/aarch64/23.08
   script:
+    - echo "{\"CARTO_API_KEY\":\"$CARTO_API_KEY\"}" > ./src/main/map_keys.json
     - export VERSION=$(node -e "console.log(require('./package.json').version)")
     - echo "VERSION=$VERSION" >> build.env
     - export APPNAME=$(node -e "console.log(require('./package.json').name)")

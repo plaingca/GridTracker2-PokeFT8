@@ -325,7 +325,9 @@ Scores:
 
 Call Roster:
   Added VUCC_GRIDS to worked/confirmed grids
-
+Map:
+  Fixed CARTO Maps API key issue
+  
 ### Fixed
 
 

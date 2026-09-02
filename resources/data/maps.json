@@ -101,43 +101,44 @@
   },
   "Voyager by Carto (English)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
+
     "maxZoom": 19,
     "offline": false
   },
   "Positron by Carto (English)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
     "maxZoom": 19,
     "offline": false
   },
   "Dark Matter by Carto (English)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
     "maxZoom": 19,
     "offline": false
   },
   "Voyager by Carto (No Labels)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
     "maxZoom": 19,
     "offline": false
   },
   "Positron by Carto (No Labels)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
     "maxZoom": 19,
     "offline": false
   },
   "Dark Matter by Carto (No Labels)": {
     "sourceType" : "XYZ",
-    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}.png",
-    "attributions": "Carto",
+    "url": "https://{a-d}.basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}.png?key=CARTO_API_KEY",
+    "attributions": "<a href=\"https://carto.com\" target=\"_blank\">CARTO</a>",
     "maxZoom": 19,
     "offline": false
   },

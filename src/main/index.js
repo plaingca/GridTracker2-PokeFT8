@@ -258,6 +258,17 @@ if (fs.existsSync(windowSettingsPath)) {
 
 let mainWindowClosing = false;
 
+let mapKeys = {};
+
+try {
+  const mapKeysPath = path.join(__dirname, 'map_keys.json');
+  if (fs.existsSync(mapKeysPath)) {
+    mapKeys = JSON.parse(fs.readFileSync(mapKeysPath, 'utf8'));
+  }
+} catch (error) {
+  console.error('Failed to load map keys', error);
+}
+
 ipcMain.on('getResourcesPath', (event) => {
   event.returnValue = asarResourcesPath;
 });
@@ -272,6 +283,10 @@ ipcMain.on('getAppName', (event) => {
 
 ipcMain.on('appVersion', (event) => {
   event.returnValue = app.getVersion();
+});
+
+ipcMain.on('mapKeys', (event) => {
+  event.returnValue = mapKeys;
 });
 
 ipcMain.on('updateAvailable', (event) => {

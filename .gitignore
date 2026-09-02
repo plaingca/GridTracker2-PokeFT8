@@ -10,3 +10,4 @@ mac-signing-certificate.p12
 .VSCodeCounter
 .vscode/settings.json
 resources/media/desktop.ini
+src/main/map_keys.json

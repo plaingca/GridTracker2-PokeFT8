@@ -4251,6 +4251,20 @@ function initMap()
   const sortedKeys = Object.keys(mapsData).sort();
   GT.maps = Object.fromEntries(sortedKeys.map(key => [key, mapsData[key]]));
 
+  const mapKeys = electron.ipcRenderer.sendSync("mapKeys"); 
+
+  // Apply any api keys needed
+  for (const index in GT.maps)
+  {
+    for (const key in mapKeys)
+    { 
+      if ("url" in GT.maps[index] && GT.maps[index].url.indexOf(key) > 0 )
+      {
+        GT.maps[index].url = GT.maps[index].url.replaceAll(key, mapKeys[key])
+      }
+    }
+  }
+
   GT.mapsLayer = {};
   GT.offlineMapsLayer = {};
 
