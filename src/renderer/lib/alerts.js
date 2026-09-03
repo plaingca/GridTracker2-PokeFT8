@@ -347,7 +347,7 @@ function handleAlert(nAlert, target, lastMessage, callsignRecord, grid)
   if (nAlert.type == 4)
   {
     if (nAlert.notify == 0) playAlertMediaFile(nAlert.filename);
-    if (nAlert.notify == 1) speakQRZString(target, I18N("alerts.QRZ.speech"));
+    if (nAlert.notify == 1) speakQRZString(target, I18N("alerts.QRZ.speech"), GT.settings.app.myCall);
     if (nAlert.notify == 2) displayAlertPopUp("QRZ", null, null);
   }
   nAlert.fired++;
@@ -433,11 +433,13 @@ function speakQRZString(caller, words, you)
   if (GT.settings.audio.alertMute == 0)
   {
     var sCaller = "";
+    var sYou = "";
     if (caller) sCaller = stringToPhonetics(caller);
-  
+    if (you) sYou = stringToPhonetics(you);
+
     if (GT.speechAvailable)
     {
-      var speak = sCaller.trim() + ", " + words.trim();
+      var speak = sCaller.trim() + ", " + words.trim() + ", " + sYou.trim();
       var msg = new SpeechSynthesisUtterance(speak);
       msg.lang = GT.localeString;
       if (GT.settings.audio.speechVoice > 0)

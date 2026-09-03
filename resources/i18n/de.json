@@ -691,7 +691,7 @@
     "alerts.callsign.popup": "Gesucht",
     "alerts.gridsquare.speech": "Locatorfeld",
     "alerts.gridsquare.popup": "Locatorfeld",
-    "alerts.QRZ.speech": "Anruf",
+    "alerts.QRZ.speech": "ruft",
     "alerts.QRZ.popup": "QRZ",
     "alerts.AlertPop.Type": "Typ",
     "alerts.AlertPop.Value": "Wert",
