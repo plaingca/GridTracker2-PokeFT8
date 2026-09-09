@@ -28,6 +28,7 @@ function loadAllSettings()
   GT.qsoBackupDir = path.join(userDataPath, "Backup Logs");
   GT.extraMediaDir = path.join(userDataPath, "Extra Media");
   
+  GT.dxccBasePath = path.resolve(resourcesPath, "data/dxcc-base.json");
   GT.asarDxccInfoPath = path.resolve(resourcesPath, "data/dxcc-info.json");
   GT.dxccInfoPath = path.join(GT.appData, "dxcc-info.json");
   GT.tempDxccInfoPath = path.join(GT.appData, "dxcc-info-update.json");
@@ -1014,7 +1015,7 @@ function changeOffline()
   }
   else
   {
-    openLookupWindow(false);
+    if (GT.lookupWindowInitialized) electron.ipcRenderer.send("hideWin", "gt_lookup");
 
     conditionsButton.style.display = "none";
     buttonPsk24CheckBoxDiv.style.display = "none";
@@ -1964,7 +1965,7 @@ function getMouseY()
   return GT.mouseY;
 }
 
-function tempGridToBox(iQTH, borderColor, boxColor, layer)
+function tempGridToBox(iQTH, borderColor, boxColor)
 {
   let borderWeight = 2;
   let newGridBox = null;
@@ -3025,7 +3026,7 @@ function qthToQsoBox(iQTH, iHash, locked, DE, worked, confirmed, band)
         triangleView = true;
       }
     }
-    LL = maidenheadToBounds(iQTH);
+    let LL = maidenheadToBounds(iQTH);
     if (LL.size == 6)
     {
       borderColor = "#000000FF";
@@ -3169,7 +3170,6 @@ function qthToBox(iQTH, iDEcallsign, iCQ, locked, DE, band, wspr, hash, fromLive
   {
     boxColor = GT.settings.legendColors.QTH + GT.gridAlpha;
     borderColor = "#000000FF";
-    borderOpacity = 1;
   }
   if (wspr != null)
   {
@@ -3225,7 +3225,6 @@ function qthToBox(iQTH, iDEcallsign, iCQ, locked, DE, band, wspr, hash, fromLive
       if (LL.size == 6)
       {
         borderColor = "#000000FF";
-        // borderWeight = 1.0;
         zIndex = 50;
       }
 
@@ -3299,7 +3298,6 @@ function qthToBox(iQTH, iDEcallsign, iCQ, locked, DE, band, wspr, hash, fromLive
     {
       boxColor = GT.settings.legendColors.QTH + GT.gridAlpha;
       borderColor = "#000000FF";
-      borderOpacity = 1;
     }
     if (myDEbox) borderWeight = 1;
     if (rect.rectangle.size == 6)
@@ -5078,7 +5076,7 @@ function initiateQso(thisCall)
   {
     if (GT.settings.map.focusRig && GT.activeInstance != GT.callRoster[thisCall].message.instance)
     {
-      activeRig(GT.callRoster[thisCall].message.instance);
+      setRig(GT.callRoster[thisCall].message.instance);
     }
     if (GT.settings.map.haltAllOnTx)
     {
@@ -5142,7 +5140,7 @@ function setCallAndGrid(callsign, grid, instance = null, genMessages = true)
   }
   else
   {
-    if (GT.instances[GT.activeInstance].valid && GT.instances[GT.activeInstance].remote)
+    if (GT.activeInstance && GT.instances[GT.activeInstance].valid && GT.instances[GT.activeInstance].remote)
     {
       thisInstance = GT.instances[GT.activeInstance].status;
       port = GT.instances[GT.activeInstance].remote.port;
@@ -5282,23 +5280,6 @@ function setRig(instanceId)
   }
 }
 
-function activeRig(instance)
-{
-  if (GT.instances[instance].valid)
-  {
-    if (GT.lastMapView != null)
-    {
-      GT.mapView.animate({ zoom: GT.lastMapView.zoom, duration: 100 });
-      GT.mapView.animate({ center: GT.lastMapView.LoLa, duration: 100 });
-      GT.lastMapView = null;
-    }
-
-    GT.activeInstance = instance;
-
-    handleInstanceStatus(GT.instances[GT.activeInstance].status);
-    handleClosed(GT.instances[GT.activeInstance].status);
-  }
-}
 
 function handleInstanceStatus(newMessage)
 {
@@ -6182,7 +6163,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
         GT.lastTraffic.unshift(userTimeString(null));
         GT.lastTraffic.unshift("<hr style='border-color:#333;margin-top:0px;margin-bottom:2px;width:80%'>");
         drawTraffic();
-        lastMessageWasInfo = true;
       }
     }
 
@@ -6817,7 +6797,14 @@ function handleWsjtxWSPR(newMessage)
     callsignToDxcc(callsign)
   );
 
-  processCustomAlertMessage(callsign + " " + newMessage.Grid);
+  const mode = "WSPR";
+  const band = formatBand(Number(newMessage.Frequency / 1000000));
+  const hash = callsign + band + mode;
+  let callsignRecord = null;
+   
+  if (hash in GT.liveCallsigns) callsignRecord = GT.liveCallsigns[hash];
+
+  checkAlerts(callsign, newMessage.Grid, newMessage.Callsign + " " + newMessage.Grid, callsignRecord, band, mode);
 
   updateCountStats();
 }
@@ -7289,12 +7276,6 @@ function myDxccCompare(a, b)
   return GT.dxccToAltName[a.dxcc].localeCompare(GT.dxccToAltName[b.dxcc]);
 }
 
-function myDxccIntCompare(a, b)
-{
-  if (!(a in GT.dxccToAltName)) return 0;
-  if (!(b in GT.dxccToAltName)) { return GT.dxccToAltName[a].localeCompare(GT.dxccToAltName[b]); }
-}
-
 function myTimeCompare(a, b)
 {
   return a.time - b.time;
@@ -7610,7 +7591,7 @@ function renderLogbookView(sortIndex = null, nextPage = 0)
           <th><div id='qslFilterDiv'></div></th>
           <th></th>
           <th></th>
-          ${GT.filterDxcc !== 0 
+          ${GT.filterDxcc !== "0" 
             ? `<th style='border-right:none;'><div id='dxccFilterDiv'></div></th><th style='border-left:none;'><img title='Show All' onclick='window.opener.GT.filterDxcc=0;window.opener.renderLogbookView();' src='img/trash_24x48.png' style='width:30px;margin:0px;padding:0px;margin-bottom:-4px;cursor:pointer' /></th>`
             : `<th colspan='2'><div id='dxccFilterDiv'></div></th>`
           }
@@ -7806,7 +7787,7 @@ function renderLogbookView(sortIndex = null, nextPage = 0)
     console.error(e);
   }
 }
-''
+
 function statsValidateCallByElement(elementString)
 {
   if (GT.statsWindowInitialized)
@@ -8519,10 +8500,10 @@ function workObject(obj, count, band, mode, type, didConfirm) {
   if (count === false) {
     const wTypes = obj.worked_types;
     
-    const wModeMixed = wModes.Mixed;
+    const wModeMixed = wTypes.Mixed;
     wTypes.Mixed = wModeMixed === undefined ? 1 : wModeMixed + 1;
 
-    const wModeTypeVal = wModes[type];
+    const wModeTypeVal = wTypes[type];
     wTypes[type] = wModeTypeVal === undefined ? 1 : wModeTypeVal + 1;
   }
 
@@ -9147,33 +9128,18 @@ function createDistanceTable(obj, name)
   return html + "</table>";
 }
 
+
 function numberSort(a, b)
 {
-  // cut off 'm' from 80m or 70cm
-  let metersA = a.slice(0, -1);
-  let metersB = b.slice(0, -1);
-
-  // if last letter is c we have a centimeter band, multiply value with 0.01
-  if (metersA.slice(-1) == "c")
+  const toMeters = (s) =>
   {
-    metersA = 0.01 * parseInt(metersA);
-  }
-  else
-  {
-    metersA = parseInt(metersA);
-  }
-  if (metersB.slice(-1) == "c")
-  {
-    metersB = 0.01 * parseInt(metersB);
-  }
-  else
-  {
-    metersA = parseInt(metersA);
-  }
-  if (metersA > metersB) return 1;
-  if (metersB > metersA) return -1;
-  return 0;
+    const v = parseFloat(s);
+    if (isNaN(v)) return Infinity;          // non-bands sort last
+    return s.endsWith("cm") ? v * 0.01 : s.endsWith("mm") ? v *.001 : v;
+  };
+  return toMeters(a) - toMeters(b);
 }
+
 
 function createStatTable(title, infoObject, awardName)
 {
@@ -9782,7 +9748,7 @@ function pskBandActivityCallback(buffer, flag)
 
 function pskGetBandActivity()
 {
-  if (GT.settings.map.offlineMode == true || GT.settings.map.offAirServicesEnable == false || GT.settings.map.oamsBandActivity == false) return;
+  if (GT.settings.map.offlineMode == true || GT.settings.app.offAirServicesEnable == false || GT.settings.app.oamsBandActivity == false) return;
   
   if (typeof GT.settings.bandActivity.lastUpdate[GT.settings.app.myMode] == "undefined")
   {
@@ -10352,58 +10318,54 @@ function createWorkingObject(name)
   };
 }
 
+function updateFromBigCty(dxccBigCTY)
+{
+  GT.prefixToDXCC = {};
+  GT.directCallToDXCC = {};
+  GT.directCallToCQzone = {};
+  GT.directCallToITUzone = {};
+  GT.prefixToCQzone = {};
+  GT.prefixToITUzone = {};
+
+  // Safety measure for backwards compatibility
+  delete dxccBigCTY[0];
+
+  for (let key in dxccBigCTY)
+  {
+    const info = dxccBigCTY[key]; 
+
+    GT.dxccInfo[key].cqzone = info.cqzone;
+    GT.dxccInfo[key].ituzone = info.ituzone;
+
+    GT.prefixToDXCC[GT.dxccInfo[key].pp] = key;
+
+    for (let i = 0; i < info.prefix.length; i++) {
+      GT.prefixToDXCC[info.prefix[i]] = key;
+    }
+
+    for (let i = 0; i < info.direct.length; i++) {
+      GT.directCallToDXCC[info.direct[i]] = GT.dxccInfo[key].dxcc;
+    }
+ 
+    for (let val in info.prefixCQ) GT.prefixToCQzone[val] = info.prefixCQ[val];
+    for (let val in info.prefixITU) GT.prefixToITUzone[val] = info.prefixITU[val];
+    for (let val in info.directCQ) GT.directCallToCQzone[val] = info.directCQ[val];
+    for (let val in info.directITU) GT.directCallToITUzone[val] = info.directITU[val];
+  }
+}
+
 function loadMaidenHeadData()
 {
-  try {
-    GT.dxccInfo = require(GT.dxccInfoPath);
-  }
-  catch (e)
-  {
-    console.error("Failed to load Ginternal dxcc-info, falling back to asar");
-    // Fallback to asar
-    GT.dxccInfo = require(GT.asarDxccInfoPath);
-    
-  }
-
-  if ("version" in GT.dxccInfo[0])
-  {
-    GT.dxccVersion = parseInt(GT.dxccInfo[0].version);
-
-    updateLookupsBigCtyUI();
-  }
+  GT.dxccInfo = require(GT.dxccBasePath);
 
   for (let key in GT.dxccInfo)
   {
-    const info = GT.dxccInfo[key]; // Cache the pointer!
+    const info = GT.dxccInfo[key]; 
 
     GT.dxccToAltName[info.dxcc] = info.name;
     GT.dxccToADIFName[info.dxcc] = info.aname;
     GT.altNameToDXCC[info.name] = info.dxcc;
     GT.dxccToCountryCode[info.dxcc] = info.cc;
-
-    GT.prefixToDXCC[info.pp] = key;
-
-    for (let i = 0; i < info.prefix.length; i++) {
-      GT.prefixToDXCC[info.prefix[i]] = key;
-    }
-    info.prefix = undefined; // Nullifies reference for GC without destroying V8 Hidden Class
-
-    for (let i = 0; i < info.direct.length; i++) {
-      GT.directCallToDXCC[info.direct[i]] = info.dxcc;
-    }
-    info.direct = undefined;
-
-    for (let val in info.prefixCQ) GT.prefixToCQzone[val] = info.prefixCQ[val];
-    info.prefixCQ = undefined;
-
-    for (let val in info.prefixITU) GT.prefixToITUzone[val] = info.prefixITU[val];
-    info.prefixITU = undefined;
-
-    for (let val in info.directCQ) GT.directCallToCQzone[val] = info.directCQ[val];
-    info.directCQ = undefined;
-
-    for (let val in info.directITU) GT.directCallToITUzone[val] = info.directITU[val];
-    info.directITU = undefined;
 
     for (let x = 0; x < info.mh.length; x++)
     {
@@ -10411,6 +10373,34 @@ function loadMaidenHeadData()
       GT.gridToDXCC[info.mh[x]].push(info.dxcc);
     }
   }
+
+  let dxccBigCTY;
+  try {
+    dxccBigCTY = require(GT.dxccInfoPath);
+  }
+  catch (e)
+  {
+    console.error("Failed to load Ginternal dxcc-info, falling back to asar");
+    // Fallback to asar
+    dxccBigCTY = require(GT.asarDxccInfoPath);
+  }
+
+  if ("version" in dxccBigCTY[1])
+  {
+    GT.dxccVersion = parseInt(dxccBigCTY[1].version);
+
+    updateLookupsBigCtyUI();
+
+    nodeTimers.setTimeout(downloadCtyDat, 120000);    // In 2 minutes, when the dust settles
+
+  }
+  else
+  {
+    GT.dxccVersion = 19700101;
+    nodeTimers.setTimeout(downloadCtyDat, 5000);    // In 5 seconds
+  }
+
+  updateFromBigCty(dxccBigCTY);
 
   let dxccGeo = requireJson("data/dxcc.json");
   for (let key in dxccGeo.features)
@@ -10598,7 +10588,7 @@ function unitToKilometer(value, unit) {
   else return value;
 }
 
-function changeRangeRingDistance()
+function changeRangeRingDistance(event)
 {
   let val = parseFloat(event.target.value);
   let unit = GT.settings.app.distanceUnit || 'KM';
@@ -10730,6 +10720,8 @@ function drawRangeRings()
   const distance = GT.settings.map.rangeRingDistance;
   const geoJsonFormat = new ol.format.GeoJSON();
 
+  if (distance <= 0) return;
+
   for (let x = distance; x < 20000; x += distance)
   {
     let feature = null;
@@ -10773,140 +10765,126 @@ function drawAllGrids()
   GT.layerSources.longGrids.clear();
   GT.layerSources.bigGrids.clear();
 
-  if (GT.settings.map.showAllGrids == false)
+  if (GT.settings.map.showAllGrids == false) return;
+
+  const useTransform = GT.useTransform;
+  const targetProj = useTransform ? GT.settings.map.projection : "EPSG:3857";
+
+  // ---- Grid lines: two shared styles, field boundaries vs square boundaries ----
+  const borderColor = "#000";
+  const fieldLineStyle = new ol.style.Style({
+    stroke: new ol.style.Stroke({ color: borderColor, width: useTransform ? 0.75 : 1.25 })
+  });
+  const squareLineStyle = new ol.style.Style({
+    stroke: new ol.style.Stroke({ color: borderColor, width: 0.25 })
+  });
+
+  const lineFeatures = [];
+
+  // Meridians every 2° (square width); every 20° is a field boundary
+  for (let lon = -178; lon <= 180; lon += 2)
   {
-    return;
+    const line = lineString([[lon, -85], [lon, 85]], 100);
+    line.setStyle(lon % 20 == 0 ? fieldLineStyle : squareLineStyle);
+    lineFeatures.push(line);
   }
 
-  let borderColor = "#000";
-  let borderWeight = 0.5;
-
-  for (let x = -178; x < 181; x += 2)
+  // Parallels every 1° (square height); every 10° is a field boundary
+  for (let lat = -85; lat < 85; lat++)
   {
-    let points = [[x, -85], [x, 85]];
+    const style = lat % 10 == 0 ? fieldLineStyle : squareLineStyle;
 
-    if (x % 20 == 0) GT.useTransform ? borderWeight = 0.75 : borderWeight = 1.25;
-    else borderWeight = 0.25;
-
-    let newGridBox = lineString(points, 100);
-
-    let featureStyle = new ol.style.Style({
-      stroke: new ol.style.Stroke({
-        color: borderColor,
-        width: borderWeight
-      })
-    });
-    newGridBox.setStyle(featureStyle);
-
-    GT.layerSources.lineGrids.addFeature(newGridBox);
-  }
-
-  for (let x = -85; x < 85; x++)
-  {
-    if (x % 10 == 0) GT.useTransform ? borderWeight = 0.75 : borderWeight = 1.25;
-    else borderWeight = 0.25;
-
-    if (GT.useTransform)
+    if (useTransform)
     {
-      for (let y = -180; y < 180; y += 2)
+      // Segment parallels so they project correctly in non-Mercator projections
+      for (let lon = -180; lon < 180; lon += 2)
       {
-        let points = [[y, x], [y + 2, x]];
-        let newGridBox = lineString(points, 10);
-
-        let featureStyle = new ol.style.Style({
-          stroke: new ol.style.Stroke({
-            color: borderColor,
-            width: borderWeight
-          })
-        });
-        newGridBox.setStyle(featureStyle);
-        GT.layerSources.lineGrids.addFeature(newGridBox);
+        const line = lineString([[lon, lat], [lon + 2, lat]], 10);
+        line.setStyle(style);
+        lineFeatures.push(line);
       }
     }
     else
     {
-      let points = [[-180, x], [180, x]];
-      let newGridBox = lineString(points);
-
-      let featureStyle = new ol.style.Style({
-        stroke: new ol.style.Stroke({
-          color: borderColor,
-          width: borderWeight
-        })
-      });
-      newGridBox.setStyle(featureStyle);
-      GT.layerSources.lineGrids.addFeature(newGridBox);
+      const line = lineString([[-180, lat], [180, lat]]);
+      line.setStyle(style);
+      lineFeatures.push(line);
     }
   }
 
-  // Pre-allocate shared style objects OUTSIDE the loops
-  let font4String = GT.useTransform ? "normal 12px sans-serif" : "normal 16px sans-serif";
-  let font2String = GT.useTransform ? "normal 16px sans-serif" : "normal 22px sans-serif";
+  GT.layerSources.lineGrids.addFeatures(lineFeatures);
 
+  // ---- Labels: one Style object per level, text swapped in via style function ----
   const sharedFill = new ol.style.Fill({ color: "#000" });
-  const sharedStrokeThin = new ol.style.Stroke({ color: "#88888888", width: 1 });
-  const sharedStrokeThick = new ol.style.Stroke({ color: "#88888888", width: 2 });
 
-  for (let x = 65; x < 83; x++)
+  const squareTextStyle = new ol.style.Style({
+    text: new ol.style.Text({
+      fill: sharedFill,
+      stroke: new ol.style.Stroke({ color: "#88888888", width: 1 }),
+      font: useTransform ? "normal 12px sans-serif" : "normal 16px sans-serif",
+      offsetY: 1
+    })
+  });
+  const fieldTextStyle = new ol.style.Style({
+    text: new ol.style.Text({
+      fill: sharedFill,
+      stroke: new ol.style.Stroke({ color: "#88888888", width: 2 }),
+      font: useTransform ? "normal 16px sans-serif" : "normal 22px sans-serif"
+    })
+  });
+
+  const squareStyleFn = function (feature)
   {
-    for (let y = 65; y < 83; y++)
+    squareTextStyle.getText().setText(feature.get("label"));
+    return squareTextStyle;
+  };
+  const fieldStyleFn = function (feature)
+  {
+    fieldTextStyle.getText().setText(feature.get("label"));
+    return fieldTextStyle;
+  };
+
+  function labelFeature(lon, lat, label, styleFn)
+  {
+    const feature = new ol.Feature({
+      geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat], targetProj)),
+      label: label
+    });
+    feature.setStyle(styleFn);
+    return feature;
+  }
+
+  const squareFeatures = [];
+  const fieldFeatures = [];
+
+  // Fields A–R: 20° lon × 10° lat, origin at 180W / 90S
+  for (let fx = 0; fx < 18; fx++)
+  {
+    const fieldLon = -180 + fx * 20;
+    const lonChar = String.fromCharCode(65 + fx);
+
+    for (let fy = 0; fy < 18; fy++)
     {
+      const fieldLat = -90 + fy * 10;
+      const field = lonChar + String.fromCharCode(65 + fy);
+
+      // Squares 00–99: 2° lon × 1° lat, label at center
       for (let a = 0; a < 10; a++)
       {
         for (let b = 0; b < 10; b++)
         {
-          let LL = maidenheadToBounds(
-            String.fromCharCode(x) +
-            String.fromCharCode(y) +
-            String(a) +
-            String(b)
+          squareFeatures.push(
+            labelFeature(fieldLon + a * 2 + 1, fieldLat + b + 0.5, field + a + b, squareStyleFn)
           );
-          let Lat = (LL.la1 + LL.la2) / 2;
-          let Lon = (LL.lo1 + LL.lo2) / 2;
-          let point = ol.proj.fromLonLat([Lon, Lat]);
-          let feature = new ol.Feature({
-            geometry: new ol.geom.Point(point)
-          });
-
-          let featureStyle = new ol.style.Style({
-            text: new ol.style.Text({
-              fill: sharedFill,           // Re-use!
-              stroke: sharedStrokeThin,   // Re-use!
-              font: font4String,
-              text: String.fromCharCode(x) + String.fromCharCode(y) + String(a) + String(b),
-              offsetY: 1
-            })
-          });
-          feature.setStyle(featureStyle);
-          if (GT.useTransform)
-          {
-            feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
-          }
-          GT.layerSources.longGrids.addFeature(feature);
         }
       }
 
-      let LL = maidenheadFieldToBounds(String.fromCharCode(x) + String.fromCharCode(y));
-      let Lat = (LL.la1 + LL.la2) / 2;
-      let Lon = (LL.lo1 + LL.lo2) / 2;
-      let point = ol.proj.fromLonLat([Lon, Lat]);
-      feature = new ol.Feature(new ol.geom.Point(point));
-      featureStyle = new ol.style.Style({
-        text: new ol.style.Text({
-          fill: sharedFill,            // Re-use!
-          stroke: sharedStrokeThick,   // Re-use!
-          font: font2String,
-          text: String.fromCharCode(x) + String.fromCharCode(y)
-        })
-      });
-      feature.setStyle(featureStyle);
-      if (GT.useTransform)
-      {
-        feature.getGeometry().transform("EPSG:3857", GT.settings.map.projection);
-      }
-      GT.layerSources.bigGrids.addFeature(feature);
+      fieldFeatures.push(labelFeature(fieldLon + 10, fieldLat + 5, field, fieldStyleFn));
     }
   }
+
+  GT.layerSources.longGrids.addFeatures(squareFeatures);
+  GT.layerSources.bigGrids.addFeatures(fieldFeatures);
 }
 
 function mailThem(address)
@@ -10945,7 +10923,7 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
     headers: { "User-Agent": gtUserAgent, "x-user-agent": gtUserAgent, 'Accept-Encoding': 'gzip' },
   };
 
-  http.get(options, function (res)
+  const req = http.get(options, function (res)
   {
     const encoding = res.headers['content-encoding'];
     res.on("data", function (data)
@@ -10955,10 +10933,9 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
       })
       .on("end", function ()
       {
-        if (encoding === 'gzip')
-        {
-          const zlib = require('zlib');
-          fileBuffer =  zlib.gunzipSync(fileBuffer);
+        if (encoding === 'gzip') {
+          try { fileBuffer = require('zlib').gunzipSync(fileBuffer); }
+          catch (e) { console.error("getBuffer gunzip " + file_url, e.message); return; }
         }
         if (typeof callback == "function")
         {
@@ -10970,6 +10947,11 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
       {
         console.error("getBuffer " + file_url + " error: " + e.message);
       });
+  });
+
+  req.on("error", function (e)
+  {
+    console.error("getBuffer " + file_url + " request error: " + e.message);
   });
 }
 
@@ -11924,8 +11906,8 @@ function startupEventsAndTimers()
 
 function initSettingsTabs()
 {
-  settingsTabcontent = document.getElementsByClassName("settingsTabcontent");
-  for (i = 0; i < settingsTabcontent.length; i++)
+  let settingsTabcontent = document.getElementsByClassName("settingsTabcontent");
+  for (let i = 0; i < settingsTabcontent.length; i++)
   {
     settingsTabcontent[i].style.display = "none";
   }
@@ -11997,7 +11979,6 @@ function postInit()
     nodeTimers.setInterval(downloadCtyDat, 86400000); // Every 24 hours
     nodeTimers.setInterval(refreshSpotsNoTx, 300000); // Redraw spots every 5 minutes, this clears old ones
     nodeTimers.setInterval(saveAllSettings, 900000);  // Save settings (if they have changed) every 10 minutes
-    nodeTimers.setTimeout(downloadCtyDat, 120000);    // In 2 minutes, when the dust settles
     nodeTimers.setTimeout(checkForNewVersion, 10000); // Informative check
     section = "passwordInputs";
     stylePasswordInputs();
@@ -12816,7 +12797,7 @@ function updateLastMsgTimeDiv(id)
 {
   lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + id;
   GT.lastTimeSinceMessageInSeconds = GT.timeNow;
-  updateLastMsgTimer = null;
+  GT.updateLastMsgTimer = null;
 }
 
 function loadLookupDetails()
@@ -13093,89 +13074,7 @@ function GetSessionID(resultTd, useCache)
   }
 }
 
-function hamQthGetSessionCallback(buffer, resultTd)
-{
-  let oParser = new DOMParser();
-  let oDOM = oParser.parseFromString(buffer, "text/xml");
-  let result = "";
-  if (oDOM != null)
-  {
-    let json = XML2jsobj(oDOM.documentElement);
-    if (json.hasOwnProperty("session"))
-    {
-      if (json.session.hasOwnProperty("session_id"))
-      {
-        result = "<font color='green'>Valid</font>";
-        GT.qrzLookupSessionId = json.session.session_id;
-      }
-      else
-      {
-        result = "<font color='red'>" + json.session.error + "</font>";
-        GT.qrzLookupSessionId = null;
-      }
-    }
-    else
-    {
-      result = "<font color='red'>Invalid Response</font>";
-      GT.qrzLookupSessionId = null;
-    }
-  }
-  else
-  {
-    result = "<font color='red'>Unknown Error</font>";
-    GT.qrzLookupSessionId = null;
-  }
-  if (resultTd == null)
-  {
-    // It's a true session Request
-    SessionResponse(GT.qrzLookupSessionId, result);
-  }
-  else
-  {
-    GT.qrzLookupSessionId = null;
-    resultTd.innerHTML = result;
-  }
-}
 
-function qrzGetSessionCallback(buffer, resultTd, useCache)
-{
-  let oParser = new DOMParser();
-  let oDOM = oParser.parseFromString(buffer, "text/xml");
-  let result = "";
-  if (oDOM != null)
-  {
-    let json = XML2jsobj(oDOM.documentElement);
-    if (json.hasOwnProperty("Session"))
-    {
-      if (json.Session.hasOwnProperty("Key"))
-      {
-        result = "<font color='green'>Valid</font>";
-        GT.qrzLookupSessionId = json.Session.Key;
-      }
-      else
-      {
-        result = "<font color='red'>" + json.Session.Error + "</font>";
-        GT.qrzLookupSessionId = null;
-      }
-    }
-    else
-    {
-      result = "<font color='red'>Invalid Response</font>";
-      GT.qrzLookupSessionId = null;
-    }
-  }
-  else
-  {
-    result = "<font color='red'>Unknown Error</font>";
-    GT.qrzLookupSessionId = null;
-  }
-  if (resultTd == null)
-  {
-    // It's a true session Request
-    SessionResponse(GT.qrzLookupSessionId, result, useCache);
-  }
-  else resultTd.innerHTML = result;
-}
 
 function SessionResponse(newKey, result, useCache)
 {
@@ -13238,89 +13137,185 @@ function GetLookup(useCache)
   }
 }
 
-function qthHamLookupResults(buffer, gridPass, useCache)
+function hamQthGetSessionCallback(buffer, resultTd, useCache)
 {
-  let oParser = new DOMParser();
-  let oDOM = oParser.parseFromString(buffer, "text/xml");
+  const oParser = new DOMParser();
+  const oDOM = oParser.parseFromString(buffer, "text/xml");
   let result = "";
-  if (oDOM != null)
-  {
-    let json = XML2jsobj(oDOM.documentElement);
-    if (json.hasOwnProperty("search"))
-    {
-      if (gridPass) json.search.gtGrid = gridPass;
-      json.search.source =
-        "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://www.hamqth.com/" +
-        json.search.callsign.toUpperCase() +
-        "\");'>HamQTH</div></b></font></td></tr>";
 
-      cacheLookupObject(json.search, gridPass, true);
-    }
-    else
-    {
-      GT.qrzLookupSessionId = null;
-      setLookupDiv(
-        "lookupInfoDiv",
-        "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
-      );
-    }
+  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  if (oDOM.getElementsByTagName("parsererror").length > 0)
+  {
+    result = "<font color='red'>Unknown Error</font>";
+    GT.qrzLookupSessionId = null;
   }
   else
   {
-    setLookupDiv("lookupInfoDiv", String(buffer));
+    const json = XML2jsobj(oDOM.documentElement);
+
+    if (!json.hasOwnProperty("session"))
+    {
+      result = "<font color='red'>Invalid Response</font>";
+      GT.qrzLookupSessionId = null;
+    }
+    else if (json.session.hasOwnProperty("session_id"))
+    {
+      result = "<font color='green'>Valid</font>";
+      GT.qrzLookupSessionId = json.session.session_id;
+    }
+    else
+    {
+      result = "<font color='red'>" + (json.session.error || "Unknown Error") + "</font>";
+      GT.qrzLookupSessionId = null;
+    }
+  }
+
+  if (resultTd == null)
+  {
+    // It's a true session Request
+    SessionResponse(GT.qrzLookupSessionId, result, useCache);
+    return;
+  }
+
+  // Settings "Test" button: never keep a session from a test
+  GT.qrzLookupSessionId = null;
+  resultTd.innerHTML = result;
+}
+
+function qrzGetSessionCallback(buffer, resultTd, useCache)
+{
+  const oParser = new DOMParser();
+  const oDOM = oParser.parseFromString(buffer, "text/xml");
+  let result = "";
+
+  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  if (oDOM.getElementsByTagName("parsererror").length > 0)
+  {
+    result = "<font color='red'>Unknown Error</font>";
     GT.qrzLookupSessionId = null;
   }
+  else
+  {
+    const json = XML2jsobj(oDOM.documentElement);
+
+    if (!json.hasOwnProperty("Session"))
+    {
+      result = "<font color='red'>Invalid Response</font>";
+      GT.qrzLookupSessionId = null;
+    }
+    else if (json.Session.hasOwnProperty("Key"))
+    {
+      result = "<font color='green'>Valid</font>";
+      GT.qrzLookupSessionId = json.Session.Key;
+    }
+    else
+    {
+      result = "<font color='red'>" + (json.Session.Error || "Unknown Error") + "</font>";
+      GT.qrzLookupSessionId = null;
+    }
+  }
+
+  if (resultTd == null)
+  {
+    // It's a true session Request
+    SessionResponse(GT.qrzLookupSessionId, result, useCache);
+    return;
+  }
+
+  resultTd.innerHTML = result;
 }
+
+function qthHamLookupResults(buffer, gridPass, useCache)
+{
+  const oParser = new DOMParser();
+  const oDOM = oParser.parseFromString(buffer, "text/xml");
+
+  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  if (oDOM.getElementsByTagName("parsererror").length > 0)
+  {
+    setLookupDiv("lookupInfoDiv", String(buffer));
+    GT.qrzLookupSessionId = null;
+    return;
+  }
+
+  const json = XML2jsobj(oDOM.documentElement);
+
+  if (!json.hasOwnProperty("search"))
+  {
+    GT.qrzLookupSessionId = null;
+    setLookupDiv(
+      "lookupInfoDiv",
+      "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
+    );
+    return;
+  }
+
+  const call = String(json.search.callsign || "").toUpperCase();
+  const safeCall = encodeURIComponent(call);
+
+  json.search.source =
+    "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://www.hamqth.com/" +
+    safeCall +
+    "\");'>HamQTH</div></b></font></td></tr>";
+
+  if (gridPass) json.search.gtGrid = gridPass;
+
+  cacheLookupObject(json.search, gridPass, true);
+}
+
 
 function qrzLookupResults(buffer, gridPass, useCache)
 {
   let oParser = new DOMParser();
   let oDOM = oParser.parseFromString(buffer, "text/xml");
-  let result = "";
-  if (oDOM != null)
-  {
-    let json = XML2jsobj(oDOM.documentElement);
-    if (json.hasOwnProperty("Callsign"))
-    {
-      let call = "";
-      if (json.Callsign.hasOwnProperty("callsign"))
-      {
-        json.Callsign.call = lookup.callsign;
-        delete json.Callsign.callsign;
-      }
-      if (json.Callsign.hasOwnProperty("call")) call = json.Callsign.call;
-      if (GT.settings.app.lookupService == "QRZ")
-      {
-        json.Callsign.source =
-          "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://www.qrz.com/lookup?callsign=" +
-          call +
-          "\");'>QRZ.com</div></b></font></td></tr>";
-      }
-      else
-      {
-        json.Callsign.source =
-          "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://www.qrzcq.com/call/" +
-          call +
-          "\");'>QRZCQ.com</div></b></font></td></tr>";
-      }
-      if (gridPass) json.Callsign.gtGrid = gridPass;
-      cacheLookupObject(json.Callsign, gridPass, true);
-    }
-    else
-    {
-      setLookupDiv(
-        "lookupInfoDiv",
-        "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
-      );
-      GT.qrzLookupSessionId = null;
-    }
-  }
-  else
+
+  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  if (oDOM.getElementsByTagName("parsererror").length > 0)
   {
     setLookupDiv("lookupInfoDiv", String(buffer));
     GT.qrzLookupSessionId = null;
+    return;
   }
+
+  let json = XML2jsobj(oDOM.documentElement);
+
+  if (!json.hasOwnProperty("Callsign"))
+  {
+    setLookupDiv(
+      "lookupInfoDiv",
+      "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
+    );
+    GT.qrzLookupSessionId = null;
+    return;
+  }
+
+  let call = "";
+  if (json.Callsign.hasOwnProperty("callsign"))
+  {
+    json.Callsign.call = json.Callsign.callsign;
+    delete json.Callsign.callsign;
+  }
+  if (json.Callsign.hasOwnProperty("call")) call = json.Callsign.call;
+
+  const isQRZ = GT.settings.app.lookupService == "QRZ";
+  const safeCall = encodeURIComponent(call);
+  const url = isQRZ
+    ? "https://www.qrz.com/lookup?callsign=" + safeCall
+    : "https://www.qrzcq.com/call/" + safeCall;
+  const label = isQRZ ? "QRZ.com" : "QRZCQ.com";
+
+  json.Callsign.source =
+    "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"" +
+    url +
+    "\");'>" +
+    label +
+    "</div></b></font></td></tr>";
+
+  if (gridPass) json.Callsign.gtGrid = gridPass;
+
+  cacheLookupObject(json.Callsign, gridPass, true);
 }
+
 
 function startupApplication()
 {
@@ -13854,7 +13849,7 @@ function searchLogForCallsign(call)
     {
       return value.DEcall == call;
     })
-    .sort(GT.settings.app.myBandCompare);
+    .sort(myBandCompare);
 
   let html = [];
   const ack = GT.acknowledgedCalls[call];
@@ -14163,10 +14158,10 @@ function createSpot(report, key, fromPoint, addToLayer = true)
 
     if (workingColor != -1)
     {
-      let testColor = workingColor < 1 ? "#0000000" : workingColor == 361 ? "#FFFFFF" : "hsla(" + workingColor + ", 100%, 50%," + report.color / 255 + ")";
+      let testColor = workingColor < 1 ? "#000000" : workingColor == 361 ? "#FFFFFF" : "hsla(" + workingColor + ", 100%, 50%," + report.color / 255 + ")";
       if (workingColor < 1 || workingColor == 361)
       {
-        spotColor = intAlphaToRGB(testColor.substr(0, 7), report.color);
+        spotColor = intAlphaToRGB(testColor.substring(0, 7), report.color);
       }
       else
       {
@@ -14258,7 +14253,6 @@ function redrawSpots()
     if ((now - report.when > 86400) || (report.grid.length < 4))
     {
       delete GT.receptionReports.spots[key];
-      shouldSave = true;
       continue;
     }
 
@@ -14371,7 +14365,7 @@ function spotPathChange()
 
   GT.spotFlightColor =
     GT.settings.reception.pathColor < 1
-      ? "#0000000BB"
+      ? "#000000BB"
       : GT.settings.reception.pathColor == 361
         ? "#FFFFFFBB"
         : "hsla(" + GT.settings.reception.pathColor + ", 100%, 50%,0.73)";
@@ -14399,7 +14393,7 @@ function spotPathChange()
 
   GT.spotNightFlightColor =
     GT.settings.reception.pathNightColor < 1
-      ? "#0000000BB"
+      ? "#000000BB"
       : GT.settings.reception.pathNightColor == 361
         ? "#FFFFFFBB"
         : "hsla(" + GT.settings.reception.pathNightColor + ", 100%, 50%,0.73)";
@@ -14548,15 +14542,14 @@ function setGridOpacity()
 {
   opacityValue.value = GT.settings.map.gridAlpha;
   showOpacityTd.innerHTML = parseInt((GT.settings.map.gridAlpha / 255) * 100) + "%";
-  GT.gridAlpha = parseInt(GT.settings.map.gridAlpha).toString(16);
+  GT.gridAlpha = parseInt(GT.settings.map.gridAlpha).toString(16).padStart(2, "0");
 }
 
 function changeGridOpacity()
 {
   GT.settings.map.gridAlpha = opacityValue.value;
   showOpacityTd.innerHTML = parseInt((GT.settings.map.gridAlpha / 255) * 100) + "%";
-  GT.gridAlpha = parseInt(GT.settings.map.gridAlpha).toString(16);
-  
+  GT.gridAlpha = parseInt(GT.settings.map.gridAlpha).toString(16).padStart(2, "0");
 }
 
 function openBackupLogsFolder()

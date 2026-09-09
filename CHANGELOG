@@ -327,7 +327,13 @@ Call Roster:
   Added VUCC_GRIDS to worked/confirmed grids
 Map:
   Fixed CARTO Maps API key issue
+
+Custom Alerts:
+  Added testing of WSPR decodes
+App:
+  Restart no longer required when BigCTY updates
   
+
 ### Fixed
 
 

@@ -466,25 +466,28 @@ function processCtyDat(buffer) {
   try {
     const ctydata = JSON.parse(String(buffer));
     if (fs.existsSync(GT.asarDxccInfoPath)) {
-      const dxccInfo = JSON.parse(fs.readFileSync(GT.asarDxccInfoPath, "utf8"));
+      const dxccBitCtyInfo = JSON.parse(fs.readFileSync(GT.asarDxccInfoPath, "utf8"));
       
       // Basic sanity check
-      if ("291" in dxccInfo && "291" in ctydata) {
-        updateDxccInfo(dxccInfo, ctydata);
-        dxccInfo[0].version = GT.newDxccVersion;
+      if ("291" in dxccBitCtyInfo && "291" in ctydata) {
+        updateDxccInfo(dxccBitCtyInfo, ctydata);
+        updateFromBigCty(dxccBitCtyInfo);
+        dxccBitCtyInfo[1].version = GT.newDxccVersion;
+        GT.dxccVersion = parseInt(dxccBitCtyInfo[1].version);
+        updateLookupsBigCtyUI();
+
+        // Safety copy for older versions, should someone revert
+        dxccBitCtyInfo[0] = { ...GT.dxccInfo[0] } ;
+        dxccBitCtyInfo[0].version = "0";
         
-        const toWrite = JSON.stringify(dxccInfo);
+        const toWrite = JSON.stringify(dxccBitCtyInfo);
         fs.writeFileSync(GT.tempDxccInfoPath, toWrite, { flush: true });
         
         if (fs.statSync(GT.tempDxccInfoPath).size === toWrite.length) {
           fs.unlinkSync(GT.dxccInfoPath);
           fs.renameSync(GT.tempDxccInfoPath, GT.dxccInfoPath);
           
-          if (window.bigctyUpdatedTd) {
-            bigctyUpdatedTd.innerHTML = `<div style='color:cyan;font-weight:bold'>${I18N("gt.NewVersionDownloaded")}</div>`;
-            bigctyDetailsTd.innerHTML = `<div class='button' onclick='saveAndCloseApp(true)'>${I18N("gt.Restart")}</div>`;
-          }
-          addLastTraffic(`<font style='color:yellow'>${I18N("gt.NewVersionDownloaded")} - Big CTY<br><div class='button' onclick='saveAndCloseApp(true)'>${I18N("gt.Restart")}</div></font>`);
+          addLastTraffic(`<font style='color:yellow'>${I18N("gt.NewVersionDownloaded")} : BigCTY</font>`);
         } else {
           if (window.bigctyUpdatedTd) {
             bigctyUpdatedTd.innerHTML = "<div style='color:orange;font-weight:bold'>Mismatch!</div>";
@@ -513,52 +516,57 @@ function updateDxccInfo(dxccInfo, ctydata) {
   const ituRegex = /\[(.*?)\]/;
 
   for (const key in dxccInfo) {
-    dxccInfo[key].ituzone = null;
-    dxccInfo[key].cqzone = null;
-    dxccInfo[key].prefixITU = {};
-    dxccInfo[key].prefixCQ = {};
-    dxccInfo[key].directITU = {};
-    dxccInfo[key].directCQ = {};
+    const info = {};
+
+    info.ituzone = null;
+    info.cqzone = null;
+    info.prefixITU = {};
+    info.prefixCQ = {};
+    info.directITU = {};
+    info.directCQ = {};
 
     if (key in ctydata) {
-      dxccInfo[key].cqzone = padNumber(Number(ctydata[key].cqzone), 2);
-      dxccInfo[key].ituzone = padNumber(Number(ctydata[key].ituzone), 2);
+      info.cqzone = padNumber(Number(ctydata[key].cqzone), 2);
+      info.ituzone = padNumber(Number(ctydata[key].ituzone), 2);
+      
+      const pfxStr = ctydata[key].prefix;
+      const arr = pfxStr.substring(0, pfxStr.length - 1).split(" ");
+      const prefixArr = [];
+      const directArr = [];
 
-      // Skip Guantanamo Bay, hand crafted with love
-      if (key !== "105") {
-        const pfxStr = ctydata[key].prefix;
-        const arr = pfxStr.substring(0, pfxStr.length - 1).split(" ");
-        const prefixArr = [];
-        const directArr = [];
+      for (let test of arr) {
+        const isDirect = test.startsWith("=");
+        if (isDirect) test = test.substring(1);
 
-        for (let test of arr) {
-          const isDirect = test.startsWith("=");
-          if (isDirect) test = test.substring(1);
+        let cq = null, itu = null;
+        
+        const cqMatch = test.match(cqRegex);
+        if (cqMatch) cq = padNumber(Number(cqMatch[1]), 2);
 
-          let cq = null, itu = null;
-          
-          const cqMatch = test.match(cqRegex);
-          if (cqMatch) cq = padNumber(Number(cqMatch[1]), 2);
+        const ituMatch = test.match(ituRegex);
+        if (ituMatch) itu = padNumber(Number(ituMatch[1]), 2);
 
-          const ituMatch = test.match(ituRegex);
-          if (ituMatch) itu = padNumber(Number(ituMatch[1]), 2);
+        // Strip metadata tags using Regex instead of 5 indexOf calls
+        test = test.replace(/[\(\[\<\{\~].*/, "");
 
-          // Strip metadata tags using Regex instead of 5 indexOf calls
-          test = test.replace(/[\(\[\<\{\~].*/, "");
-
-          if (isDirect) {
-            directArr.push(test);
-            if (cq) dxccInfo[key].directCQ[test] = cq;
-            if (itu) dxccInfo[key].directITU[test] = itu;
-          } else {
-            prefixArr.push(test);
-            if (cq) dxccInfo[key].prefixCQ[test] = cq;
-            if (itu) dxccInfo[key].prefixITU[test] = itu;
-          }
+        if (isDirect) {
+          directArr.push(test);
+          if (cq) info.directCQ[test] = cq;
+          if (itu) info.directITU[test] = itu;
+        } else {
+          prefixArr.push(test);
+          if (cq) info.prefixCQ[test] = cq;
+          if (itu) info.prefixITU[test] = itu;
         }
-        dxccInfo[key].prefix = uniqueArrayFromArray(prefixArr).sort();
-        dxccInfo[key].direct = uniqueArrayFromArray(directArr).sort();
       }
+      info.prefix = uniqueArrayFromArray(prefixArr).sort();
+      info.direct = uniqueArrayFromArray(directArr).sort();
+      
+      dxccInfo[key] = info;
+    }
+    else
+    {
+       delete dxccInfo[key];
     }
   }
 }

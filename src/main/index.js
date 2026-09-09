@@ -222,7 +222,7 @@ else {
     // Update gtInternal with newer version when found
     const asarInfo = require(asarInfoPath);
     const gtInternalInfo = require(dxccInfoPath);
-    if (parseInt(asarInfo["0"].version) > parseInt(gtInternalInfo["0"].version)) {
+    if ("version" in asarInfo["1"] && "version" in gtInternalInfo["1"] && parseInt(asarInfo["1"].version) > parseInt(gtInternalInfo["1"].version)) {
       fs.copyFileSync(
         asarInfoPath,
         dxccInfoPath,
