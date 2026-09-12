@@ -187,7 +187,7 @@ const OPERATIONAL_MODIFIERS = new Set([
 
 function callsignToDxcc(callsign) {
   // 1. Raw string exact match (e.g., explicitly mapped VP2V/W1AW)
-  if (GT.directCallToDXCC[callsign]) return Number(GT.directCallToDXCC[callsign]);
+  if (GT.directCallToDXCC[callsign]) return GT.directCallToDXCC[callsign];
 
   // 2. Strip SSID (CPU-fast string slicing)
   let call = callsign;
@@ -195,7 +195,7 @@ function callsignToDxcc(callsign) {
   if (dashIndex > -1) call = callsign.substring(0, dashIndex);
 
   if (call.indexOf('/') === -1) {
-    if (GT.directCallToDXCC[call]) return Number(GT.directCallToDXCC[call]);
+    if (GT.directCallToDXCC[call]) return GT.directCallToDXCC[call];
     return lookupPrefix(call);
   }
 
@@ -277,22 +277,25 @@ function callsignToDxcc(callsign) {
   }
 
   if (!prefixOverride && !zoneOverride) {
-    if (GT.directCallToDXCC[baseCall]) return Number(GT.directCallToDXCC[baseCall]);
+    if (GT.directCallToDXCC[baseCall]) return GT.directCallToDXCC[baseCall];
   }
 
   return lookupPrefix(activePrefix);
 }
 
 function lookupPrefix(prefixStr) {
-  for (let x = prefixStr.length; x > 0; x--) {
+  let len = prefixStr.length;
+  for (let x = len; x > 0; x--) {
     let sub = prefixStr.substring(0, x);
-    if (GT.prefixToDXCC[sub]) {
-      return Number(GT.dxccInfo[GT.prefixToDXCC[sub]].dxcc);
+    let dxccNum = GT.prefixToDXCC[sub];
+    if (dxccNum) {
+      // We assume "KG4 2x2 is (KG4) else (K)""
+      if (dxccNum === 105 ) return (len === 5) ? 105 : 291;
+      return dxccNum;
     }
   }
   return -1;
 }
-
 
 function timeNowSec()
 {

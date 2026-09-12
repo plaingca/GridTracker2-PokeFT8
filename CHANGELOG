@@ -333,6 +333,9 @@ Custom Alerts:
 App:
   Restart no longer required when BigCTY updates
   
+  
+App:
+  Fixed KG4 2x2 (Guantanamo Bay) regression
 
 ### Fixed
 

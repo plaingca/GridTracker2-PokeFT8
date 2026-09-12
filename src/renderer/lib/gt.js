@@ -10337,14 +10337,16 @@ function updateFromBigCty(dxccBigCTY)
     GT.dxccInfo[key].cqzone = info.cqzone;
     GT.dxccInfo[key].ituzone = info.ituzone;
 
-    GT.prefixToDXCC[GT.dxccInfo[key].pp] = key;
+    const dxcc = Number(key);
+    
+    GT.prefixToDXCC[GT.dxccInfo[key].pp] = dxcc;
 
     for (let i = 0; i < info.prefix.length; i++) {
-      GT.prefixToDXCC[info.prefix[i]] = key;
+      GT.prefixToDXCC[info.prefix[i]] = dxcc;
     }
 
     for (let i = 0; i < info.direct.length; i++) {
-      GT.directCallToDXCC[info.direct[i]] = GT.dxccInfo[key].dxcc;
+      GT.directCallToDXCC[info.direct[i]] = dxcc;
     }
  
     for (let val in info.prefixCQ) GT.prefixToCQzone[val] = info.prefixCQ[val];
@@ -13097,7 +13099,7 @@ function GetLookup(useCache)
       "https://ssl.qrzcq.com/xml?s=" +
       GT.qrzLookupSessionId +
       "&callsign=" +
-      GT.qrzLookupCallsign +
+      encodeURIComponent(GT.qrzLookupCallsign) +
       "&agent=GridTracker",
       qrzLookupResults,
       GT.qrzLookupGrid,
@@ -13112,7 +13114,7 @@ function GetLookup(useCache)
       "http://xmldata.qrz.com/xml/current/?s=" +
       GT.qrzLookupSessionId +
       ";callsign=" +
-      GT.qrzLookupCallsign,
+      encodeURIComponent(GT.qrzLookupCallsign) ,
       qrzLookupResults,
       GT.qrzLookupGrid,
       "http",
@@ -13126,7 +13128,7 @@ function GetLookup(useCache)
       "https://www.hamqth.com/xml.php?id=" +
       GT.qrzLookupSessionId +
       "&callsign=" +
-      GT.qrzLookupCallsign +
+      encodeURIComponent(GT.qrzLookupCallsign)  +
       "&prg=GridTracker",
       qthHamLookupResults,
       GT.qrzLookupGrid,
