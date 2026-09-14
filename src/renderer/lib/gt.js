@@ -3819,8 +3819,10 @@ function clearQSOcallback(clearFiles, nextFunc)
 
 function clearLogFilesAndCounts()
 {
-  tryToDeleteAppFile("LogbookOfTheWorld.adif");
-  tryToDeleteAppFile("LoTW_QSL.adif");
+  if (GT.settings.app.workingGridEnable) {
+    tryToDeleteAppFile("LogbookOfTheWorld.adif");
+    tryToDeleteAppFile("LoTW_QSL.adif");
+  } 
   tryToDeleteAppFile("qrz.adif");
   tryToDeleteAppFile("clublog.adif");
 
