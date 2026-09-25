@@ -337,6 +337,18 @@ App:
 App:
   Fixed KG4 2x2 (Guantanamo Bay) regression
 
+
+Features:
+  Simplepush notifications updated from Simplepush.io to Simplepu.sh (API v1.0)
+    Note: The Simplepush API Key is deprecated; existing users may need to create a new API Token
+Logbook:
+  Setting a working date/callsign no longer clears the LoTW cache
+    Note: The "Clear Log" button will always clear the LoTW cache
+Logging:
+  App Log(s):
+    Support added for "WS - Digital Mode Suite" (formerly WSJT-X Improved)
+
+
 ### Fixed
 
 

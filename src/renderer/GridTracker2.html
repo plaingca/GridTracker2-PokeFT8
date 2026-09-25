@@ -1189,23 +1189,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </div>
         <div class="mapItem" style="border:0">
           <div class="mapItem" id="simplePushDiv">
-            <table>
+            <table align="center">
               <tr>
-                <td data-i18n="settings.OAMS.simplepush.apikey.label"
+                <td  data-i18n="settings.OAMS.simplepush.apitoken.label"
               title="SimplePush API Key to forward messages to your phone">SimplePush API Key</td>
               </tr>
               <tr>
-                <td>
+                <td >
                   <input title="SimplePush API Key to forward messages to your phone" type="text" id="msgSimplepushApiKey"
                     class="inputTextValue" maxlength="255" size="16"
                     oninput="ValidateText(this); newMessageSetting(this);" />
                 </td>
               </tr>
+              <tr><td >&nbsp;</td></tr>
               <tr>
-                <td>
-                  <div data-i18n="settings.OAMS.simplepush.test" class="button" onclick="sendSimplePushMessage({'call' : 'Test', 'msg' : 'Test Message'});">Test</div>
+                <td >
+                  <label for="msgSimplepushNotifyOnly" data-i18n="settings.OAMS.simplepush.notify.label">Notification Only</label>
                 </td>
               </tr>
+              <tr><td><input type="checkbox" id="msgSimplepushNotifyOnly" onclick="GT.settings.msg.msgSimplepushNotifyOnly = this.checked;" /></td></tr>
+              <tr>
+                <td >
+                  <div data-i18n="settings.OAMS.simplepush.test" class="button" onclick="sendSimplePushTestMessage({'call' : 'Test', 'msg' : 'Test Message'});">Test</div><div id="simplepushResponseDiv"></div>
+                </td>
+              </tr> 
             </table>
           </div>
           <br>

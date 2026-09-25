@@ -269,6 +269,7 @@ const def_settings = {
   msg: {
     msgSimplepush: false,
     msgSimplepushApiKey: "",
+    msgSimplepushNotifyOnly: false,
     msgPushover: false,
     msgPushoverUserKey: "",
     msgPushoverToken: "",

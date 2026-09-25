@@ -67,7 +67,6 @@ function sendAlerts()
     window.opener.processAudioAlertsFromRoster(audioAlertCounts);
   }
 
-  // NOTE: Ring alerts if needed
   if (shouldRosterAlert > 0)
   {
     if (GT.settings.msg.msgPushover)
@@ -76,7 +75,7 @@ function sendAlerts()
     }
     if (GT.settings.msg.msgSimplepush)
     {
-      sendSimplePushMessage(parseCRJson(scriptReport));
+      sendSimplePushMessage(GT.settings.msg.msgSimplepushNotifyOnly ? parseCRJson(scriptReport) : parseCRJsonToMarkdown(scriptReport));
     }
 
     try
@@ -106,23 +105,28 @@ function sendAlerts()
   }
 }
 
+
 function sendSimplePushMessage(message)
 {
-  const url = "https://api.simplepush.io/send";
+  const url = "https://api.simplepu.sh/v1/" + (GT.settings.msg.msgSimplepushNotifyOnly ? "notifications" : "tasks") + "/json";
+
   let data = {
-    key: GT.settings.msg.msgSimplepushApiKey,
     title: "GT Alert - " + formatCallsign(GT.settings.app.myCall),
-    msg: message
+    content: message,
+    contentFormat: "markdown"
   };
 
-  GT.getPostBuffer(
+  GT.getPostJSONBuffer(
     url,
     null, // callback,
-    null,
+    false,  // test flag
     "https",
     443,
     data,
-    5000
+    5000,
+    undefined,
+    undefined,
+    { "API-Token": GT.settings.msg.msgSimplepushApiKey }
   );
 }
 
@@ -150,38 +154,64 @@ function sendPushOverAlert(message)
 function parseCRJson(data)
 {
   let message = "";
+
+  for (const callsign in data)
+  {
+    const entry = data[callsign];
+
+    if (entry.shouldRosterAlert == true && entry.rosterAlerted == false)
+    {
+      const parts = [formatCallsign(callsign), entry.dxccName, String(entry.RSTsent)];
+      if (entry.grid) parts.push(entry.grid);
+      parts.push(entry.band);
+      if (entry.state) parts.push(entry.state);
+
+      message += parts.join(", ") + " (" + wantedColumnParts(entry).join(",") + ")\n";
+    }
+  }
+
+  return message;
+}
+
+
+function parseCRJsonToMarkdown(data)
+{
+  let rows = [];
+
   for (let callsign in data)
   {
-    if (data[callsign].shouldRosterAlert == true && data[callsign].rosterAlerted == false)
+    let entry = data[callsign];
+    if (entry.shouldRosterAlert == true && entry.rosterAlerted == false)
     {
-      let wanted = " (" + wantedColumnParts(data[callsign]) + ")";
-
-      if (data[callsign].grid)
-      {
-        if (data[callsign].state)
-        {
-          message = message + formatCallsign(callsign) + ", " + data[callsign].dxccName + ", " + data[callsign].RSTsent.toString() + ", " + data[callsign].grid + ", " + data[callsign].band + ", " + data[callsign].state + wanted + "\n";
-        }
-        else
-        {
-          message = message + formatCallsign(callsign) + ", " + data[callsign].dxccName + ", " + data[callsign].RSTsent.toString() + ", " + data[callsign].grid + ", " + data[callsign].band + wanted + "\n";
-        }
-      }
-      else
-      {
-        if (!data[callsign].grid)
-        {
-          if (data[callsign].state)
-          {
-            message = message + formatCallsign(callsign) + ", " + data[callsign].dxccName + ", " + data[callsign].RSTsent.toString() + ", " + data[callsign].band + ", " + data[callsign].state + wanted + "\n";
-          }
-          else
-          {
-            message = message + formatCallsign(callsign) + ", " + data[callsign].dxccName + ", " + data[callsign].RSTsent.toString() + ", " + data[callsign].band + wanted + "\n";
-          }
-        }
-      }
+      rows.push({
+        callsign: callsign,
+        entry: entry,
+        wanted: wantedColumnParts(entry)
+      });
     }
+  }
+
+  // most wanted-parts first; tie-break alphabetically by callsign
+  rows.sort((a, b) =>
+    b.wanted.length - a.wanted.length ||
+    a.callsign.localeCompare(b.callsign)
+  );
+
+  let message = "";
+  for (let row of rows)
+  {
+    let entry = row.entry;
+    let parts = [
+      entry.dxccName,
+      entry.RSTsent.toString(),
+      entry.grid,
+      entry.band,
+      entry.state
+    ].filter(Boolean);
+
+    message += "**" + formatCallsign(row.callsign) + "** `" + row.wanted.join(", ") + "`\n";
+    message += "- " + parts.join(", ") + "\n\n";
   }
   return message;
 }
+

@@ -449,22 +449,65 @@ function htmlEntities(str)
     .replace(/"/g, "&quot;");
 }
 
-function sendSimplePushMessage(jsmesg)
+
+function simplePushTestResponse(buffer, isTest)
 {
-  const url = "https://api.simplepush.io/send";
+  if (isTest)
+  {
+    let divText = I18N("adif.TestResult.error");
+    let color = "#F00";
+    try 
+    {
+      if (buffer)
+      {
+        const json = JSON.parse(String(buffer));
+        if ("notificationId" in json || "taskId" in json)
+        {
+          divText = I18N("adif.TestResult.passed");
+          color = "#1F1";
+        }
+        if ("error" in json)
+        {
+          divText = json.msg;
+          color = "#F00";
+        }
+      }
+      else
+      {
+        divText = I18N("adif.TestResult.response");
+      }
+    }
+    catch (err)
+    {
+      console.log(err);
+    }
+    simplepushResponseDiv.innerHTML = divText;
+    simplepushResponseDiv.style.color = color;
+  }
+}
+
+
+function sendSimplePushTestMessage(jsmesg)
+{
+  const url = "https://api.simplepu.sh/v1/" + (GT.settings.msg.msgSimplepushNotifyOnly ? "notifications" : "tasks") + "/json";
   let data = {
-    key: GT.settings.msg.msgSimplepushApiKey,
     title: "GT Test - " + formatCallsign(GT.settings.app.myCall),
-    msg: formatCallsign(jsmesg.call) + ": " + jsmesg.msg
+    content: formatCallsign(jsmesg.call) + ": " + jsmesg.msg
   };
-  getPostBuffer(
+
+  simplepushResponseDiv.innerHTML = I18N("adif.TestResult.testing");
+
+  getPostJSONBuffer(
     url,
-    null, // callback,
-    null,
+    simplePushTestResponse, // callback,
+    true,  // test flag
     "https",
     443,
     data,
-    5000
+    5000,
+    undefined,
+    undefined,
+    { "API-Token": GT.settings.msg.msgSimplepushApiKey }
   );
 }
 
@@ -503,7 +546,7 @@ function PushoverReply(data, isTest)
       {
         // {"status":1,"request":"1d5ace84-c2e4-4b19-a051-5ac4c9671170"}
         color = "#FFF";
-        result = "Passed!";
+        result = I18N("adif.TestResult.passed");
       }
       else if (responseJson.status == 0)
       {

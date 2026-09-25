@@ -997,7 +997,7 @@ function isInAppLog(filepath)
   return false;
 }
 
-const CONST_APP_LOG_REGEX = /^WSJT|^JTDX/
+const CONST_APP_LOG_REGEX = /^WS|^JTDX/
 const CONST_ADIF_FILE_REGEX = /\.adi$|\.adif$/
 
 function scanForAppLogs()
@@ -2664,98 +2664,93 @@ function getPostJSONBuffer(
   theData,
   timeoutMs,
   timeoutCallback,
-  who
+  who,
+  addHeaders = null
 )
 {
+  let failed = false;
+
+  function fail(reason)
+  {
+    if (failed) return;
+    failed = true;
+    if (typeof timeoutCallback == "function")
+    {
+      timeoutCallback(file_url, callback, flag, mode, 80, theData, timeoutMs, timeoutCallback, reason);
+    }
+  }
+
+  let url;
   try
   {
-    let postData = JSON.stringify(theData);
-    let protocol = NodeURL.parse(file_url).protocol; // eslint-disable-line node/no-deprecated-api
-    const http = require(protocol.replace(":", ""));
-    let fileBuffer = null;
-    let options = {
-      host: NodeURL.parse(file_url).hostname, // eslint-disable-line node/no-deprecated-api
-      port: NodeURL.parse(file_url).port, // eslint-disable-line node/no-deprecated-api
-      path: NodeURL.parse(file_url).path, // eslint-disable-line node/no-deprecated-api
-      method: "post",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(postData),
-        "User-Agent": gtUserAgent,
-        "x-user-agent": gtUserAgent
-      }
+    url = new URL(file_url);
+  }
+  catch (e)
+  {
+    fail("Invalid Url");
+    return;
+  }
+
+  if (url.protocol != "http:" && url.protocol != "https:")
+  {
+    fail("Invalid Url");
+    return;
+  }
+
+  try
+  {
+    const http = require(url.protocol.replace(":", ""));
+    const postData = JSON.stringify(theData);
+
+    let headers = {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData),
+      "User-Agent": gtUserAgent,
+      "x-user-agent": gtUserAgent
     };
-    let req = http.request(options, function (res)
+    if (addHeaders)
     {
-      let fsize = res.headers["content-length"];
-      let cookies = null;
-      if (typeof res.headers["set-cookie"] != "undefined")
-      { cookies = res.headers["set-cookie"]; }
+      headers = deepmerge(headers, addHeaders);
+    }
+
+    const options = {
+      host: url.hostname,
+      port: url.port || undefined,
+      path: url.pathname + url.search,
+      method: "POST",
+      headers: headers
+    };
+    if (typeof timeoutMs == "number" && timeoutMs > 0)
+    {
+      options.timeout = timeoutMs;
+    }
+
+    const req = http.request(options, function (res)
+    {
+      const chunks = [];
+      const cookies = res.headers["set-cookie"] || null;
+
       res
-        .on("data", function (data)
-        {
-          if (fileBuffer == null) fileBuffer = data;
-          else fileBuffer += data;
-        })
+        .on("data", (data) => chunks.push(data))
         .on("end", function ()
         {
           if (typeof callback == "function")
           {
-            // Call it, since we have confirmed it is callable
-            callback(fileBuffer, flag, cookies);
+            callback(chunks.length ? Buffer.concat(chunks) : null, flag, cookies);
           }
         })
-        .on("error", function () {});
+        .on("error", () => fail(who));
     });
-    if (typeof timeoutMs == "number" && timeoutMs > 0)
-    {
-      req.on("socket", function (socket)
-      {
-        socket.setTimeout(timeoutMs);
-        socket.on("timeout", function ()
-        {
-          req.abort();
-        });
-      });
-    }
-    req.on("error", function (err) // eslint-disable-line node/handle-callback-err
-    {
-      if (typeof timeoutCallback == "function")
-      {
-        timeoutCallback(
-          file_url,
-          callback,
-          flag,
-          mode,
-          80,
-          theData,
-          timeoutMs,
-          timeoutCallback,
-          who
-        );
-      }
-      req.abort();
-    });
-  
+
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => fail(who));
+
     req.write(postData);
     req.end();
   }
   catch (e)
   {
-    if (typeof timeoutCallback != "undefined")
-    {
-      timeoutCallback(
-        file_url,
-        callback,
-        flag,
-        mode,
-        80,
-        theData,
-        timeoutMs,
-        timeoutCallback,
-        "Invalid Url"
-      );
-    }
+    fail(who);
   }
 }
 

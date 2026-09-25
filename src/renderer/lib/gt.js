@@ -377,6 +377,7 @@ GT.ituZones = {};
 GT.tracker = {};
 GT.lastTrasmissionTimeSec = timeNowSec();
 GT.getPostBuffer = getPostBuffer;
+GT.getPostJSONBuffer = getPostJSONBuffer;
 GT.mapsLayer = [];
 GT.offlineMapsLayer = [];
 GT.tileLayer = null;
@@ -3754,8 +3755,6 @@ function clearLive()
   GT.lastTraffic = Array();
   GT.callRoster = {};
 
-
-
   removePaths();
   clearGrids();
   clearCalls();
@@ -3779,10 +3778,6 @@ function clearOrLoadQSOs()
   }
 }
 
-function clearAndLoadQSOs()
-{
-  clearQSOs(true, "startupAdifLoadCheck");
-}
 
 function clearQSOs(clearFiles = true, nextFunc = null)
 {
@@ -9776,7 +9771,7 @@ function pskGetBandActivity()
   GT.pskBandActivityTimerHandle = nodeTimers.setInterval(pskGetBandActivity, 601000); // every 20 minutes, 1 second
 }
 
-function getIniFromApp(appName)
+function getIniFromApp(appName, iniName)
 {
   let result = {};
   result.port = -1;
@@ -9792,7 +9787,7 @@ function getIniFromApp(appName)
   result.appName = appName;
   let wsjtxCfgPath = "";
 
-  let appData = electron.ipcRenderer.sendSync("getPath","appData");
+  let appData = electron.ipcRenderer.sendSync("getPath", "appData");
 
   if (GT.platform == "windows")
   {
@@ -9802,7 +9797,7 @@ function getIniFromApp(appName)
       appData = appData.replace(basename, "Local");
     }
 
-    wsjtxCfgPath = path.join(appData, appName, appName + ".ini");
+    wsjtxCfgPath = path.join(appData, appName, iniName + ".ini");
   }
   else if (GT.platform == "mac")
   {
@@ -9810,7 +9805,7 @@ function getIniFromApp(appName)
   }
   else
   {
-    wsjtxCfgPath = path.join(process.env.HOME, ".config/" + appName + ".ini");
+    wsjtxCfgPath = path.join(process.env.HOME, ".config/" + iniName + ".ini");
   }
   if (fs.existsSync(wsjtxCfgPath))
   {
@@ -9884,8 +9879,10 @@ function updateBasedOnIni()
 {
   scanForAppLogs();
   
-  let which =  getIniFromApp("WSJT-X");
-  if (which.port == -1) which = getIniFromApp("JTDX");
+  let which =  getIniFromApp("WSJT-X", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WS");
+  if (which.port == -1) which = getIniFromApp("JTDX", "JTDX");
 
   // UdpPortNotSet
   if (GT.settings.app.wsjtUdpPort == 0 && which.port > -1)
@@ -10280,7 +10277,8 @@ function workingGridsChanged(ele)
 
 function applyCallsignsAndDates()
 {
-  clearAndLoadQSOs();
+  clearQSOs(GT.settings.app.workingGridEnable, "startupAdifLoadCheck");
+
   applyCallsignsAndDateDiv.style.display = "none";
 }
 
@@ -11742,6 +11740,8 @@ function setMsgSettingsView()
   ValidateText(msgSimplepushApiKey);
   ValidateText(msgPushoverUserKey);
   ValidateText(msgPushoverToken);
+
+  msgSimplepushNotifyOnly.checked = GT.settings.msg.msgSimplepushNotifyOnly;
 }
 
 function loadAdifSettings()
@@ -12667,6 +12667,7 @@ function updateWsjtxListener(port)
         newMessage.TRP = r.remaining() > 0 ? r.i32() : -1;
         newMessage.ConfName = r.remaining() > 0 ? r.utf8() : null;
         newMessage.TxMessage = r.remaining() > 0 ? r.utf8() : null;
+        newMessage.TxSymbols = r.remaining() > 0 ? r.utf8() : null;
 
         if (instance.status && newMessage.SopMode != instance.status.SopMode) GT.callRoster = {};
         instance.oldStatus = instance.status;
