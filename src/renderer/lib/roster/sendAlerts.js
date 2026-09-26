@@ -108,6 +108,8 @@ function sendAlerts()
 
 function sendSimplePushMessage(message)
 {
+  if (GT.settings.msg.msgSimplepushDailySchedule && !GT.isWithinScheduledMinutes(GT.settings.msg.msgSimplepushScheduleStart, GT.settings.msg.msgSimplepushScheduleEnd)) return;
+
   const url = "https://api.simplepu.sh/v1/" + (GT.settings.msg.msgSimplepushNotifyOnly ? "notifications" : "tasks") + "/json";
 
   let data = {
@@ -132,6 +134,8 @@ function sendSimplePushMessage(message)
 
 function sendPushOverAlert(message)
 {
+  if (GT.settings.msg.msgPushoverDailySchedule && !GT.isWithinScheduledMinutes(GT.settings.msg.msgPushoverScheduleStart, GT.settings.msg.msgPushoverScheduleEnd)) return;
+
   const url = "https://api.pushover.net/1/messages.json";
   let data = {
     user: GT.settings.msg.msgPushoverUserKey,

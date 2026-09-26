@@ -341,6 +341,7 @@ App:
 Features:
   Simplepush notifications updated from Simplepush.io to Simplepu.sh (API v1.0)
     Note: The Simplepush API Key is deprecated; existing users may need to create a new API Token
+  Simplepu.sh and Pushover.net now support "Use Daily Schedule"
 Logbook:
   Setting a working date/callsign no longer clears the LoTW cache
     Note: The "Clear Log" button will always clear the LoTW cache

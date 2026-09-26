@@ -378,6 +378,7 @@ GT.tracker = {};
 GT.lastTrasmissionTimeSec = timeNowSec();
 GT.getPostBuffer = getPostBuffer;
 GT.getPostJSONBuffer = getPostJSONBuffer;
+GT.isWithinScheduledMinutes = isWithinScheduledMinutes;
 GT.mapsLayer = [];
 GT.offlineMapsLayer = [];
 GT.tileLayer = null;
@@ -9613,6 +9614,89 @@ function newMessageSetting(whichSetting)
 }
 
 
+function simplepushDailySchedule(chk) {
+  GT.settings.msg.msgSimplepushDailySchedule = chk.checked;
+  simplepushDailyScheduleDiv.style.display = chk.checked ? "" : "none";
+}
+
+function pushoverDailySchedule(chk) {
+  GT.settings.msg.msgPushoverDailySchedule = chk.checked;
+  pushoverDailyScheduleDiv.style.display = chk.checked ? "" : "none";
+}
+
+// "HH:MM" -> minutes since midnight (0-1439)
+function timeStringToMinutes(timeStr)
+{
+  const [h, m] = timeStr.split(":").map(Number);
+  return (h * 60) + m;
+}
+
+// minutes since midnight -> "HH:MM" (mod 1440 in case something upstream ever
+// stores an already-adjusted value, e.g. > 1440)
+function minutesToTimeString(minutes)
+{
+  const normalized = ((minutes % 1440) + 1440) % 1440; // safe even for negatives
+  const h = Math.floor(normalized / 60).toString().padStart(2, "0");
+  const m = (normalized % 60).toString().padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+// Given start/end minutes-of-day, return the *effective* end,
+// pushed past midnight if the schedule wraps.
+function getEffectiveEndMinutes(startMinutes, endMinutes)
+{
+  return (endMinutes <= startMinutes) ? (endMinutes + 1440) : endMinutes;
+}
+
+// Duration in minutes, wraparound-safe
+function getScheduleDurationMinutes(startMinutes, endMinutes)
+{
+  return getEffectiveEndMinutes(startMinutes, endMinutes) - startMinutes;
+}
+
+// Is "now" (minutes since midnight) inside the window?
+function isWithinScheduledMinutes(startMinutes, endMinutes)
+{
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const effectiveEnd = getEffectiveEndMinutes(startMinutes, endMinutes);
+  let effectiveNow = nowMinutes;
+  if (effectiveEnd > 1439 && effectiveNow < startMinutes)
+  {
+    effectiveNow += 1440; // "now" is in the early-morning part of the wrapped window
+  }
+  return (effectiveNow >= startMinutes) && (effectiveNow < effectiveEnd);
+}
+
+function toHM(inputMinutes) {
+  const t = Math.trunc(+inputMinutes || 0);
+  const h = Math.floor(t / 60);
+  const m = t % 60;
+
+  let res = "";
+  if (h > 0) res += h + "h ";
+  if (m > 0) res += m + "m ";
+
+  return res ? res.trim() : "0m";
+}
+
+function newScheduleTimeSetting(el)
+{
+  GT.settings.msg[el.id] = timeStringToMinutes(el.value);
+  displaySimplepushSchedule();
+  displayPushoverSchedule();
+}
+
+function displaySimplepushSchedule()
+{
+  simplepushScheduleDiv.innerHTML = toHM(getScheduleDurationMinutes(GT.settings.msg.msgSimplepushScheduleStart, GT.settings.msg.msgSimplepushScheduleEnd));
+}
+
+function displayPushoverSchedule()
+{
+  pushoverScheduleDiv.innerHTML = toHM(getScheduleDurationMinutes(GT.settings.msg.msgPushoverScheduleStart, GT.settings.msg.msgPushoverScheduleEnd));
+}
+
 function renderBandActivity()
 {
   if (GT.settings.app.oamsBandActivity == false) return;
@@ -11702,32 +11786,39 @@ function changeMapRight(checkbox)
 
 function loadMsgSettings()
 {
-
   spottingEnable.checked = GT.settings.app.spottingEnable;
-
   oamsBandActivity.checked = GT.settings.app.oamsBandActivity;
   oamsBandActivityNeighbors.checked = GT.settings.app.oamsBandActivityNeighbors;
   setOamsBandActivity(oamsBandActivity);
 
   setSpotImage();
 
-  for (const key in GT.settings.msg)
+for (const key in GT.settings.msg)
+{
+  if (key in window)
   {
-    if (key in window)
+    if (window[key].type === "checkbox")
     {
-      window[key].value = GT.settings.msg[key];
+      window[key].checked = GT.settings.msg[key];
+    }
+    else if (window[key].type === "time")
+    {
+      window[key].value = minutesToTimeString(GT.settings.msg[key]);
     }
     else
     {
-      delete GT.settings.msg[key];
+      window[key].value = GT.settings.msg[key];
     }
   }
-
-  msgSimplepush.checked = GT.settings.msg.msgSimplepush;
-  msgPushover.checked = GT.settings.msg.msgPushover;
+  else
+  {
+    delete GT.settings.msg[key];
+  }
+}
 
   setMsgSettingsView();
 }
+
 
 function setMsgSettingsView()
 {
@@ -11737,11 +11828,15 @@ function setMsgSettingsView()
   simplePushDiv.style.display = (GT.settings.msg.msgSimplepush && GT.settings.map.offlineMode == false) ? "" : "none";
   pushOverDiv.style.display = (GT.settings.msg.msgPushover && GT.settings.map.offlineMode == false) ? "" : "none";
 
+  simplepushDailyScheduleDiv.style.display = (GT.settings.msg.msgSimplepushDailySchedule ? "" : "none");
+  pushoverDailyScheduleDiv.style.display = (GT.settings.msg.msgPushoverDailySchedule ? "" : "none");
+
   ValidateText(msgSimplepushApiKey);
   ValidateText(msgPushoverUserKey);
   ValidateText(msgPushoverToken);
 
-  msgSimplepushNotifyOnly.checked = GT.settings.msg.msgSimplepushNotifyOnly;
+  displaySimplepushSchedule();
+  displayPushoverSchedule();
 }
 
 function loadAdifSettings()

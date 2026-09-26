@@ -1191,28 +1191,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           <div class="mapItem" id="simplePushDiv">
             <table align="center">
               <tr>
-                <td  data-i18n="settings.OAMS.simplepush.apitoken.label"
-              title="SimplePush API Key to forward messages to your phone">SimplePush API Key</td>
+                <td data-i18n="settings.OAMS.simplepush.apitoken.label"
+                    title="SimplePush API Key to forward messages to your phone">SimplePush API Key</td>
               </tr>
               <tr>
-                <td >
+                <td>
                   <input title="SimplePush API Key to forward messages to your phone" type="text" id="msgSimplepushApiKey"
                     class="inputTextValue" maxlength="255" size="16"
                     oninput="ValidateText(this); newMessageSetting(this);" />
                 </td>
               </tr>
-              <tr><td >&nbsp;</td></tr>
               <tr>
-                <td >
+                <td>
                   <label for="msgSimplepushNotifyOnly" data-i18n="settings.OAMS.simplepush.notify.label">Notification Only</label>
                 </td>
               </tr>
               <tr><td><input type="checkbox" id="msgSimplepushNotifyOnly" onclick="GT.settings.msg.msgSimplepushNotifyOnly = this.checked;" /></td></tr>
               <tr>
-                <td >
-                  <div data-i18n="settings.OAMS.simplepush.test" class="button" onclick="sendSimplePushTestMessage({'call' : 'Test', 'msg' : 'Test Message'});">Test</div><div id="simplepushResponseDiv"></div>
+                <td>
+                  <label for="msgSimplepushDailySchedule" data-i18n="settings.usedailyschedule.label">Daily Schedule</label>
                 </td>
-              </tr> 
+              </tr>
+              <tr>
+                <td>
+                  <input type="checkbox" id="msgSimplepushDailySchedule" onclick="simplepushDailySchedule(this);" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div id="simplepushDailyScheduleDiv" >
+                    <table align="center">
+                      <tr>
+                        <td data-i18n="settings.starttime">Start Time</td>
+                        <td data-i18n="settings.endtime">End Time</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input type="time" id="msgSimplepushScheduleStart" class="inputTextValue"
+                            oninput="newScheduleTimeSetting(this);displaySimplepushSchedule();" />
+                        </td>
+                        <td>
+                          <input type="time" id="msgSimplepushScheduleEnd" class="inputTextValue"
+                            oninput="newScheduleTimeSetting(this);displaySimplepushSchedule();" />
+                        </td>
+                      </tr>
+                    </table>
+                    <div id="simplepushScheduleDiv">24h</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div data-i18n="settings.OAMS.simplepush.test" class="button"
+                    onclick="sendSimplePushTestMessage({'call' : 'Test', 'msg' : 'Test Message'});">Test</div>
+                  <div id="simplepushResponseDiv"></div>
+                </td>
+              </tr>
             </table>
           </div>
           <br>
@@ -1236,6 +1270,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                   <input title="Pushover API Token to forward messages to your phone" type="text" id="msgPushoverToken"
                          class="inputTextValue" maxlength="255" size="16"
                          oninput="ValidateText(this); newMessageSetting(this);" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label for="msgPushoverDailySchedule" data-i18n="settings.usedailyschedule.label">Daily Schedule</label>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <input type="checkbox" id="msgPushoverDailySchedule" onclick="pushoverDailySchedule(this);" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div id="pushoverDailyScheduleDiv" >
+                    <table align="center">
+                      <tr>
+                        <td data-i18n="settings.starttime">Start Time</td>
+                        <td data-i18n="settings.endtime">End Time</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input type="time" id="msgPushoverScheduleStart" class="inputTextValue"
+                            oninput="newScheduleTimeSetting(this);displayPushoverSchedule();" />
+                        </td>
+                        <td>
+                          <input type="time" id="msgPushoverScheduleEnd" class="inputTextValue"
+                            oninput="newScheduleTimeSetting(this);displayPushoverSchedule();" />
+                        </td>
+                      </tr>
+                    </table>
+                    <div id="pushoverScheduleDiv">24h</div>
+                  </div>
                 </td>
               </tr>
               <tr>

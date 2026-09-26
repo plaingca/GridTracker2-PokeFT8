@@ -270,9 +270,15 @@ const def_settings = {
     msgSimplepush: false,
     msgSimplepushApiKey: "",
     msgSimplepushNotifyOnly: false,
+    msgSimplepushDailySchedule: false,
+    msgSimplepushScheduleStart: 0,
+    msgSimplepushScheduleEnd: 0,
     msgPushover: false,
     msgPushoverUserKey: "",
     msgPushoverToken: "",
+    msgPushoverDailySchedule: false,
+    msgPushoverScheduleStart: 0,
+    msgPushoverScheduleEnd: 0,
 
   },
   reception: {
