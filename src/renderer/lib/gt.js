@@ -9683,8 +9683,6 @@ function toHM(inputMinutes) {
 function newScheduleTimeSetting(el)
 {
   GT.settings.msg[el.id] = timeStringToMinutes(el.value);
-  displaySimplepushSchedule();
-  displayPushoverSchedule();
 }
 
 function displaySimplepushSchedule()
