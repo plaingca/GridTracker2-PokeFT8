@@ -242,8 +242,6 @@
     "settings.lookup.OpenOnTx.hover": "Ouvrir recherche lors de l'émission",
     "settings.lookup.CloseOnLog.label": "Fermer après l'enregistrement",
     "settings.lookup.CloseOnLog.hover": "Fermer la recherche après le log",
-    "settings.lookup.CallookFirst.label": "Utiliser Callbook en premier",
-    "settings.lookup.CallookFirst.hover": "Callbook donne plus de détails gratuits que QRZ.",
     "settings.lookup.Databases.label": "Bases de données",
     "settings.lookup.Databases.header": "Bases de données",
     "settings.lookup.Enabled.header": "Activé",

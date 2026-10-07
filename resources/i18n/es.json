@@ -242,8 +242,6 @@
   "settings.lookup.OpenOnTx.hover": "Abrir ventana de búsqueda al transmitir",
   "settings.lookup.CloseOnLog.label": "Cerrar búsqueda después de registrar",
   "settings.lookup.CloseOnLog.hover": "Cerrar ventana de búsqueda después de registrar",
-  "settings.lookup.CallookFirst.label": "Usar Callook antes que otros servicios",
-  "settings.lookup.CallookFirst.hover": "Usar Callook antes que otros servicios; Callook gratuito proporciona más datos que QRZ.com gratuito.",
   "settings.lookup.Databases.label": "Bases de datos de indicativos de llamada",
   "settings.lookup.Databases.header": "Base de datos",
   "settings.lookup.Enabled.header": "Habilitado",

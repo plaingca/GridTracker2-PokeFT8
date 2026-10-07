@@ -242,8 +242,6 @@
   "settings.lookup.OpenOnTx.hover": "Otwórz Okno Wyszukiwania przy nadawaniu (TX)",
   "settings.lookup.CloseOnLog.label": "Zamknij Wyszukiwanie po zalogowaniu",
   "settings.lookup.CloseOnLog.hover": "Zamknij Okno Wyszukiwania po zapisaniu QSO",
-  "settings.lookup.CallookFirst.label": "Używaj Callook przed innymi usługami",
-  "settings.lookup.CallookFirst.hover": "Używaj Callook przed innymi usługami, darmowy Callook daje więcej danych niż darmowy QRZ.com.",
   "settings.lookup.Databases.label": "Bazy Znaków",
   "settings.lookup.Databases.header": "Baza Danych",
   "settings.lookup.Enabled.header": "Włączone",

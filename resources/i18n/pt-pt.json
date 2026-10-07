@@ -242,8 +242,6 @@
   "settings.lookup.OpenOnTx.hover": "Abrir Janela de Pesquisa ao Transmitir",
   "settings.lookup.CloseOnLog.label": "Fechar Pesquisa Após Registar",
   "settings.lookup.CloseOnLog.hover": "Fechar Janela de Pesquisa Após Registar",
-  "settings.lookup.CallookFirst.label": "Usar Callook Antes de Usar Outro Serviço",
-  "settings.lookup.CallookFirst.hover": "Usar o Callook antes de usar outro serviço, o Callook gratuito fornece mais dados do que o QRZ.com gratuito.",
   "settings.lookup.Databases.label": "Bases de Dados de Indicativos",
   "settings.lookup.Databases.header": "Base de Dados",
   "settings.lookup.Enabled.header": "Ativado",

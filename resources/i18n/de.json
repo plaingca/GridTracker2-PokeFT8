@@ -240,8 +240,6 @@
     "settings.lookup.OpenOnTx.hover": "Nachschlage-Fenster beim Senden öffnen",
     "settings.lookup.CloseOnLog.label": "Nachschlage-Fenster nach dem Loggen schliessen",
     "settings.lookup.CloseOnLog.hover": "Nachschlage-Fenster nach dem Loggen schliessen",
-    "settings.lookup.CallookFirst.label": "Callook vor allen anderen Diensten befragen",
-    "settings.lookup.CallookFirst.hover": "Callook vor allen anderen Diensten befragen, gratis Callook hat mehr Daten als der Gratis-Account bei QRZ.com. Falls bei Callook nichts gefunden werden kann (z.B. bei Nicht-US-Stationen) wird bei anderen Diensten nachgeschlagen.",
     "settings.lookup.Databases.label": "Rufzeichendatenbanken",
     "settings.lookup.Databases.header": "Datenbank",
     "settings.lookup.Enabled.header": "Eingeschaltet",

@@ -242,8 +242,6 @@
     "settings.lookup.OpenOnTx.hover": "Ouvrir une fenêtre de recherche sur l'émetteur ",
     "settings.lookup.CloseOnLog.label": "Fermer la fenêtre après l'enregistrement",
     "settings.lookup.CloseOnLog.hover": "Fermer la fenêtre de consultation après l'enregistrement",
-    "settings.lookup.CallookFirst.label": "Utiliser le Callbook avant d'utiliser un autre service",
-    "settings.lookup.CallookFirst.hover": "Utilisez le Callbook avant d'utiliser d'autres services, le Callbook gratuit fournit plus de données que le site gratuit QRZ.com.",
     "settings.lookup.Databases.label": "Bases de données Indicatifs ",
     "settings.lookup.Databases.header": "Bases de données",
     "settings.lookup.Enabled.header": "Activé",

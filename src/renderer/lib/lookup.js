@@ -4,23 +4,23 @@
 
 // Callsign lookup: QRZ, HamQTH, Callook, cache and display (moved verbatim from gt.js)
 
+// GT.settings.app keys holding [login, password] for a lookup service, or null if it needs none
+function lookupCredentialKeys(service)
+{
+  if (service == "QRZ") return ["lookupLoginQrz", "lookupPasswordQrz"];
+  if (service == "QRZCQ") return ["lookupLoginCq", "lookupPasswordCq"];
+  if (service == "HAMQTH") return ["lookupLoginQth", "lookupPasswordQth"];
+  return null;
+}
+
 function loadLookupDetails()
 {
   lookupService.value = GT.settings.app.lookupService;
-  if (lookupService.value == "QRZ")
+  const keys = lookupCredentialKeys(lookupService.value);
+  if (keys)
   {
-    lookupLogin.value = GT.settings.app.lookupLoginQrz;
-    lookupPassword.value = GT.settings.app.lookupPasswordQrz;
-  }
-  if (lookupService.value == "QRZCQ")
-  {
-    lookupLogin.value = GT.settings.app.lookupLoginCq;
-    lookupPassword.value = GT.settings.app.lookupPasswordCq;
-  }
-  if (lookupService.value == "HAMQTH")
-  {
-    lookupLogin.value = GT.settings.app.lookupLoginQth;
-    lookupPassword.value = GT.settings.app.lookupPasswordQth;
+    lookupLogin.value = GT.settings.app[keys[0]];
+    lookupPassword.value = GT.settings.app[keys[1]];
   }
   ValidateText(lookupLogin);
   ValidateText(lookupPassword);
@@ -28,50 +28,27 @@ function loadLookupDetails()
   else lookupCredentials.style.display = "block";
 }
 
-function lookupValueChanged(what)
+function lookupValueChanged()
 {
+  const keys = lookupCredentialKeys(lookupService.value);
   if (GT.settings.app.lookupService != lookupService.value)
   {
     GT.lastLookupCallsign = "";
-    if (lookupService.value == "QRZ")
+    if (keys)
     {
-      lookupLogin.value = GT.settings.app.lookupLoginQrz;
-      lookupPassword.value = GT.settings.app.lookupPasswordQrz;
-    }
-    if (lookupService.value == "QRZCQ")
-    {
-      lookupLogin.value = GT.settings.app.lookupLoginCq;
-      lookupPassword.value = GT.settings.app.lookupPasswordCq;
-    }
-    if (lookupService.value == "HAMQTH")
-    {
-      lookupLogin.value = GT.settings.app.lookupLoginQth;
-      lookupPassword.value = GT.settings.app.lookupPasswordQth;
+      lookupLogin.value = GT.settings.app[keys[0]];
+      lookupPassword.value = GT.settings.app[keys[1]];
     }
   }
   GT.settings.app.lookupService = lookupService.value;
-  // GT.settings.app.lookupCallookPreferred = lookupCallookPreferred.checked;
   lookupQrzTestResult.innerHTML = "";
   GT.qrzLookupSessionId = null;
   if (lookupService.value == "CALLOOK") { lookupCredentials.style.display = "none"; }
   else lookupCredentials.style.display = "block";
-  if (ValidateText(lookupLogin) && ValidateText(lookupPassword))
+  if (ValidateText(lookupLogin) && ValidateText(lookupPassword) && keys)
   {
-    if (lookupService.value == "QRZ")
-    {
-      GT.settings.app.lookupLoginQrz = lookupLogin.value;
-      GT.settings.app.lookupPasswordQrz = lookupPassword.value;
-    }
-    if (lookupService.value == "QRZCQ")
-    {
-      GT.settings.app.lookupLoginCq = lookupLogin.value;
-      GT.settings.app.lookupPasswordCq = lookupPassword.value;
-    }
-    if (lookupService.value == "HAMQTH")
-    {
-      GT.settings.app.lookupLoginQth = lookupLogin.value;
-      GT.settings.app.lookupPasswordQth = lookupPassword.value;
-    }
+    GT.settings.app[keys[0]] = lookupLogin.value;
+    GT.settings.app[keys[1]] = lookupPassword.value;
   }
 }
 
@@ -104,17 +81,34 @@ function lookupCallsign(callsign, gridPass, useCache = true)
   else continueWithLookup(callsign, gridPass);
 }
 
+// getBuffer onError handler: report a request that failed before any reply arrived
+// (no network, DNS failure, server not answering) instead of leaving "please wait" up forever.
+// With resultTd it's the settings Test button; otherwise the lookup window.
+function lookupRequestFailed(resultTd)
+{
+  return function (message)
+  {
+    const html = "<font color='red'>Lookup failed: " + htmlEntities(message) + "</font>";
+    if (resultTd != null) resultTd.innerHTML = html;
+    else setLookupDiv("lookupInfoDiv", html);
+  };
+}
+
 function continueWithLookup(callsign, gridPass)
 {
+  // Not in the cache: this needs the network, so stop here in offline mode
+  if (GT.settings.map.offlineMode == true) return;
+
   setLookupDiv(
     "lookupInfoDiv",
     "Looking up <font color='cyan'>" + callsign + "</font>, please wait..."
   );
- 
+
   if (GT.settings.app.lookupService != "CALLOOK")
   {
     GT.qrzLookupCallsign = callsign;
     GT.qrzLookupGrid = gridPass;
+    GT.lookupSessionRetried = false;
     if (
       GT.qrzLookupSessionId == null ||
       timeNowSec() - GT.sinceLastLookup > 3600
@@ -122,12 +116,12 @@ function continueWithLookup(callsign, gridPass)
     {
       GT.qrzLookupSessionId = null;
       GT.sinceLastLookup = timeNowSec();
-      GetSessionID(null, true);
+      getSessionId(null, true);
     }
     else
     {
       GT.sinceLastLookup = timeNowSec();
-      GetLookup(true);
+      getLookup(true);
     }
   }
   else
@@ -149,7 +143,8 @@ function continueWithLookup(callsign, gridPass)
         gridPass,
         "https",
         443,
-        true
+        true,
+        lookupRequestFailed(null)
       );
     }
     else
@@ -174,7 +169,8 @@ function continueWithLookup(callsign, gridPass)
 
 function callookResults(buffer, gridPass)
 {
-  try {
+  try
+  {
     let results = JSON.parse(buffer);
     if (typeof results.status != "undefined")
     {
@@ -226,158 +222,130 @@ function callookResults(buffer, gridPass)
   }
   catch (e)
   {
+    // e.g. Callook sent something that isn't the JSON we expect
+    console.error("callookResults", e);
+    setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
   }
 }
 
-function GetSessionID(resultTd, useCache)
+function getSessionId(resultTd, useCache)
 {
   if (GT.settings.map.offlineMode == true) return;
   if (resultTd != null) resultTd.innerHTML = "Testing";
-  if (GT.settings.app.lookupService == "QRZCQ")
+  const app = GT.settings.app;
+  let url, callback;
+  if (app.lookupService == "QRZCQ")
   {
-    getBuffer(
-      "https://ssl.qrzcq.com/xml?username=" +
-      GT.settings.app.lookupLoginCq +
-      "&password=" +
-      encodeURIComponent(GT.settings.app.lookupPasswordCq) +
-      "&agent=GridTracker1.18",
-      qrzGetSessionCallback,
-      resultTd,
-      "https",
-      443,
-      useCache
-    );
+    url = "https://ssl.qrzcq.com/xml?username=" + app.lookupLoginCq +
+      "&password=" + encodeURIComponent(app.lookupPasswordCq) +
+      "&agent=GridTracker1.18";
+    callback = qrzGetSessionCallback;
   }
-  else if (GT.settings.app.lookupService == "QRZ")
+  else if (app.lookupService == "QRZ")
   {
-    getBuffer(
-      "https://xmldata.qrz.com/xml/current/?username=" +
-      GT.settings.app.lookupLoginQrz +
-      ";password=" +
-      encodeURIComponent(GT.settings.app.lookupPasswordQrz),
-      qrzGetSessionCallback,
-      resultTd,
-      "https",
-      443,
-      useCache
-    );
+    url = "https://xmldata.qrz.com/xml/current/?username=" + app.lookupLoginQrz +
+      ";password=" + encodeURIComponent(app.lookupPasswordQrz);
+    callback = qrzGetSessionCallback;
   }
   else
   {
-    getBuffer(
-      "https://www.hamqth.com/xml.php?u=" +
-      GT.settings.app.lookupLoginQth +
-      "&p=" +
-      encodeURIComponent(GT.settings.app.lookupPasswordQth),
-      hamQthGetSessionCallback,
-      resultTd,
-      "https",
-      443,
-      useCache
-    );
+    url = "https://www.hamqth.com/xml.php?u=" + app.lookupLoginQth +
+      "&p=" + encodeURIComponent(app.lookupPasswordQth);
+    callback = hamQthGetSessionCallback;
   }
+  getBuffer(url, callback, resultTd, "https", 443, useCache, lookupRequestFailed(resultTd));
 }
 
-
-
-function SessionResponse(newKey, result, useCache)
+function sessionResponse(newKey, result, useCache)
 {
   // for QRZCQ.com as well
   if (newKey == null)
   {
-    setLookupDiv("lookupInfoDiv", result, useCache);
+    setLookupDiv("lookupInfoDiv", result);
   }
   else
   {
-    GetLookup(useCache);
+    getLookup(useCache);
   }
 }
 
-function GetLookup(useCache)
+function getLookup(useCache)
 {
-  if (GT.settings.app.lookupService == "QRZCQ")
+  const service = GT.settings.app.lookupService;
+  const call = encodeURIComponent(GT.qrzLookupCallsign);
+  let url, callback;
+  if (service == "QRZCQ")
   {
-    getBuffer(
-      "https://ssl.qrzcq.com/xml?s=" +
-      GT.qrzLookupSessionId +
-      "&callsign=" +
-      encodeURIComponent(GT.qrzLookupCallsign) +
-      "&agent=GridTracker",
-      qrzLookupResults,
-      GT.qrzLookupGrid,
-      "https",
-      443,
-      useCache
-    );
+    url = "https://ssl.qrzcq.com/xml?s=" + GT.qrzLookupSessionId + "&callsign=" + call + "&agent=GridTracker";
+    callback = qrzLookupResults;
   }
-  else if (GT.settings.app.lookupService == "QRZ")
+  else if (service == "QRZ")
   {
-    getBuffer(
-      "http://xmldata.qrz.com/xml/current/?s=" +
-      GT.qrzLookupSessionId +
-      ";callsign=" +
-      encodeURIComponent(GT.qrzLookupCallsign) ,
-      qrzLookupResults,
-      GT.qrzLookupGrid,
-      "http",
-      80,
-      useCache
-    );
+    url = "https://xmldata.qrz.com/xml/current/?s=" + GT.qrzLookupSessionId + ";callsign=" + call;
+    callback = qrzLookupResults;
   }
   else
   {
-    getBuffer(
-      "https://www.hamqth.com/xml.php?id=" +
-      GT.qrzLookupSessionId +
-      "&callsign=" +
-      encodeURIComponent(GT.qrzLookupCallsign)  +
-      "&prg=GridTracker",
-      qthHamLookupResults,
-      GT.qrzLookupGrid,
-      "https",
-      443,
-      useCache
-    );
+    url = "https://www.hamqth.com/xml.php?id=" + GT.qrzLookupSessionId + "&callsign=" + call + "&prg=GridTracker";
+    callback = hamQthLookupResults;
   }
+  getBuffer(url, callback, GT.qrzLookupGrid, "https", 443, useCache, lookupRequestFailed(null));
 }
 
-function hamQthGetSessionCallback(buffer, resultTd, useCache)
+// Parses a session login reply, sets GT.qrzLookupSessionId, and returns the status HTML.
+// QRZ/QRZCQ and HamQTH replies differ only in their XML tag names.
+function readLookupSession(buffer, sessionTag, keyTag, errorTag)
 {
   const oParser = new DOMParser();
   const oDOM = oParser.parseFromString(buffer, "text/xml");
-  let result = "";
 
   // DOMParser never returns null; malformed XML yields a <parsererror> node
   if (oDOM.getElementsByTagName("parsererror").length > 0)
   {
-    result = "<font color='red'>Unknown Error</font>";
     GT.qrzLookupSessionId = null;
+    return "<font color='red'>Unknown Error</font>";
   }
-  else
-  {
-    const json = XML2jsobj(oDOM.documentElement);
 
-    if (!json.hasOwnProperty("session"))
-    {
-      result = "<font color='red'>Invalid Response</font>";
-      GT.qrzLookupSessionId = null;
-    }
-    else if (json.session.hasOwnProperty("session_id"))
-    {
-      result = "<font color='green'>Valid</font>";
-      GT.qrzLookupSessionId = json.session.session_id;
-    }
-    else
-    {
-      result = "<font color='red'>" + (json.session.error || "Unknown Error") + "</font>";
-      GT.qrzLookupSessionId = null;
-    }
+  const json = XML2jsobj(oDOM.documentElement);
+
+  if (!json.hasOwnProperty(sessionTag))
+  {
+    GT.qrzLookupSessionId = null;
+    return "<font color='red'>Invalid Response</font>";
   }
+
+  const session = json[sessionTag];
+  if (session.hasOwnProperty(keyTag))
+  {
+    GT.qrzLookupSessionId = session[keyTag];
+    return "<font color='green'>Valid</font>";
+  }
+
+  GT.qrzLookupSessionId = null;
+  return "<font color='red'>" + (session[errorTag] || "Unknown Error") + "</font>";
+}
+
+// A lookup failed because the login session is no longer valid (e.g. it expired), not because
+// the call wasn't found. Log in again and repeat the lookup, once. Returns true if a retry started.
+function retryLookupOnSessionError(useCache)
+{
+  // getSessionId does nothing offline, so don't start a retry that can never finish
+  if (GT.lookupSessionRetried || GT.settings.map.offlineMode == true) return false;
+  GT.lookupSessionRetried = true;
+  GT.qrzLookupSessionId = null;
+  GT.sinceLastLookup = timeNowSec();
+  getSessionId(null, useCache);
+  return true;
+}
+
+function hamQthGetSessionCallback(buffer, resultTd, useCache)
+{
+  const result = readLookupSession(buffer, "session", "session_id", "error");
 
   if (resultTd == null)
   {
     // It's a true session Request
-    SessionResponse(GT.qrzLookupSessionId, result, useCache);
+    sessionResponse(GT.qrzLookupSessionId, result, useCache);
     return;
   }
 
@@ -388,48 +356,19 @@ function hamQthGetSessionCallback(buffer, resultTd, useCache)
 
 function qrzGetSessionCallback(buffer, resultTd, useCache)
 {
-  const oParser = new DOMParser();
-  const oDOM = oParser.parseFromString(buffer, "text/xml");
-  let result = "";
-
-  // DOMParser never returns null; malformed XML yields a <parsererror> node
-  if (oDOM.getElementsByTagName("parsererror").length > 0)
-  {
-    result = "<font color='red'>Unknown Error</font>";
-    GT.qrzLookupSessionId = null;
-  }
-  else
-  {
-    const json = XML2jsobj(oDOM.documentElement);
-
-    if (!json.hasOwnProperty("Session"))
-    {
-      result = "<font color='red'>Invalid Response</font>";
-      GT.qrzLookupSessionId = null;
-    }
-    else if (json.Session.hasOwnProperty("Key"))
-    {
-      result = "<font color='green'>Valid</font>";
-      GT.qrzLookupSessionId = json.Session.Key;
-    }
-    else
-    {
-      result = "<font color='red'>" + (json.Session.Error || "Unknown Error") + "</font>";
-      GT.qrzLookupSessionId = null;
-    }
-  }
+  const result = readLookupSession(buffer, "Session", "Key", "Error");
 
   if (resultTd == null)
   {
     // It's a true session Request
-    SessionResponse(GT.qrzLookupSessionId, result, useCache);
+    sessionResponse(GT.qrzLookupSessionId, result, useCache);
     return;
   }
 
   resultTd.innerHTML = result;
 }
 
-function qthHamLookupResults(buffer, gridPass, useCache)
+function hamQthLookupResults(buffer, gridPass, useCache)
 {
   const oParser = new DOMParser();
   const oDOM = oParser.parseFromString(buffer, "text/xml");
@@ -447,6 +386,14 @@ function qthHamLookupResults(buffer, gridPass, useCache)
   if (!json.hasOwnProperty("search"))
   {
     GT.qrzLookupSessionId = null;
+    // HamQTH reports e.g. "Session does not exist or expired" vs "Callsign not found"
+    const error = String((json.session && json.session.error) || "");
+    if (/session/i.test(error))
+    {
+      if (retryLookupOnSessionError(useCache)) return;
+      setLookupDiv("lookupInfoDiv", "<br><b>" + htmlEntities(error) + "</b><br><br>");
+      return;
+    }
     setLookupDiv(
       "lookupInfoDiv",
       "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
@@ -485,11 +432,23 @@ function qrzLookupResults(buffer, gridPass, useCache)
 
   if (!json.hasOwnProperty("Callsign"))
   {
+    GT.qrzLookupSessionId = null;
+    // A reply without a session Key means our login is no longer valid (e.g. "Session Timeout");
+    // with a Key it's a real "not found"
+    const session = json.Session || {};
+    if (!session.hasOwnProperty("Key"))
+    {
+      if (retryLookupOnSessionError(useCache)) return;
+      if (session.Error)
+      {
+        setLookupDiv("lookupInfoDiv", "<br><b>" + htmlEntities(session.Error) + "</b><br><br>");
+        return;
+      }
+    }
     setLookupDiv(
       "lookupInfoDiv",
       "<br><b>" + I18N("gt.lookup.NoResult") + "</b><br><br>"
     );
-    GT.qrzLookupSessionId = null;
     return;
   }
 
@@ -507,6 +466,9 @@ function qrzLookupResults(buffer, gridPass, useCache)
     ? "https://www.qrz.com/lookup?callsign=" + safeCall
     : "https://www.qrzcq.com/call/" + safeCall;
   const label = isQRZ ? "QRZ.com" : "QRZCQ.com";
+
+  // QRZCQ shows the biography on the call page; QRZ results use the qrz.com/db link (see displayLookupObject)
+  if (!isQRZ) json.Callsign.bioUrl = url;
 
   json.Callsign.source =
     "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"" +
@@ -626,6 +588,9 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
     lookup.grid = lookup.grid.toUpperCase();
   }
 
+  // Keep "GT Grid" current when a cached lookup is shown again (e.g. a portable station has moved)
+  if (gridPass) lookup.gtGrid = gridPass;
+
   if (GT.settings.app.lookupService == "CALLOOK" && !("county" in lookup) && "lon" in lookup && "lat" in lookup)
   {
     if (GT.countyLookupReady == false) initCountyMap();
@@ -644,7 +609,8 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
 
     if (lookup.cnty == null)
     {
-      if (!(lookup.county.startsWith(lookup.state + ","))) {
+      if (!(lookup.county.startsWith(lookup.state + ",")))
+      {
         lookup.county = lookup.state + "," + lookup.county;
       }
       lookup.cnty = lookup.county.toUpperCase().replaceAll(" ", "");
@@ -673,15 +639,21 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
     }
   }
 
-  if (lookup.call && lookup.grid) {
-    if (GT.instances) {
-      for (const instKey in GT.instances) {
+  if (lookup.call && lookup.grid)
+  {
+    if (GT.instances)
+    {
+      for (const instKey in GT.instances)
+      {
         const inst = GT.instances[instKey];
-        if (inst && inst.status && inst.status.Band && inst.status.MO) {
+        if (inst && inst.status && inst.status.Band && inst.status.MO)
+        {
           const hash = lookup.call + inst.status.Band + inst.status.MO;
           const entry = GT.liveCallsigns[hash];
-          if (entry) {
-            if (!entry.grid) {
+          if (entry)
+          {
+            if (!entry.grid)
+            {
               entry.grid = lookup.grid;
               entry.gridQualified = false;
               updateLiveDistance(entry);
@@ -787,8 +759,9 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
 
   if (Number(p("bio")) > 0)
   {
+    const bioUrl = p("bioUrl") || "https://www.qrz.com/db/" + p("call");
     detailsRows.push(
-      `<tr><td>Biography</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("https://www.qrz.com/db/${p("call")}");'>Link</div></b></font></td></tr>`
+      `<tr><td>Biography</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("${bioUrl}");'>Link</div></b></font></td></tr>`
     );
   }
 
@@ -1004,29 +977,29 @@ function getLookProp(object, key)
   return object.hasOwnProperty(key) ? object[key] : "";
 }
 
-function joinSpaceIf(camera1, camera2)
+function joinSpaceIf(first, second)
 {
-  if (camera1.length > 0 && camera2.length > 0) return camera1 + " " + camera2;
-  if (camera1.length > 0) return camera1;
-  if (camera2.length > 0) return camera2;
+  if (first.length > 0 && second.length > 0) return first + " " + second;
+  if (first.length > 0) return first;
+  if (second.length > 0) return second;
   return "";
 }
 
-function joinCommaIf(camera1, camera2)
+function joinCommaIf(first, second)
 {
-  if (camera1.length > 0 && camera2.length > 0)
+  if (first.length > 0 && second.length > 0)
   {
-    if (camera1.indexOf(",") > -1) return camera1 + " " + camera2;
-    else return camera1 + ", " + camera2;
+    if (first.indexOf(",") > -1) return first + " " + second;
+    else return first + ", " + second;
   }
-  if (camera1.length > 0) return camera1;
-  if (camera2.length > 0) return camera2;
+  if (first.length > 0) return first;
+  if (second.length > 0) return second;
   return "";
 }
 
-function joinIfBothWithDash(camera1, camera2)
+function joinIfBothWithDash(first, second)
 {
-  if (camera1.length > 0 && camera2.length > 0) { return camera1 + " / " + camera2; }
+  if (first.length > 0 && second.length > 0) { return first + " / " + second; }
   return "";
 }
 

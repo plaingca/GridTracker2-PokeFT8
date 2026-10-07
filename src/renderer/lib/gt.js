@@ -10991,11 +10991,22 @@ function cancelVersion()
   versionDiv.style.display = "none";
 }
 
-function getBuffer(file_url, callback, flag, mode, port, cache = null)
+// onError (optional): called once with a message if the request fails, stalls for 20 seconds,
+// or the reply can't be decompressed. Without it, failures are only logged, as before.
+function getBuffer(file_url, callback, flag, mode, port, cache = null, onError = null)
 {
   let http = window.require(mode);
   let fileBuffer = null;
   let options = null;
+  let failed = false;
+  const fail = function (message)
+  {
+    if (onError && !failed)
+    {
+      failed = true;
+      onError(message);
+    }
+  };
 
   options = {
     host: NodeURL.parse(file_url).host, // eslint-disable-line node/no-deprecated-api
@@ -11017,7 +11028,7 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
       {
         if (encoding === 'gzip') {
           try { fileBuffer = window.require('zlib').gunzipSync(fileBuffer); }
-          catch (e) { console.error("getBuffer gunzip " + file_url, e.message); return; }
+          catch (e) { console.error("getBuffer gunzip " + file_url, e.message); fail("could not read the reply"); return; }
         }
         if (typeof callback == "function")
         {
@@ -11028,13 +11039,23 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
       .on("error", function (e)
       {
         console.error("getBuffer " + file_url + " error: " + e.message);
+        fail(e.message);
       });
   });
 
   req.on("error", function (e)
   {
     console.error("getBuffer " + file_url + " request error: " + e.message);
+    fail(e.message);
   });
+
+  if (onError)
+  {
+    req.setTimeout(20000, function ()
+    {
+      req.destroy(new Error("no reply from server"));
+    });
+  }
 }
 
 function getPostBuffer(file_url, callback, flag, mode, port, theData, timeoutMs, timeoutCallback, who)
@@ -11757,7 +11778,6 @@ function loadViewSettings()
   spotMergeValue.checked = GT.settings.reception.mergeSpots;
 
   lookupOnTx.checked = GT.settings.app.lookupOnTx;
-  // lookupCallookPreferred.checked = GT.settings.app.lookupCallookPreferred;
   lookupCloseLog.checked = GT.settings.app.lookupCloseLog;
   lookupMerge.checked = GT.settings.app.lookupMerge;
   lookupMissingGrid.checked = GT.settings.app.lookupMissingGrid;

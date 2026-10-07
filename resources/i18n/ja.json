@@ -242,8 +242,6 @@
     "settings.lookup.OpenOnTx.hover": "送信時に検索ウィンドウを開きます",
     "settings.lookup.CloseOnLog.label": "ロギング後に検索を閉じる",
     "settings.lookup.CloseOnLog.hover": "ロギング後に検索ウィンドウを閉じます",
-    "settings.lookup.CallookFirst.label": "他のサービスを使用する前にCallookを使用",
-    "settings.lookup.CallookFirst.hover": "他のサービスを使用する前にCallookを使用します。無料のCallookは、無料のQRZ.comよりも多くのデータを提供します。",
     "settings.lookup.Databases.label": "コールサインデータベース",
     "settings.lookup.Databases.header": "データベース",
     "settings.lookup.Enabled.header": "有効",

@@ -242,8 +242,6 @@
     "settings.lookup.OpenOnTx.hover": "Open Lookup Window on Transmit",
     "settings.lookup.CloseOnLog.label": "Close Lookup After Logging",
     "settings.lookup.CloseOnLog.hover": "Close Lookup Window After Logging",
-    "settings.lookup.CallookFirst.label": "Use Callook Before Using Other Service",
-    "settings.lookup.CallookFirst.hover": "Use Callook before using other service, Free Callook yields more data then free QRZ.com.",
     "settings.lookup.Databases.label": "Callsign Databases",
     "settings.lookup.Databases.header": "Database",
     "settings.lookup.Enabled.header": "Enabled",

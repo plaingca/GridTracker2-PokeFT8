@@ -1342,7 +1342,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <td data-i18n="settings.lookup.Password.label">Password</td>
             <td><input id="lookupPassword" type="password"    class="inputTextValue" size="8" oninput="lookupValueChanged();" /></td>
             <td>
-              <div data-i18n="settings.lookup.QRZTest" class="button" onclick="GetSessionID(lookupQrzTestResult);">Test
+              <div data-i18n="settings.lookup.QRZTest" class="button" onclick="getSessionId(lookupQrzTestResult);">Test
               </div>
             </td>
             <td id="lookupQrzTestResult">&nbsp;</td>
@@ -1379,12 +1379,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
               <input type="checkbox" id="lookupCloseLog" onclick="changelookupOnTx()" />
             </td>
           </tr>
-          <!--tr>
-            <td data-i18n="settings.lookup.CallookFirst.label">Use Callook first</td>
-            <td title="Use Callook before using other service. Free Callook yields more data than free QRZ.">
-              <input type="checkbox" id="lookupCallookPreferred" onclick="lookupValueChanged()" />
-            </td>
-          </tr-->
         </table>
       </div>
       <div id="callsignDatabaseDiv" class="mapItem">

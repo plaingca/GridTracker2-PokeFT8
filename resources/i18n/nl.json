@@ -242,8 +242,6 @@
   "settings.lookup.OpenOnTx.hover": "Open Zoekvenster bij Transmissie",
   "settings.lookup.CloseOnLog.label": "Sluit Zoeken Na Loggen",
   "settings.lookup.CloseOnLog.hover": "Sluit Zoekvenster Na Loggen",
-  "settings.lookup.CallookFirst.label": "Gebruik Callook Voordat U Een Andere Dienst Gebruikt",
-  "settings.lookup.CallookFirst.hover": "Gebruik Callook voordat u een andere dienst gebruikt, Gratis Callook levert meer gegevens op dan gratis QRZ.com.",
   "settings.lookup.Databases.label": "Roepnaam Databases",
   "settings.lookup.Databases.header": "Database",
   "settings.lookup.Enabled.header": "Ingeschakeld",

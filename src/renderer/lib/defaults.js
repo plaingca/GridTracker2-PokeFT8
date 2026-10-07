@@ -87,7 +87,6 @@ const def_settings = {
     lookupPasswordQrz: "",
     lookupPasswordQth: "",
     lookupService: "CALLOOK",
-    lookupCallookPreferred: false,
     moonTrack: 0,
     mouseTracking: true,
     multicast: false,

@@ -243,8 +243,6 @@
     "settings.lookup.OpenOnTx.hover": "發送時打開尋找視窗",
     "settings.lookup.CloseOnLog.label": "記錄日誌後關閉尋找",
     "settings.lookup.CloseOnLog.hover": "記錄日誌後關閉尋找",
-    "settings.lookup.CallookFirst.label": "在使用其他服務之前優先使用Callook平台",
-    "settings.lookup.CallookFirst.hover": "在使用其他服務之前使用Callook平台,因為免費Callook比免費QRZ.com可以獲取更多數據。",
     "settings.lookup.Databases.label": "全球呼號數據庫",
     "settings.lookup.Databases.header": "數據庫平台",
     "settings.lookup.Enabled.header": "啟用",
