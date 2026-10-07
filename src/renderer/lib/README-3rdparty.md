@@ -19,7 +19,7 @@
 
 Not entirely part of openlayers, but conglomerated together from other stuff:
 
-- lib/grayline.js
+- lib/map/grayline.js
 
 ## Proj4js - map projections (v2.12.1)
 
