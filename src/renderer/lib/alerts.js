@@ -810,7 +810,7 @@ function logbookValuesChanged()
   setVisualHunting();
 }
 
-// Syncronized call with roster.js!
+// Syncronized call with rosterWindow.js!
 function huntingValueChanged(element)
 {
   if (GT.callRosterWindowInitialized)

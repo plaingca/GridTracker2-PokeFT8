@@ -61,6 +61,14 @@ function cycleGridView()
   redrawGrids();
 }
 
+function toggleGridMode()
+{
+  GT.settings.app.sixWideMode ^= 1;
+  modeImg.src = GT.maidenheadModeImageArray[GT.settings.app.sixWideMode];
+  clearTempGrids();
+  redrawGrids();
+}
+
 function tempGridToBox(iQTH, borderColor, boxColor)
 {
   let borderWeight = 2;

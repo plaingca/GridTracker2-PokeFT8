@@ -41,11 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/gtCommon.js" type="text/javascript"></script>
   <script src="./lib/alerts.js" type="text/javascript"></script>
   <script src="./lib/third-party/third-party.js" type="text/javascript"></script>
-  <script src="./lib/grid-math.js" type="text/javascript"></script>
+  <script src="./lib/third-party/grid-math.js" type="text/javascript"></script>
   <script src="./lib/adif.js" type="text/javascript"></script>
   <script src="./lib/third-party/proj4.js" type="text/javascript"></script>
   <script src="./lib/third-party/ol.js" type="text/javascript"></script>
-  <script src="./lib/arc.js" type="text/javascript"></script>
+  <script src="./lib/third-party/arc.js" type="text/javascript"></script>
   <script src="./lib/geocircle.js" type="text/javascript"></script>
   <script src="./lib/third-party/moment-with-locales.js" type="text/javascript"></script>
   <script src="./lib/third-party/moment-timezone-with-data.js" type="text/javascript"></script>
@@ -57,9 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/services/pstrotator.js" type="text/javascript"></script>
   <script src="./lib/acLog.js" type="text/javascript"></script>
   <script src="./lib/map/tropo.js" type="text/javascript"></script>
-  <script src="./lib/wsjtUdp.js" type="text/javascript"></script>
-  <script src="./lib/lookup.js" type="text/javascript"></script>
+  <script src="./lib/wsjtxUdp.js" type="text/javascript"></script>
   <script src="./lib/wsjtx.js" type="text/javascript"></script>
+  <script src="./lib/lookup.js" type="text/javascript"></script>
   <script src="./lib/map/shapes.js" type="text/javascript"></script>
   <script src="./lib/map/grids.js" type="text/javascript"></script>
   <script src="./lib/map/paths.js" type="text/javascript"></script>
@@ -69,6 +69,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/map/mouse.js" type="text/javascript"></script>
   <script src="./lib/map/spots.js" type="text/javascript"></script>
   <script src="./lib/map/mapCore.js" type="text/javascript"></script>
+  <script src="./lib/stats/statsBoxes.js" type="text/javascript"></script>
+  <script src="./lib/stats/logbook.js" type="text/javascript"></script>
   <script src="./lib/gt.js" type="text/javascript"></script>
   <script src="./lib/mqttPsk.js" type="text/javascript"></script>
   <script src="./lib/map/countyLookup.js" type="text/javascript"></script>
@@ -573,7 +575,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <div id="predButton" onclick="cyclePredLayer()" class="iconButton" title="Cycle Prediction Layer">
           <img id="predImg" src="img/no-pred.png" class="buttonImg" />
         </div>
-        <div id="conditionsButton" onclick="showConditionsBox();" oncontextmenu="showConditionsBox(false);" class="iconButton" title="View Current Conditions">
+        <div id="conditionsButton" onclick="showConditionsWindow();" oncontextmenu="showConditionsWindow(false);" class="iconButton" title="View Current Conditions">
           <img src="img/conditions.png" class="buttonImg" />
         </div>
         <div id="buttonSpotsBoxDiv" onclick="cycleSpotsView()" class="iconButton" title="View Spot Reports">

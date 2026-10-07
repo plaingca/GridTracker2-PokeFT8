@@ -47,7 +47,7 @@
       const C = {};
       C.refreshTimer = null;
 
-      function showConditionsBox() {
+      function refreshConditions() {
         var now = timeNowSec() % 86400;
 
         var images = document.getElementsByTagName("img");
@@ -61,17 +61,17 @@
         {
           nodeTimers.clearTimeout(C.refreshTimer);
         }
-        C.refreshTimer = nodeTimers.setTimeout(showConditionsBox, 1800000);
+        C.refreshTimer = nodeTimers.setTimeout(refreshConditions, 1800000);
 
       }
 
       function imageLoadFailed()
       {
-        nodeTimers.setTimeout(showConditionsBox, 60000);
+        nodeTimers.setTimeout(refreshConditions, 60000);
       }
 
       function init() {
-        showConditionsBox();
+        refreshConditions();
         GT.conditionsWindowInitialized = true;
       }
 

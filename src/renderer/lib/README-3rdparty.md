@@ -27,6 +27,14 @@ Not entirely part of openlayers, but conglomerated together from other stuff:
 
 - lib/third-party/proj4.js
 
+## arc.js - great circle arcs (used for flight paths and long-path lines)
+
+- lib/third-party/arc.js
+
+## Grid math - Maidenhead grid neighbours and helpers (Copyright 2023 N7YHF, permission granted to GridTracker.org)
+
+- lib/third-party/grid-math.js
+
 ## Other Third Party routines
 
 lib/third-party/third-party.js
