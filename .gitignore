@@ -9,5 +9,6 @@ beau-gunderson.pfx
 mac-signing-certificate.p12
 .VSCodeCounter
 .vscode/settings.json
+.claude/
 resources/media/desktop.ini
 src/main/map_keys.json

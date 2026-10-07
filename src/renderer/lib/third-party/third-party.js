@@ -34,7 +34,7 @@ const MyCircle = {
 }
 
 if (typeof module != 'undefined' && module.exports) {
-    module.exports = MyCircle;
+    window.module.exports = MyCircle;
 } else {
     window['MyCircle'] = MyCircle;
 }
