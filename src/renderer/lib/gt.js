@@ -10998,6 +10998,8 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null, onError =
   let http = window.require(mode);
   let fileBuffer = null;
   let options = null;
+  // for logging: drop the query string, which can hold logins and passwords (e.g. QRZ/HamQTH sign-in)
+  const logUrl = file_url.split("?")[0];
   let failed = false;
   const fail = function (message)
   {
@@ -11028,7 +11030,7 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null, onError =
       {
         if (encoding === 'gzip') {
           try { fileBuffer = window.require('zlib').gunzipSync(fileBuffer); }
-          catch (e) { console.error("getBuffer gunzip " + file_url, e.message); fail("could not read the reply"); return; }
+          catch (e) { console.error("getBuffer gunzip " + logUrl, e.message); fail("could not read the reply"); return; }
         }
         if (typeof callback == "function")
         {
@@ -11038,14 +11040,14 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null, onError =
       })
       .on("error", function (e)
       {
-        console.error("getBuffer " + file_url + " error: " + e.message);
+        console.error("getBuffer " + logUrl + " error: " + e.message);
         fail(e.message);
       });
   });
 
   req.on("error", function (e)
   {
-    console.error("getBuffer " + file_url + " request error: " + e.message);
+    console.error("getBuffer " + logUrl + " request error: " + e.message);
     fail(e.message);
   });
 

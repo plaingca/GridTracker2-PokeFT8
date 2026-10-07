@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Callsign lookup: QRZ, HamQTH, Callook, cache and display (moved verbatim from gt.js)
+// Callsign lookup: QRZ, QRZCQ, HamQTH, Callook, cache and display (split out of gt.js)
 
 // GT.settings.app keys holding [login, password] for a lookup service, or null if it needs none
 function lookupCredentialKeys(service)
@@ -11,6 +11,39 @@ function lookupCredentialKeys(service)
   if (service == "QRZCQ") return ["lookupLoginCq", "lookupPasswordCq"];
   if (service == "HAMQTH") return ["lookupLoginQth", "lookupPasswordQth"];
   return null;
+}
+
+// Display name of a lookup service, as shown in the result's "Source" row
+function lookupServiceName(service)
+{
+  if (service == "QRZ") return "QRZ.com";
+  if (service == "QRZCQ") return "QRZCQ.com";
+  if (service == "HAMQTH") return "HamQTH";
+  return "Callook";
+}
+
+// Lookup results are written by each station's owner on QRZ/QRZCQ/HamQTH/Callook, so treat them as
+// untrusted: escape every value before it goes into the lookup window's HTML.
+// htmlEntities covers & < > "; single quotes too, since many attributes here are '...'
+function lookupHtml(value)
+{
+  return htmlEntities(value == null ? "" : value).replace(/'/g, "&#39;");
+}
+
+// A value passed as a string argument inside an onclick='...' attribute: JS-quote it, then HTML-escape
+function lookupJsArg(value)
+{
+  return lookupHtml(JSON.stringify(String(value == null ? "" : value)));
+}
+
+// A profile "website" to open in the system browser: only http(s), since openSite hands the
+// address to the operating system (a file: address could start a program). "" = no link.
+function lookupWebsiteUrl(url)
+{
+  url = String(url).trim();
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.length > 0 && !/^[a-z][a-z0-9+.-]*:/i.test(url)) return "http://" + url; // e.g. "www.example.com"
+  return "";
 }
 
 function loadLookupDetails()
@@ -81,13 +114,35 @@ function lookupCallsign(callsign, gridPass, useCache = true)
   else continueWithLookup(callsign, gridPass);
 }
 
+// The licence callsign inside a portable one: "W1AW/P", "KP4/W1AW" and "VE3/W1AW/M" all give "W1AW"
+function lookupBaseCallsign(callsign)
+{
+  return String(callsign).split("/").reduce((best, part) => (part.length > best.length ? part : best), "");
+}
+
+// Callook serves the FCC licence database: the USA (840, which includes Alaska, Hawaii and the
+// Marianas) plus Puerto Rico (630), Guam (316), US Virgin Is. (850) and American Samoa (16)
+function isCallookCountry(ccode)
+{
+  return [840, 630, 316, 850, 16].includes(Number(ccode));
+}
+
+// Lookups also start automatically whenever the WSJT-X DX call changes, so replies can overlap.
+// A reply is stale if a different call has been asked for since; it is still cached but not shown.
+// requested is undefined for replies not tied to one call (e.g. sign-in), which are never stale.
+function isStaleLookup(requested)
+{
+  return requested !== undefined && requested != GT.lastLookupCallsign;
+}
+
 // getBuffer onError handler: report a request that failed before any reply arrived
 // (no network, DNS failure, server not answering) instead of leaving "please wait" up forever.
 // With resultTd it's the settings Test button; otherwise the lookup window.
-function lookupRequestFailed(resultTd)
+function lookupRequestFailed(resultTd, requested)
 {
   return function (message)
   {
+    if (resultTd == null && isStaleLookup(requested)) return;
     const html = "<font color='red'>Lookup failed: " + htmlEntities(message) + "</font>";
     if (resultTd != null) resultTd.innerHTML = html;
     else setLookupDiv("lookupInfoDiv", html);
@@ -101,11 +156,19 @@ function continueWithLookup(callsign, gridPass)
 
   setLookupDiv(
     "lookupInfoDiv",
-    "Looking up <font color='cyan'>" + callsign + "</font>, please wait..."
+    "Looking up <font color='cyan'>" + lookupHtml(callsign) + "</font>, please wait..."
   );
 
   if (GT.settings.app.lookupService != "CALLOOK")
   {
+    // Without a saved login every lookup would just be a failed sign-in, so say so instead
+    const keys = lookupCredentialKeys(GT.settings.app.lookupService);
+    if (keys && (!GT.settings.app[keys[0]] || !GT.settings.app[keys[1]]))
+    {
+      setLookupDiv("lookupInfoDiv", "<br><b>Please enter your " + lookupServiceName(GT.settings.app.lookupService) + " login and password in Settings</b><br><br>");
+      return;
+    }
+
     GT.qrzLookupCallsign = callsign;
     GT.qrzLookupGrid = gridPass;
     GT.lookupSessionRetried = false;
@@ -126,7 +189,9 @@ function continueWithLookup(callsign, gridPass)
   }
   else
   {
-    let dxcc = callsignToDxcc(callsign);
+    // Callook knows licence callsigns only, so look up the base call of a portable one
+    const baseCall = lookupBaseCallsign(callsign);
+    let dxcc = callsignToDxcc(baseCall);
     let where;
     let ccode = 0;
     if (dxcc in GT.dxccToAltName)
@@ -135,16 +200,16 @@ function continueWithLookup(callsign, gridPass)
       ccode = GT.dxccInfo[dxcc].ccode;
     }
     else where = "Unknown";
-    if (ccode == 840)
+    if (isCallookCountry(ccode))
     {
       getBuffer(
-        "https://callook.info/" + callsign + "/json",
-        callookResults,
+        "https://callook.info/" + encodeURIComponent(baseCall) + "/json",
+        (buffer, flag, cache) => callookResults(buffer, flag, cache, callsign),
         gridPass,
         "https",
         443,
         true,
-        lookupRequestFailed(null)
+        lookupRequestFailed(null, callsign)
       );
     }
     else
@@ -154,9 +219,9 @@ function continueWithLookup(callsign, gridPass)
           "<br>" + I18N("gt.callookDX3") + "<br>"];
       html.push(
         "<br>" + I18N("gt.callookDX4") + " <font color='orange'> " +
-        callsign +
+        lookupHtml(callsign) +
         "</font> " + I18N("gt.callookDX5") + " <font color='yellow'> " +
-        where +
+        lookupHtml(where) +
         "</font><br>");
       html.push(
         "<br><br>" + I18N("gt.callookDX6") + "<br>");
@@ -167,8 +232,9 @@ function continueWithLookup(callsign, gridPass)
   }
 }
 
-function callookResults(buffer, gridPass)
+function callookResults(buffer, gridPass, useCache, requested)
 {
+  const show = !isStaleLookup(requested);
   try
   {
     let results = JSON.parse(buffer);
@@ -205,10 +271,11 @@ function callookResults(buffer, gridPass)
         if (gridPass) callObject.gtGrid = gridPass;
         callObject.source =
           "<tr><td>Source</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(\"https://callook.info/" +
-          results.current.callsign +
+          encodeURIComponent(results.current.callsign) +
           "\");'>C A L L O O K</div></b></font></td></tr>";
-        cacheLookupObject(callObject, gridPass, true);
+        cacheLookupObject(callObject, gridPass, true, show);
       }
+      else if (!show) return;
       else if (results.status == "INVALID")
       {
         setLookupDiv("lookupInfoDiv", "Invalid Lookup");
@@ -218,13 +285,13 @@ function callookResults(buffer, gridPass)
         setLookupDiv("lookupInfoDiv", "Server is down for maintenance");
       }
     }
-    else setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
+    else if (show) setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
   }
   catch (e)
   {
     // e.g. Callook sent something that isn't the JSON we expect
     console.error("callookResults", e);
-    setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
+    if (show) setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
   }
 }
 
@@ -238,7 +305,7 @@ function getSessionId(resultTd, useCache)
   {
     url = "https://ssl.qrzcq.com/xml?username=" + app.lookupLoginCq +
       "&password=" + encodeURIComponent(app.lookupPasswordCq) +
-      "&agent=GridTracker1.18";
+      "&agent=" + encodeURIComponent(gtUserAgent);
     callback = qrzGetSessionCallback;
   }
   else if (app.lookupService == "QRZ")
@@ -289,7 +356,16 @@ function getLookup(useCache)
     url = "https://www.hamqth.com/xml.php?id=" + GT.qrzLookupSessionId + "&callsign=" + call + "&prg=GridTracker";
     callback = hamQthLookupResults;
   }
-  getBuffer(url, callback, GT.qrzLookupGrid, "https", 443, useCache, lookupRequestFailed(null));
+  const requested = GT.qrzLookupCallsign;
+  getBuffer(
+    url,
+    (buffer, gridPass, cache) => callback(buffer, gridPass, cache, requested),
+    GT.qrzLookupGrid,
+    "https",
+    443,
+    useCache,
+    lookupRequestFailed(null, requested)
+  );
 }
 
 // Parses a session login reply, sets GT.qrzLookupSessionId, and returns the status HTML.
@@ -322,7 +398,7 @@ function readLookupSession(buffer, sessionTag, keyTag, errorTag)
   }
 
   GT.qrzLookupSessionId = null;
-  return "<font color='red'>" + (session[errorTag] || "Unknown Error") + "</font>";
+  return "<font color='red'>" + lookupHtml(session[errorTag] || "Unknown Error") + "</font>";
 }
 
 // A lookup failed because the login session is no longer valid (e.g. it expired), not because
@@ -368,16 +444,19 @@ function qrzGetSessionCallback(buffer, resultTd, useCache)
   resultTd.innerHTML = result;
 }
 
-function hamQthLookupResults(buffer, gridPass, useCache)
+function hamQthLookupResults(buffer, gridPass, useCache, requested)
 {
+  const show = !isStaleLookup(requested);
   const oParser = new DOMParser();
   const oDOM = oParser.parseFromString(buffer, "text/xml");
 
-  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  // DOMParser never returns null; malformed XML yields a <parsererror> node,
+  // e.g. when a proxy or the server sends an HTML error page instead
   if (oDOM.getElementsByTagName("parsererror").length > 0)
   {
-    setLookupDiv("lookupInfoDiv", String(buffer));
+    console.error("hamQthLookupResults: unexpected reply", String(buffer).substring(0, 200));
     GT.qrzLookupSessionId = null;
+    if (show) setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
     return;
   }
 
@@ -386,6 +465,7 @@ function hamQthLookupResults(buffer, gridPass, useCache)
   if (!json.hasOwnProperty("search"))
   {
     GT.qrzLookupSessionId = null;
+    if (!show) return;
     // HamQTH reports e.g. "Session does not exist or expired" vs "Callsign not found"
     const error = String((json.session && json.session.error) || "");
     if (/session/i.test(error))
@@ -411,20 +491,23 @@ function hamQthLookupResults(buffer, gridPass, useCache)
 
   if (gridPass) json.search.gtGrid = gridPass;
 
-  cacheLookupObject(json.search, gridPass, true);
+  cacheLookupObject(json.search, gridPass, true, show);
 }
 
 
-function qrzLookupResults(buffer, gridPass, useCache)
+function qrzLookupResults(buffer, gridPass, useCache, requested)
 {
+  const show = !isStaleLookup(requested);
   let oParser = new DOMParser();
   let oDOM = oParser.parseFromString(buffer, "text/xml");
 
-  // DOMParser never returns null; malformed XML yields a <parsererror> node
+  // DOMParser never returns null; malformed XML yields a <parsererror> node,
+  // e.g. when a proxy or the server sends an HTML error page instead
   if (oDOM.getElementsByTagName("parsererror").length > 0)
   {
-    setLookupDiv("lookupInfoDiv", String(buffer));
+    console.error("qrzLookupResults: unexpected reply", String(buffer).substring(0, 200));
     GT.qrzLookupSessionId = null;
+    if (show) setLookupDiv("lookupInfoDiv", "Unknown Lookup Error");
     return;
   }
 
@@ -433,6 +516,7 @@ function qrzLookupResults(buffer, gridPass, useCache)
   if (!json.hasOwnProperty("Callsign"))
   {
     GT.qrzLookupSessionId = null;
+    if (!show) return;
     // A reply without a session Key means our login is no longer valid (e.g. "Session Timeout");
     // with a Key it's a real "not found"
     const session = json.Session || {};
@@ -479,7 +563,7 @@ function qrzLookupResults(buffer, gridPass, useCache)
 
   if (gridPass) json.Callsign.gtGrid = gridPass;
 
-  cacheLookupObject(json.Callsign, gridPass, true);
+  cacheLookupObject(json.Callsign, gridPass, true, show);
 }
 
 
@@ -518,7 +602,9 @@ function getLookupCachedObject(call, gridPass, resultFunction = null, noResultFu
   }
 }
 
-function cacheLookupObject(lookup, gridPass, cacheable = false)
+// display = false: cache the result and update the roster, but leave the lookup window alone
+// (used for replies that a newer lookup has replaced; see isStaleLookup)
+function cacheLookupObject(lookup, gridPass, cacheable = false, display = true)
 {
   const hasOwn = (key) => Object.prototype.hasOwnProperty.call(lookup, key);
 
@@ -670,11 +756,10 @@ function cacheLookupObject(lookup, gridPass, cacheable = false)
 
   if (cacheable)
   {
-    lookup.cached = timeNowSec();
     addLookupObjectToCache(lookup);
   }
 
-  displayLookupObject(lookup, gridPass, !cacheable);
+  if (display) displayLookupObject(lookup, gridPass, !cacheable);
 }
 
 function displayLookupObject(lookup, gridPass, fromCache = false)
@@ -699,7 +784,7 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
   {
     if (value.length > 0)
     {
-      arr.push(`<tr${extra}><td>${label}</td><td>${value}</td></tr>`);
+      arr.push(`<tr${extra}><td>${label}</td><td>${lookupHtml(value)}</td></tr>`);
     }
   };
 
@@ -713,17 +798,17 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
 
   if (addrAttn.length > 0)
   {
-    cardRows.push(`<tr><td>${addrAttn}</td></tr>`);
+    cardRows.push(`<tr><td>${lookupHtml(addrAttn)}</td></tr>`);
   }
 
   cardRows.push(
-    `<tr><td><b>${name}</b></td></tr>`,
-    `<tr><td>${addr1}</td></tr>`,
-    `<tr><td>${addr2}</td></tr>`,
-    `<tr><td>${country}</td></tr>`,
+    `<tr><td><b>${lookupHtml(name)}</b></td></tr>`,
+    `<tr><td>${lookupHtml(addr1)}</td></tr>`,
+    `<tr><td>${lookupHtml(addr2)}</td></tr>`,
+    `<tr><td>${lookupHtml(country)}</td></tr>`,
     `<tr><td>${
       email.length > 0
-        ? `<div style='cursor:pointer;font-weight:bold;vertical-align:top' onclick='window.opener.mailThem("${email}");'>${email}</div>`
+        ? `<div style='cursor:pointer;font-weight:bold;vertical-align:top' onclick='window.opener.mailThem(${lookupJsArg(email)});'>${lookupHtml(email)}</div>`
         : ""
     }</td></tr>`
   );
@@ -732,7 +817,7 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
     <div class='mapItem' id='callCard' style='top:0;padding:4px;'>
       <table title='Click to copy address to clipboard' onclick='setClipboardFromLookup();' style='cursor:pointer'>
         <tr>
-          <td style='font-size:36pt;color:cyan;font-weight:bold'>${formatCallsign(call)}</td>
+          <td style='font-size:36pt;color:cyan;font-weight:bold'>${lookupHtml(formatCallsign(call))}</td>
           <td align='center' style='margin:0;padding:0'>
             ${lookup.dxcc > 0 && lookup.dxcc in GT.dxccInfo
               ? `<img style='padding-top:4px' src='img/flags/24/${GT.dxccInfo[lookup.dxcc].flag}'>`
@@ -740,7 +825,7 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
           </td>
           <td rowspan='6'>
             ${image.length > 0
-              ? `<img style='border:1px solid gray' class='roundBorder' width='220px' src='${image}'>`
+              ? `<img style='border:1px solid gray' class='roundBorder' width='220px' src='${lookupHtml(image)}'>`
               : ""}
           </td>
         </tr>
@@ -750,10 +835,11 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
 
   const detailsRows = ["<tr><th colspan='2'>Details</th></tr>"];
 
-  if (url.length > 0)
+  const website = url.length > 0 ? lookupWebsiteUrl(url) : "";
+  if (website.length > 0)
   {
     detailsRows.push(
-      `<tr><td>Website</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("${url}");'>Link</div></b></font></td></tr>`
+      `<tr><td>Website</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(${lookupJsArg(website)});'>Link</div></b></font></td></tr>`
     );
   }
 
@@ -761,7 +847,7 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
   {
     const bioUrl = p("bioUrl") || "https://www.qrz.com/db/" + p("call");
     detailsRows.push(
-      `<tr><td>Biography</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite("${bioUrl}");'>Link</div></b></font></td></tr>`
+      `<tr><td>Biography</td><td><font color='orange'><b><div style='cursor:pointer' onClick='window.opener.openSite(${lookupJsArg(bioUrl)});'>Link</div></b></font></td></tr>`
     );
   }
 
@@ -776,13 +862,13 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
   addRowIf(detailsRows, "Effective Dates", dates);
 
   const aliases = joinCommaIf(p("aliases"), p("p_call"));
-  addRowIf(detailsRows, "Aliases", aliases, ` title='${aliases}'`);
+  addRowIf(detailsRows, "Aliases", aliases, ` title='${lookupHtml(aliases)}'`);
 
   detailsRows.push(
     makeRow("Polish OT", lookup, "plot"),
     makeRow("German DOK", lookup, "dok"),
     makeYesNoRow("DOK is Sonder-DOK", lookup, "sondok"),
-    `<tr><td>DXCC</td><td>${p("dxcc")} - ${GT.dxccToAltName[p("dxcc")]}</td></tr>`,
+    `<tr><td>DXCC</td><td>${lookupHtml(p("dxcc"))} - ${lookupHtml(GT.dxccToAltName[p("dxcc")] || "Unknown")}</td></tr>`,
     makeRow("CQ zone", lookup, "cqzone"),
     makeRow("ITU zone", lookup, "ituzone"),
     makeRow("IOTA", lookup, "iota"),
@@ -869,7 +955,7 @@ function displayLookupObject(lookup, gridPass, fromCache = false)
     <tr>
       <td colspan='2'>
         <div title='Clear' class='button' onclick='window.opener.clearLookup();'>Clear</div>
-        <div title='Generate Messages' class='button' onclick='window.opener.setCallAndGrid("${p("call")}","${grid}");'>Generate Messages</div>
+        <div title='Generate Messages' class='button' onclick='window.opener.setCallAndGrid(${lookupJsArg(p("call"))},${lookupJsArg(grid)});'>Generate Messages</div>
       </td>
     </tr>`;
 
@@ -891,11 +977,6 @@ function clearLookup()
     setLookupDiv("lookupInfoDiv", "");
     setLookupDivHeight("lookupBoxDiv", getLookupWindowHeight() + "px");
   }
-}
-
-function addTextToClipboard(data)
-{
-  navigator.clipboard.writeText(data);
 }
 
 function makeYesNoRow(first, object, key)
@@ -962,11 +1043,11 @@ function makeRow(first, object, key, grid = false)
       // the background color of the grid cell if new or
       // unconfirmed and leave as is if confirmed.
       let style = lookupGridCellStyle(object[key]);
-      return ("<tr><td>" + first + "</td><td title='Copy to clipboard' style='cursor:pointer;font-weight:bold;" + style + "' onClick='addTextToClipboard(\"" + object[key] + "\")'>" + object[key] + "</td></tr>");
+      return ("<tr><td>" + first + "</td><td title='Copy to clipboard' style='cursor:pointer;font-weight:bold;" + style + "' onClick='addTextToClipboard(" + lookupJsArg(object[key]) + ")'>" + lookupHtml(object[key]) + "</td></tr>");
     }
     else
     {
-      return ("<tr><td>" + first + "</td><td>" + object[key].substr(0, 45) + "</td></tr>");
+      return ("<tr><td>" + first + "</td><td>" + lookupHtml(object[key].substr(0, 45)) + "</td></tr>");
     }
   }
   return "";
