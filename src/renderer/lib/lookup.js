@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Callsign lookup: QRZ, QRZCQ, HamQTH, Callook, cache and display (split out of gt.js)
+// Callsign lookup: QRZ, QRZCQ, HamQTH, Callook, cache and display (split out of GridTracker2.js)
 
 // GT.settings.app keys holding [login, password] for a lookup service, or null if it needs none
 function lookupCredentialKeys(service)
@@ -1092,4 +1092,162 @@ function startLookup(call, grid)
   openLookupWindow(true);
 
   lookupCallsign(call, grid);
+}
+
+function changeLookupMerge()
+{
+  GT.settings.app.lookupMerge = lookupMerge.checked;
+  GT.settings.app.lookupMissingGrid = lookupMissingGrid.checked;
+  lookupMissingGridTr.style.display = GT.settings.app.lookupMerge ? "" : "none";
+}
+
+function changelookupOnTx()
+{
+  GT.settings.app.lookupOnTx = lookupOnTx.checked;
+  GT.settings.app.lookupCloseLog = lookupCloseLog.checked;
+}
+
+function setLookupDiv(div, worker)
+{
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].innerHTML != "undefined")
+  {
+    GT.lookupWindowHandle.window[div].innerHTML = worker;
+  }
+}
+
+function setLookupDivHeight(div, heightWithPx)
+{
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window[div].style != "undefined")
+  {
+    GT.lookupWindowHandle.window[div].style.height = heightWithPx;
+  }
+}
+
+function getLookupWindowHeight()
+{
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.window != "undefined")
+  {
+    return GT.lookupWindowHandle.window.window.innerHeight;
+  }
+  return 300;
+}
+
+function lookupValidateCallByElement(elementString)
+{
+  if (GT.lookupWindowInitialized && typeof GT.lookupWindowHandle.window.validateCallByElement != "undefined")
+  {
+    GT.lookupWindowHandle.window.validateCallByElement(elementString);
+  }
+}
+
+function openLookupWindow(show = false)
+{
+  if (GT.settings.map.offlineMode == true) return;
+
+  if (GT.lookupWindowHandle == null)
+  {
+    GT.lookupWindowHandle = window.open("gt_lookup.html","gt_lookup");
+  }
+  else if (GT.lookupWindowInitialized == true)
+  {
+    show ? electron.ipcRenderer.send("showWin", "gt_lookup") : electron.ipcRenderer.send("hideWin", "gt_lookup");
+  }
+}
+
+function toggleLookupWindow(toggle = true)
+{
+  if (GT.lookupWindowInitialized == true)
+  {
+    if (toggle)
+    {
+      electron.ipcRenderer.send("toggleWin", "gt_lookup");
+    }
+    else
+    {
+      electron.ipcRenderer.send("showWin", "gt_lookup");
+    }
+  }
+}
+
+function searchLogForCallsign(call)
+{
+  setLookupDiv("lookupLocalDiv", "");
+  let list = Object.values(GT.QSOhash)
+    .filter(function (value)
+    {
+      return value.DEcall == call;
+    })
+    .sort(myBandCompare);
+
+  let html = [];
+  const ack = GT.acknowledgedCalls[call];
+
+  // If 'ack' exists, populate the HTML array using a single-allocation template literal
+  if (ack) {
+    html = [
+      `<h3>${I18N("gt.lookup.acks")} ${formatCallsign(call)} <img class="lookupAckBadge" src="img/emojis/${ack.b}.png"> ${ack.m}</h3>`
+    ];
+  }
+  let work = {};
+  let conf = {};
+  let lastTime = 0;
+  let lastRow = null;
+  let dxcc = (list.length > 0 ? list[0].dxcc : callsignToDxcc(call));
+
+  for (let row in list)
+  {
+    let what = list[row].band + "," + list[row].mode;
+    if (list[row].time > lastTime)
+    {
+      lastRow = row;
+      lastTime = list[row].time;
+    }
+    if (list[row].confirmed)
+    {
+      conf[what] = GT.pskColors[list[row].band];
+      if (what in work) delete work[what];
+    }
+    else if (!(what in conf)) work[what] = GT.pskColors[list[row].band];
+  }
+  html.push("<div class='mapItemNoSize'><table align='center' class='darkTable'>");
+  if (Object.keys(work).length > 0)
+  {
+    html.push("<tr><th style='color:yellow'>Worked</th><td>");
+    let k = Object.keys(work).sort();
+    for (let key in k)
+    {
+      html.push("<font color='#" + work[k[key]] + "'>" + k[key] + " </font>");
+    }
+    html.push("</td></tr>");
+  }
+  if (Object.keys(conf).length > 0)
+  {
+    html.push("<tr><th style='color:lightgreen'>Confirmed</th><td>");
+    let k = Object.keys(conf).sort();
+    for (let key in k)
+    {
+      html.push("<font color='#" + conf[k[key]] + "'>" + k[key] + " </font>");
+    }
+    html.push("</td></tr>");
+  }
+  if (lastRow)
+  {
+    html.push("<tr><th style='color:cyan'>Last QSO</th><td>");
+    html.push("<font color='#" + GT.pskColors[list[lastRow].band] + "'>" + list[lastRow].band + "," + list[lastRow].mode + " </font> " + userTimeString(list[lastRow].time * 1000));
+    html.push("</td></tr>");
+  }
+
+  html.push("<tr><th style='color:orange'>" + GT.dxccToAltName[dxcc] + " (" + GT.dxccInfo[dxcc].pp + ")</th><td>");
+  for (let band in GT.colorBands)
+  {
+    if (String(dxcc) + "|" + GT.colorBands[band] in GT.tracker.worked.dxcc)
+    {
+      let strike = "";
+      if (String(dxcc) + "|" + GT.colorBands[band] in GT.tracker.confirmed.dxcc) { strike = "text-decoration: underline overline;"; }
+      html.push("<div style='" + strike + "display:inline-block;color:#" + GT.pskColors[GT.colorBands[band]] + "'>" + GT.colorBands[band] + "</div>&nbsp;");
+    }
+  }
+
+  html.push("</td></tr></table></div>");
+  setLookupDiv("lookupLocalDiv", html.join(""));
 }

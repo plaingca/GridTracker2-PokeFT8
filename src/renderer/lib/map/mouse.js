@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map mouse handling: clicks, hover dispatch (GT.hoverFunctors), tooltips, right-drag grid selection (moved from gt.js)
+// Map mouse handling: clicks, hover dispatch (GT.hoverFunctors), tooltips, right-drag grid selection (moved from GridTracker2.js)
 
 function createTooltTipTable(toolElement)
 {

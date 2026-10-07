@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map grid squares: live and QSO grid boxes, grid view modes, dimming, highlighting, redraws and clears (moved from gt.js)
+// Map grid squares: live and QSO grid boxes, grid view modes, dimming, highlighting, redraws and clears (moved from GridTracker2.js)
 
 function hideLiveGrid(i)
 {

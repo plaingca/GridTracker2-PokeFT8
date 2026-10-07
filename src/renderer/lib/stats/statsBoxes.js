@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Stats window: opening it, the stats/awards tabs (stats, zones, WAS+, DXCC, WPX, callsigns) and their table builders (moved from gt.js)
+// Stats window: opening it, the stats/awards tabs (stats, zones, WAS+, DXCC, WPX, callsigns) and their table builders (moved from GridTracker2.js)
 
 function showCallsignBox() {
   // Start with a pure string

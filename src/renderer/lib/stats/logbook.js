@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Stats window: the logbook tab (sorting, searching, filtering, rendering) and worked-before searches (moved from gt.js)
+// Stats window: the logbook tab (sorting, searching, filtering, rendering) and worked-before searches (moved from GridTracker2.js)
 
 // Called from GridTracher.html
 function changeLogbookPage()

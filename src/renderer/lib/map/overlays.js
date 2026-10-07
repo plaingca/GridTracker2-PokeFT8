@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map overlays: grayline/moon toggles, award (trophy) overlays, range rings, equator, timezones, all-grids, radar, propagation prediction (moved from gt.js)
+// Map overlays: grayline/moon toggles, award (trophy) overlays, range rings, equator, timezones, all-grids, radar, propagation prediction (moved from GridTracker2.js)
 
 function toggleEarth()
 {

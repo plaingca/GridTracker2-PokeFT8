@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map settings: map sources and API keys, night map, colours, legend, offline maps, pins (moved from gt.js)
+// Map settings: map sources and API keys, night map, colours, legend, offline maps, pins (moved from GridTracker2.js)
 
 function mapApiKeyInputChanged()
 {
@@ -490,4 +490,16 @@ function mapTransChange()
 
   mapTransTd.innerHTML = String(100 - parseInt(((GT.settings.map.mapTrans * 255) / 255) * 100)) + "%";
   mapSettingsDiv.style.backgroundColor = "rgba(0,0,0, " + GT.settings.map.mapTrans + ")";
+}
+
+function togglePushPinMode()
+{
+  GT.pushPinMode = !GT.pushPinMode;
+  GT.settings.app.pushPinMode = GT.pushPinMode;
+  pinImg.src = GT.pinImageArray[GT.pushPinMode == false ? 0 : 1];
+
+  gridModeDiv.style.display = GT.pushPinMode ? "" : "none";
+
+  clearTempGrids();
+  redrawGrids();
 }

@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map core: OpenLayers map creation, base and data layers, rendering, controls, view-change events (moved from gt.js)
+// Map core: OpenLayers map creation, base and data layers, rendering, controls, view-change events (moved from GridTracker2.js)
 
 class RotateNorthControl extends ol.control.Control {
   /**

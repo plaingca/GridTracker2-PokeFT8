@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Reception spots (PSK Reporter, RTSN, MQTT): storage, map features, display settings (moved from gt.js)
+// Reception spots (PSK Reporter, RTSN, MQTT): storage, map features, display settings (moved from GridTracker2.js)
 
 class SpotReport {
   constructor(call, band, grid, mode) {

@@ -3,7 +3,7 @@
 // See LICENSE for more information.
 
 // WSJT-X / JTDX message processing: decodes, status, QSO logging, and commands sent back to WSJT-X
-// (moved from gt.js; the UDP socket itself is in wsjtUdp.js)
+// (moved from GridTracker2.js; the UDP socket itself is in wsjtxUdp.js)
 
 // Used by finalWsjtxDecode: the seconds that start an "even" FT8/FT4 period, and a 4-character grid
 const kIsEven = {
@@ -1455,4 +1455,179 @@ function handleWsjtxWSPR(newMessage)
   checkAlerts(callsign, newMessage.Grid, newMessage.Callsign + " " + newMessage.Grid, callsignRecord, band, mode);
 
   updateCountStats();
+}
+
+function getIniFromApp(appName, iniName)
+{
+  let result = {};
+  result.port = -1;
+  result.ip = "";
+  result.MyCall = "NOCALL";
+  result.MyGrid = "";
+  result.MyBand = "";
+  result.MyMode = "";
+
+  result.N1MMServer = "";
+  result.N1MMServerPort = 0;
+  result.BroadcastToN1MM = false;
+  result.appName = appName;
+  let wsjtxCfgPath = "";
+
+  let appData = electron.ipcRenderer.sendSync("getPath", "appData");
+
+  if (GT.platform == "windows")
+  {
+    let basename = path.basename(appData);
+    if (basename != "Local")
+    {
+      appData = appData.replace(basename, "Local");
+    }
+
+    wsjtxCfgPath = path.join(appData, appName, iniName + ".ini");
+  }
+  else if (GT.platform == "mac")
+  {
+    wsjtxCfgPath =  path.join(process.env.HOME, "Library/Preferences/WSJT-X.ini");
+  }
+  else
+  {
+    wsjtxCfgPath = path.join(process.env.HOME, ".config/" + iniName + ".ini");
+  }
+  if (fs.existsSync(wsjtxCfgPath))
+  {
+    let fileBuf = fs.readFileSync(wsjtxCfgPath, "ascii");
+    let fileArray = fileBuf.split("\n");
+    for (const key in fileArray) fileArray[key] = fileArray[key].trim();
+
+    for (let x = 0; x < fileArray.length; x++)
+    {
+      let indexOfSearch = fileArray[x].indexOf("UDPServerPort=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.port = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("UDPServer=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.ip = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("MyCall=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyCall = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("MyGrid=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyGrid = valSplit[1].substr(0, 6);
+      }
+      indexOfSearch = fileArray[x].indexOf("Mode=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyMode = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("DialFreq=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyBand = formatBand(Number(valSplit[1] / 1000000));
+      }
+      indexOfSearch = fileArray[x].indexOf("N1MMServerPort=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.N1MMServerPort = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("N1MMServer=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.N1MMServer = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("BroadcastToN1MM=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.BroadcastToN1MM = valSplit[1] == "true";
+      }
+    }
+  }
+
+  return result;
+}
+
+function updateBasedOnIni()
+{
+  scanForAppLogs();
+  
+  let which =  getIniFromApp("WSJT-X", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WS");
+  if (which.port == -1) which = getIniFromApp("JTDX", "JTDX");
+
+  // UdpPortNotSet
+  if (GT.settings.app.wsjtUdpPort == 0 && which.port > -1)
+  {
+    GT.settings.app.wsjtUdpPort = which.port;
+    GT.settings.app.wsjtIP = which.ip;
+
+    if (ipToInt(GT.settings.app.wsjtIP) >= ipToInt("224.0.0.0") && ipToInt(GT.settings.app.wsjtIP) < ipToInt("240.0.0.0"))
+    {
+      GT.settings.app.multicast = true;
+    }
+    else
+    {
+      GT.settings.app.multicast = false;
+    }
+
+  }
+
+  if (GT.settings.app.wsjtUdpPort == 0)
+  {
+    GT.settings.app.wsjtUdpPort = 2237;
+    GT.settings.app.wsjtIP = "";
+    GT.settings.app.multicast = false;
+  }
+  // Which INI do we load?
+  if (GT.settings.app.wsjtUdpPort > 0 && which.MyCall != "NOCALL")
+  {
+    GT.settings.app.myCall = which.MyCall;
+    GT.settings.app.myGrid = GT.settings.app.myRawGrid = which.MyGrid;
+    GT.lastBand = GT.settings.app.myBand;
+    GT.lastMode = GT.settings.app.myMode;
+
+    if (which.BroadcastToN1MM == true && GT.settings.N1MM.enable == true)
+    {
+      if (which.N1MMServer == GT.settings.N1MM.ip && which.N1MMServerPort == GT.settings.N1MM.port)
+      {
+        buttonN1MMCheckBox.checked = GT.settings.N1MM.enable = false;
+        alert(which.appName + " N1MM Logger+ is enabled in WSJT-X with same settings, disabled GridTracker N1MM logger");
+      }
+    }
+
+    if (GT.settings.app.wsjtIP == "")
+    {
+      GT.settings.app.wsjtIP = which.ip;
+    }
+  }
+}
+
+function updateLastMsgTimeDiv(id)
+{
+  lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + id;
+  GT.lastTimeSinceMessageInSeconds = GT.timeNow;
+  GT.updateLastMsgTimer = null;
+}
+
+function startGenMessages(call, grid, instance = null)
+{
+  if (call == "-") return;
+  if (grid == "-") grid = "";
+
+  setCallAndGrid(call, grid, instance);
 }

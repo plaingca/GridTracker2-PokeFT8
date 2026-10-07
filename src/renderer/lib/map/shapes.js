@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map shape builders: grid, icon, line, rectangle, triangle and polygon features, ring geometry (moved from gt.js)
+// Map shape builders: grid, icon, line, rectangle, triangle and polygon features, ring geometry (moved from GridTracker2.js)
 
 const K_CACHED_WORLD_RING = [];
 

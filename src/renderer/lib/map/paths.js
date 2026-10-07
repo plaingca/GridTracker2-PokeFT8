@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map paths: flight path features, colours, styles and animation (flightFeature moved from third-party.js) (moved from gt.js)
+// Map paths: flight path features, colours, styles and animation (flightFeature moved from third-party.js) (moved from GridTracker2.js)
 
 function getPathColor()
 {

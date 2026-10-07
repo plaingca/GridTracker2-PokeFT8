@@ -1,7 +1,7 @@
 // GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
-// gtCommon.js is common functions used by gt.js , adifWorker.js, trackerWorker.js and others
+// gtCommon.js is common functions used by GridTracker2.js , adifWorker.js, trackerWorker.js and others
 // var GT must be initiliazed before loading this script.
 
 GT.callsignDatabaseDXCC = {

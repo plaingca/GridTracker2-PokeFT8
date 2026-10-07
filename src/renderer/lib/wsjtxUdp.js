@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// WSJT-X / JTDX UDP handling (moved verbatim from gt.js)
+// WSJT-X / JTDX UDP handling (moved verbatim from GridTracker2.js)
 
 function encodeQBOOL(byteArray, offset, value)
 {

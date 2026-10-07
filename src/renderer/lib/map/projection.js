@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// Map projection and view: AEQD projection, centring, fitting, remembered views (moved from gt.js)
+// Map projection and view: AEQD projection, centring, fitting, remembered views (moved from GridTracker2.js)
 
 function mapMemory(x, save, internal = false)
 {
@@ -237,4 +237,43 @@ function setCenterQTH()
     GT.mapView.setRotation(0);
     GT.mapView.setZoom(4);
   }
+}
+
+function saveCenterGridsquare()
+{
+  let LL = squareToCenter(homeQTHInput.value);
+  GT.settings.map.latitude = GT.myLat = LL.a;
+  GT.settings.map.longitude = GT.myLon = LL.o;
+  tryUpdateQTH(homeQTHInput.value);
+  tryRecenterAEQD();
+}
+
+function tryUpdateQTH(grid)
+{
+  if (grid != GT.settings.app.myGrid)
+  {
+    let hash = GT.settings.app.myGrid;
+    if (hash in GT.liveGrids)
+    {
+      GT.liveGrids[hash].rectangle.locked = false;
+      delete GT.liveGrids[hash].rectangle.liveHash[hash];
+      delete GT.liveCallsigns[hash];
+    }
+
+    homeQTHInput.value = GT.settings.app.myGrid = GT.settings.app.myRawGrid = grid;
+
+    setHomeGridsquare();
+    redrawGrids();
+  }
+}
+
+function setCenterGridsquare()
+{
+  if (GT.settings.mapMemory[6].zoom != -1)
+  {
+    mapMemory(6, false);
+    return;
+  }
+
+  setCenterQTH();
 }
