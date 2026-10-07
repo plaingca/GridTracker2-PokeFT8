@@ -10438,7 +10438,7 @@ function updateFromBigCty(dxccBigCTY)
 
 function loadMaidenHeadData()
 {
-  GT.dxccInfo = require(GT.dxccBasePath);
+  GT.dxccInfo = window.require(GT.dxccBasePath);
 
   for (let key in GT.dxccInfo)
   {
@@ -10458,13 +10458,13 @@ function loadMaidenHeadData()
 
   let dxccBigCTY;
   try {
-    dxccBigCTY = require(GT.dxccInfoPath);
+    dxccBigCTY = window.require(GT.dxccInfoPath);
   }
   catch (e)
   {
     console.error("Failed to load Ginternal dxcc-info, falling back to asar");
     // Fallback to asar
-    dxccBigCTY = require(GT.asarDxccInfoPath);
+    dxccBigCTY = window.require(GT.asarDxccInfoPath);
   }
 
   if ("version" in dxccBigCTY[1])
@@ -10993,7 +10993,7 @@ function cancelVersion()
 
 function getBuffer(file_url, callback, flag, mode, port, cache = null)
 {
-  let http = require(mode);
+  let http = window.require(mode);
   let fileBuffer = null;
   let options = null;
 
@@ -11016,7 +11016,7 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
       .on("end", function ()
       {
         if (encoding === 'gzip') {
-          try { fileBuffer = require('zlib').gunzipSync(fileBuffer); }
+          try { fileBuffer = window.require('zlib').gunzipSync(fileBuffer); }
           catch (e) { console.error("getBuffer gunzip " + file_url, e.message); return; }
         }
         if (typeof callback == "function")
@@ -11039,9 +11039,9 @@ function getBuffer(file_url, callback, flag, mode, port, cache = null)
 
 function getPostBuffer(file_url, callback, flag, mode, port, theData, timeoutMs, timeoutCallback, who)
 {
-  let querystring = require("querystring");
+  let querystring = window.require("querystring");
   let postData = querystring.stringify(theData);
-  let http = require(mode);
+  let http = window.require(mode);
   let fileBuffer = null;
   let options = {
     host: NodeURL.parse(file_url).host, // eslint-disable-line node/no-deprecated-api
@@ -12444,7 +12444,7 @@ function startForwardListener()
   }
   if (GT.closing == true) return;
 
-  const dgram = require("dgram");
+  const dgram = window.require("dgram");
   GT.forwardUdpServer = dgram.createSocket({
     type: "udp4",
     reuseAddr: true
@@ -12641,7 +12641,7 @@ function updateWsjtxListener(port)
   }
   if (GT.closing == true) return;
   GT.wsjtUdpSocketError = false;
-  const dgram = require("dgram");
+  const dgram = window.require("dgram");
   GT.wsjtUdpServer = dgram.createSocket({
     type: "udp4",
     reuseAddr: true
@@ -14106,7 +14106,7 @@ function loadReceptionReports()
   {
     if (fs.existsSync(GT.spotsPath))
     {
-      GT.receptionReports = require(GT.spotsPath);
+      GT.receptionReports = window.require(GT.spotsPath);
       // Convert old single spot source to new object type allowing for multiple sources
       for (const spot of Object.values(GT.receptionReports.spots))
       {

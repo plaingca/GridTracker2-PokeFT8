@@ -23,7 +23,7 @@ function connectToAcLogAPI()
   if (GT.acLogAPISocket || GT.settings.acLog.connect == false) return;
   if (!(GT.settings.acLog.port > 0 && GT.settings.acLog.ip.length > 4)) return;
 
-  const net = require("net");
+  const net = window.require("net");
   let workingBuffer = null;
 
   GT.acLogAPISocket = new net.Socket();

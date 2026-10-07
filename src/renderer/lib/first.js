@@ -1,13 +1,14 @@
 // This file needs to be loaded first for all windows
 // No exceptions, if you don't , things will go badly
-const electron = require("electron");
-const NodeURL = require("url");
-const os = require("os");
-const nodeTimers = require("timers");
-const dns = require("node:dns");
-const path = require("path");
-const fs = require("fs");
-const process = require("process");
+// window.require (not bare require) so VS Code treats these scripts as shared globals, not modules
+const electron = /** @type {typeof import("electron")} */ (window.require("electron"));
+const NodeURL = /** @type {typeof import("url")} */ (window.require("url"));
+const os = /** @type {typeof import("os")} */ (window.require("os"));
+const nodeTimers = /** @type {typeof import("timers")} */ (window.require("timers"));
+const dns = /** @type {typeof import("node:dns")} */ (window.require("node:dns"));
+const path = /** @type {typeof import("path")} */ (window.require("path"));
+const fs = /** @type {typeof import("fs")} */ (window.require("fs"));
+const process = /** @type {typeof import("process")} */ (window.require("process"));
 
 const originalConsole = {
   log: console.log.bind(console),
@@ -151,7 +152,7 @@ function requireJson(filepath)
   try 
   {
     where = path.resolve(resourcesPath, filepath);
-    return require(where);
+    return window.require(where);
   }
   catch (e)
   {
@@ -174,7 +175,7 @@ if (document.title.substring(0, 12).trim() == "GridTracker2")
   {
     if (fs.existsSync(filename))
     {
-      let data = require(filename);
+      let data = window.require(filename);
       if (data)
       {
         GT.settings = data;

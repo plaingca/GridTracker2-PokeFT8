@@ -1,4 +1,4 @@
-const mqtt = require('mqtt');
+const mqtt = window.require('mqtt');
 
 GT.pskMqttClient = null;
 GT.pskMqttUrl = "mqtt://mqtt.pskreporter.info:1883";

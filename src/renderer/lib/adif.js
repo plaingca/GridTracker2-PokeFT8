@@ -1,7 +1,7 @@
 // GridTracker Copyright © 2026 GridTracker.org
 // All rights reserved.
 // See LICENSE for more information.
-const { webUtils } = require('electron');
+const { webUtils } = window.require('electron');
 
 GT.confSrcNames = {
   C: "Clublog",
@@ -1166,8 +1166,8 @@ function startupAdifLoadCheck()
 }
 
 function getABuffer(file_url, callback, flag, mode, port, imgToGray, stringOfFlag, timeoutX) {
-  const http = require(mode);
-  const zlib = require('zlib');
+  const http = window.require(mode);
+  const zlib = window.require('zlib');
   
   // Modern URL parsing (Replaces deprecated url.parse)
   const parsedUrl = new URL(file_url);
@@ -1259,7 +1259,7 @@ function getABuffer(file_url, callback, flag, mode, port, imgToGray, stringOfFla
 function getAPostBuffer(file_url, callback, flag, mode, port, theData, imgToGray, stringOfFlag) {
   // querystring is deprecated in modern node, use URLSearchParams
   const postData = new URLSearchParams(theData).toString(); 
-  const http = require(mode);
+  const http = window.require(mode);
   
   const parsedUrl = new URL(file_url);
 
@@ -1323,7 +1323,7 @@ function getAPostBuffer(file_url, callback, flag, mode, port, theData, imgToGray
 
 function sendUdpMessage(msg, length, port, address)
 {
-  const dgram = require("dgram");
+  const dgram = window.require("dgram");
   let socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
   socket.send(msg, 0, length, port, address, (err) => // eslint-disable-line node/handle-callback-err
   {
@@ -1333,7 +1333,7 @@ function sendUdpMessage(msg, length, port, address)
 
 function sendTcpMessage(msg, length, port, address)
 {
-  const net = require("net");
+  const net = window.require("net");
   let client = new net.Socket();
   client.setTimeout(30000);
   
@@ -1999,7 +1999,7 @@ function testTrustedQSL(test)
   {
     lotwTestResult.innerHTML = "Testing Upload";
 
-    const child_process = require("child_process");
+    const child_process = window.require("child_process");
     let options = Array();
     options.push("-q");
     options.push("-v");
@@ -2081,7 +2081,7 @@ function sendLotwLogEntry(report, callsignFile, gridFile)
 
     fs.appendFileSync(fullPath, report + "\r\n", { flush: true });
 
-    const child_process = require("child_process");
+    const child_process = window.require("child_process");
     let options = Array();
     options.push("-a");
     options.push("all");
@@ -2699,7 +2699,7 @@ function getPostJSONBuffer(
 
   try
   {
-    const http = require(url.protocol.replace(":", ""));
+    const http = window.require(url.protocol.replace(":", ""));
     const postData = JSON.stringify(theData);
 
     let headers = {
@@ -3054,7 +3054,7 @@ function parsePSKadif(adiBuffer)
 
 function sendTcpMessageGetResponse(msg, port, address, callback = null)
 {
-  const net = require("net");
+  const net = window.require("net");
   let client = new net.Socket();
   client.setTimeout(30000);
   
@@ -3160,7 +3160,7 @@ function updateAdifBroadcast(port)
   if (port == -1 || GT.closing == true || GT.settings.app.adifBroadcastEnable == false || adifBroadcastEnable.checked == false) return;
 
   GT.adifBroadcastSocketError = false;
-  const dgram = require("dgram");
+  const dgram = window.require("dgram");
   GT.adifBroadcastServer = dgram.createSocket({
     type: "udp4",
     reuseAddr: true
