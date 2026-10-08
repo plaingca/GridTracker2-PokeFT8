@@ -1,0 +1,441 @@
+/* Native PokeFT8 dock; scoped to avoid changing GridTracker's map and controls. */
+#pokeft8Button {
+  color: inherit;
+  background: #000;
+  font: inherit;
+}
+
+#pokeft8Button[aria-expanded='true'] {
+  border-color: #9fc875;
+  background: #25331c;
+}
+
+.pokeft8-dock {
+  position: fixed;
+  z-index: 8;
+  left: 12px;
+  bottom: 25px;
+  width: 328px;
+  max-width: calc(100vw - 225px);
+  max-height: calc(100vh - 52px);
+  display: flex;
+  flex-direction: column;
+  color: #e2e8db;
+  background: #151d22;
+  border: 1px solid #596762;
+  border-radius: 9px;
+  box-shadow: 0 6px 24px #000b;
+  text-align: left;
+  font-size: 12px;
+  white-space: normal;
+  overflow: hidden;
+}
+
+.pokeft8-dock[hidden],
+.pokeft8-dock [hidden] {
+  display: none !important;
+}
+
+.pokeft8-dock *,
+.pokeft8-dock *::before,
+.pokeft8-dock *::after {
+  box-sizing: border-box;
+}
+
+.pokeft8-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #35423e;
+}
+
+.pokeft8-header h2 {
+  margin: 0 0 3px;
+  font-size: 16px;
+  color: #e4edca;
+  letter-spacing: 0.5px;
+}
+
+.pokeft8-connection {
+  color: #a4b7a9;
+  font-size: 11px;
+}
+
+.pokeft8-dock button {
+  border: 1px solid #4c5e55;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #25312f;
+  color: #e2e8db;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pokeft8-dock button:hover:not(:disabled) {
+  border-color: #abc284;
+  background: #33443a;
+}
+
+.pokeft8-dock button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.pokeft8-dock button:focus-visible,
+.pokeft8-dock input:focus-visible,
+.pokeft8-dock summary:focus-visible,
+#pokeft8Button:focus-visible {
+  outline: 2px solid #c8e890;
+  outline-offset: 2px;
+}
+
+.pokeft8-dock .pokeft8-close {
+  border: 0;
+  background: transparent;
+  font-size: 23px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.pokeft8-content {
+  padding: 11px;
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+.pokeft8-console {
+  width: 254px;
+  max-width: 100%;
+  margin: 0 auto 10px;
+  padding: 10px 12px 9px;
+  border: 1px solid #e7e9ce;
+  border-radius: 7px 7px 25px 7px;
+  background: linear-gradient(135deg, #c9cdba, #a9af9c);
+  color: #4d5456;
+  box-shadow:
+    inset 2px 2px 0 #eef0d66b,
+    0 3px 0 #090d10;
+}
+
+.pokeft8-console-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 7px;
+  font-size: 7px;
+  font-weight: bold;
+  letter-spacing: 0.6px;
+}
+
+.pokeft8-power-led {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6c5c58;
+}
+
+.pokeft8-power-led.is-on {
+  background: #d85050;
+  box-shadow: 0 0 3px #d85050;
+}
+
+.pokeft8-screen {
+  position: relative;
+  aspect-ratio: 160 / 144;
+  width: 100%;
+  background: #a0b868;
+  border: 5px solid #586153;
+  outline: 1px solid #858d7b;
+  overflow: hidden;
+}
+
+.pokeft8-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  image-rendering: pixelated;
+}
+
+#pokeft8ScreenPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 17px;
+  color: #2c4728;
+  font-family: monospace;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+#pokeft8ScreenPlaceholder strong {
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.pokeft8-screen-prompt {
+  font-size: 9px;
+}
+
+.pokeft8-console-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 9px;
+}
+
+.pokeft8-brand {
+  font-size: 13px;
+  font-weight: bold;
+  font-style: italic;
+  letter-spacing: -0.6px;
+  color: #3d4471;
+}
+
+.pokeft8-console-buttons {
+  display: flex;
+  gap: 8px;
+  transform: rotate(-16deg);
+}
+
+.pokeft8-console-buttons i {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #852c58;
+  box-shadow:
+    inset 1px 1px 0 #a15880,
+    0 1px 1px #3e4441;
+}
+
+.pokeft8-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr 34px;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+
+.pokeft8-modes button[aria-pressed='true'] {
+  background: #abc97c;
+  color: #142116;
+  border-color: #c3de95;
+  font-weight: bold;
+}
+
+.pokeft8-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+}
+
+.pokeft8-sound,
+.pokeft8-watts {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.pokeft8-sound input {
+  accent-color: #abc97c;
+  margin: 0;
+}
+
+.pokeft8-watts input {
+  width: 54px;
+  min-width: 0;
+  border: 1px solid #4c5e55;
+  border-radius: 3px;
+  padding: 5px 3px;
+  color: #e2e8db;
+  background: #101719;
+  font: inherit;
+}
+
+.pokeft8-rom {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.pokeft8-rom button {
+  padding: 4px 7px;
+  font-size: 11px;
+}
+
+#pokeft8RomName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #b4c3b6;
+}
+
+.pokeft8-hint {
+  margin: 7px 0 9px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #9facaa;
+}
+
+.pokeft8-error {
+  margin: 8px 0;
+  padding: 7px;
+  border: 1px solid #ad6254;
+  border-radius: 4px;
+  color: #ffd4c8;
+  background: #512b25;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.pokeft8-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: #0c1416;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+#pokeft8State {
+  color: #d9e7b7;
+}
+
+#pokeft8Detail {
+  color: #a5b4ab;
+  white-space: pre-wrap;
+}
+
+#pokeft8Detail:empty {
+  display: none;
+}
+
+.pokeft8-details {
+  border-top: 1px solid #35423e;
+  margin-top: 9px;
+  font-size: 11px;
+}
+
+.pokeft8-details summary {
+  padding: 9px 0 0;
+  cursor: pointer;
+  color: #d9e7b7;
+}
+
+#pokeft8CollectionCount {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  color: #c9deaf;
+  background: #354334;
+}
+
+#pokeft8Telemetry {
+  float: right;
+  color: #899f94;
+  font-size: 10px;
+  padding-top: 2px;
+}
+
+.pokeft8-collection {
+  margin-top: 8px;
+  max-height: 135px;
+  overflow: auto;
+}
+
+.pokeft8-collection-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 3px;
+  border-bottom: 1px solid #293834;
+}
+
+.pokeft8-collection-row strong {
+  color: #dcecc6;
+}
+
+.pokeft8-collection-row span:last-child {
+  text-align: right;
+  color: #a8b8ad;
+}
+
+.pokeft8-feed-heading {
+  color: #bfd1b8;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+.pokeft8-empty,
+.pokeft8-feed {
+  color: #99afa0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.pokeft8-feed {
+  padding: 0;
+  list-style: none;
+  margin: 5px 0 0;
+}
+
+.pokeft8-feed li {
+  padding: 3px 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  .pokeft8-dock {
+    left: 6px;
+    max-width: calc(100vw - 213px);
+    width: 300px;
+  }
+  .pokeft8-options {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 540px) {
+  .pokeft8-dock {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+  }
+}
+
+@media (max-height: 560px) {
+  .pokeft8-console {
+    width: 212px;
+  }
+  .pokeft8-header {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  .pokeft8-hint {
+    display: none;
+  }
+  .pokeft8-status {
+    margin-top: 8px;
+  }
+}
+
+@media print {
+  .pokeft8-dock {
+    display: none;
+  }
+}

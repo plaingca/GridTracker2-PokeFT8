@@ -1,0 +1,68 @@
+name: PokeFT8 native packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pokeft8-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: build:win
+            label: windows-x64
+          - os: ubuntu-22.04
+            target: build:linux
+            label: linux-x64
+          - os: macos-15
+            target: build:mac
+            label: macos-arm64
+    env:
+      PYTHONUTF8: '1'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            pokeft8/requirements-lock.txt
+            pokeft8/requirements-build.txt
+      - name: Linux runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-6 libxext6 libxrender1 libxss1 libasound2 libpulse0
+      - run: npm ci
+      - run: python -m pip install -r pokeft8/requirements-build.txt
+      - run: npm test
+      - run: python -m unittest discover -s pokeft8 -v
+      - run: npm run build:worker
+      - run: npm run ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GridTracker2-PokeFT8-${{ matrix.label }}
+          path: |
+            dist/*setup.exe
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 30

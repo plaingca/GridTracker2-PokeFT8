@@ -221,6 +221,10 @@ function updateWsjtxListener(port)
   {
     if (GT.finishedLoading == false) return;
 
+    // The embedded game shares this receiver, including multicast and custom ports.
+    // Forward before GridTracker's duplicate suppression so receive cycles remain intact.
+    if (window.PokeFT8) window.PokeFT8.ingestPacket(message);
+
     if (!(remote.port in GT.lastWsjtMessageByPort))
     {
       GT.lastWsjtMessageByPort[remote.port] = Buffer.from([0x01]);

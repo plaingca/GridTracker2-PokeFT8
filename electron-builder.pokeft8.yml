@@ -1,0 +1,38 @@
+extends: ./electron-builder.yml
+appId: ca.ft8.gridtracker2.pokeft8
+productName: GridTracker2 PokeFT8
+afterPack: null
+beforePack: ./scripts/verify-pokeft8-package.cjs
+publish: null
+files:
+  - src/**/*
+  - resources/**/*
+  - package.json
+  - LICENSE
+  - POKEFT8.md
+  - THIRD-PARTY-PokeFT8.md
+extraResources:
+  - from: pokeft8/dist/PokeFT8Bridge
+    to: pokeft8
+    filter:
+      - '**/*'
+win:
+  executableName: GridTracker2-PokeFT8
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  artifactName: GridTracker2-PokeFT8-${version}-${arch}-setup.${ext}
+  shortcutName: GridTracker2 PokeFT8
+  uninstallDisplayName: GridTracker2 PokeFT8
+  menuCategory: GridTracker2 PokeFT8
+mac:
+  notarize: false
+  target:
+    - zip
+linux:
+  executableName: gridtracker2-pokeft8
+  target:
+    - tar.gz
+  artifactName: GridTracker2-PokeFT8-${version}-${arch}.${ext}

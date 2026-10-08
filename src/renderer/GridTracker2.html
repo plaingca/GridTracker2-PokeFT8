@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <title>GridTracker2</title>
   <link rel="stylesheet" href="./lib/third-party/ol.css" />
   <link rel="stylesheet" href="./lib/css/style.css" />
+  <link rel="stylesheet" href="./lib/pokeft8.css" />
   <script src="./lib/first.js" type="text/javascript"></script>
   <script src="./lib/settings/defaults.js" type="text/javascript"></script>
   <script src="./lib/ui/formatters.js" type="text/javascript"></script>
@@ -95,6 +96,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <script src="./lib/GridTracker2.js" type="text/javascript"></script>
   <script src="./lib/services/mqttPsk.js" type="text/javascript"></script>
   <script src="./lib/map/countyLookup.js" type="text/javascript"></script>
+  <script src="./lib/pokeft8.js" type="text/javascript"></script>
 </head>
 
 <body id="mainBody" onload="startupApplication();">
@@ -113,6 +115,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <div id="startupStatusDiv">Initial Startup</div>
   </div>
   <div id="main" style="display: none;">
+    <section id="pokeft8Dock" class="pokeft8-dock" aria-labelledby="pokeft8Title" hidden>
+      <header class="pokeft8-header">
+        <div>
+          <h2 id="pokeft8Title">PokeFT8</h2>
+          <span id="pokeft8Connection" class="pokeft8-connection">Ready to start</span>
+        </div>
+        <button id="pokeft8Close" class="pokeft8-close" type="button" title="Close PokeFT8 (Escape)" aria-label="Close PokeFT8">&#215;</button>
+      </header>
+      <div class="pokeft8-content">
+        <div class="pokeft8-console" aria-label="Virtual Game Boy">
+          <div class="pokeft8-console-label"><span class="pokeft8-power-led" id="pokeft8PowerLed" aria-hidden="true"></span> DOT MATRIX WITH STEREO SOUND</div>
+          <div class="pokeft8-screen">
+            <img id="pokeft8Frame" width="160" height="144" alt="PokeFT8 virtual Game Boy screen" hidden />
+            <div id="pokeft8ScreenPlaceholder"><strong>POKEFT8</strong><span>FT8 encounters.<br />Pok&eacute;mon battles.</span><span class="pokeft8-screen-prompt">Choose a ROM to begin</span></div>
+          </div>
+          <div class="pokeft8-console-footer" aria-hidden="true"><span class="pokeft8-brand">GAME BOY</span><span class="pokeft8-console-buttons"><i></i><i></i></span></div>
+        </div>
+        <div class="pokeft8-modes" role="group" aria-label="PokeFT8 play mode">
+          <button id="pokeft8Demo" type="button" aria-pressed="false" title="Start a demo using simulated FT8 contacts">Demo</button>
+          <button id="pokeft8Live" type="button" aria-pressed="false" title="Play using the FT8 packets GridTracker already receives">Live FT8</button>
+          <button id="pokeft8Stop" type="button" title="Stop the emulator" aria-label="Stop PokeFT8" disabled>&#9632;</button>
+        </div>
+        <div class="pokeft8-options">
+          <button id="pokeft8Pause" type="button" title="Pause or resume the simulated contacts" disabled>Pause demo</button>
+          <label class="pokeft8-sound"><input id="pokeft8Sound" type="checkbox" /> Sound</label>
+          <label class="pokeft8-watts" for="pokeft8Watts"><input id="pokeft8Watts" type="number" min="0.1" max="1500" step="0.1" value="50" title="Manual transmit power for the game; WSJT-X does not report actual power" aria-label="Manual game transmit power in watts" /> W</label>
+        </div>
+        <div class="pokeft8-rom">
+          <button id="pokeft8Rom" type="button">Choose ROM</button>
+          <span id="pokeft8RomName" title="Choose a local Pokémon Red ROM">Pok&eacute;mon Red ROM required</span>
+        </div>
+        <p id="pokeft8Hint" class="pokeft8-hint">Demo uses simulated contacts. Live uses GridTracker's WSJT-X connection.</p>
+        <p id="pokeft8Error" class="pokeft8-error" role="alert" hidden></p>
+        <div class="pokeft8-status">
+          <strong id="pokeft8State" role="status" aria-live="polite" aria-atomic="true">Choose your ROM, then start a mode.</strong>
+          <span id="pokeft8Detail"></span>
+        </div>
+        <details id="pokeft8CollectionDetails" class="pokeft8-details">
+          <summary>Collection <span id="pokeft8CollectionCount">0</span><span id="pokeft8Telemetry">0 packets</span></summary>
+          <div id="pokeft8Collection" class="pokeft8-collection"><p class="pokeft8-empty">Caught Pok&eacute;mon will appear here.</p></div>
+          <div class="pokeft8-feed-heading">Recent activity</div>
+          <ul id="pokeft8Feed" class="pokeft8-feed"><li>Waiting for an encounter.</li></ul>
+        </details>
+      </div>
+    </section>
     <div id="mapDiv" class="mapDivClass"></div>
     <div id="mouseTrackDiv" class="mouseTrackClass"></div>
     <div id="warnSoundcardDiv" class="absoluteCenterDiv" style="display:none;border-color:orange;border-style:solid;border-width: 5px;padding:5px;font-weight:bold;color:cyan;" >
@@ -539,6 +586,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         </table>
       </div>
       <div id="buttonsDiv" style="margin-top:1px;margin-left: 1px; display:grid;gap:0px;grid-template-columns: 1fr 1fr 1fr 1fr 1fr;grid-template-rows: auto;">
+        <button id="pokeft8Button" class="iconButton" type="button" title="PokeFT8 Game Boy (Ctrl+Shift+P)" aria-label="Open PokeFT8 Game Boy" aria-controls="pokeft8Dock" aria-expanded="false">
+          <svg class="buttonImg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="2" width="18" height="28" rx="4" fill="#d5d8bf"/><rect x="9" y="5" width="14" height="13" rx="1" fill="#586449"/><rect x="11" y="7" width="10" height="9" fill="#a8c96d"/><path d="M12 21v7M8.5 24.5h7" stroke="#343b42" stroke-width="2.5"/><circle cx="21" cy="23" r="2" fill="#8f2454"/><circle cx="25" cy="21" r="2" fill="#8f2454"/></svg>
+        </button>
         <div id="homeButton" class="iconButton" onclick="setCenterQTH();" title="Re-center map">
           <img id="homeImg" src="img/home.png" class="buttonImg" />
         </div>

@@ -1,23 +1,24 @@
 {
-  "name": "GridTracker2",
+  "name": "gridtracker2-pokeft8",
   "version": "2.260925.2",
-  "description": "GridTracker2",
+  "description": "GridTracker2 with an embedded PokeFT8 Game Boy companion",
   "main": "./src/main/index.js",
   "author": "The GridTracker Team",
-  "homepage": "https://gridtracker.org/",
+  "homepage": "https://github.com/plaingca/GridTracker2-PokeFT8",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "dev": "electron --no-sandbox .",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "electron-builder --dir",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:arm": "electron-builder --armv7l --arm64",
-    "build:arm32": "electron-builder --armv7l",
-    "build:arm64": "electron-builder --arm64",
-    "build:all": "electron-builder --win --mac --linux --armv7l --arm64"
+    "build:worker": "python pokeft8/prepare_reference.py && python pokeft8/build_bridge.py",
+    "test": "node --test tests/*.test.js",
+    "test:python": "python -m unittest discover -s pokeft8 -v",
+    "test:smoke": "node scripts/smoke-pokeft8.cjs",
+    "build:unpack": "electron-builder --config electron-builder.pokeft8.yml --dir --publish never",
+    "build:win": "electron-builder --config electron-builder.pokeft8.yml --win --x64 --publish never",
+    "build:mac": "electron-builder --config electron-builder.pokeft8.yml --mac --publish never",
+    "build:linux": "electron-builder --config electron-builder.pokeft8.yml --linux --publish never",
+    "build:arm64": "electron-builder --config electron-builder.pokeft8.yml --arm64 --publish never"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
+    "@playwright/test": "^1.64.0",
     "electron": "35.7.5",
     "electron-builder": "26.1.0",
     "eslint": "^10.0.0",

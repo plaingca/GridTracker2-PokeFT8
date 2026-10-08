@@ -23,8 +23,18 @@ const { electronApp, optimizer } = require('@electron-toolkit/utils');
 const path = require('path');
 const { join } = require('path');
 const log = require('electron-log');
+const { PokeFT8Manager } = require('./pokeft8');
 const isMac = process.platform === 'darwin';
-const disableAutoUpdate = app.commandLine.hasSwitch("disable-auto-updates");
+// A private fork must never install an official GridTracker release over itself.
+const disableAutoUpdate = true;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+// Keep maps, window positions, emulator saves, and settings separate from upstream.
+// The existing --gt-name option adds its namespace beneath this fork's identity.
+app.setPath('userData', path.join(app.getPath('appData'), 'GridTracker2-PokeFT8'));
+let pokeft8Manager = null;
+let pokeft8QuitComplete = false;
 
 let gtName = "";
 
@@ -36,6 +46,8 @@ if (app.commandLine.hasSwitch("gt-name")) {
   }
   console.log("Running from: " + app.getPath('userData') + "\r\n");
 }
+
+fs.mkdirSync(app.getPath('userData'), { recursive: true });
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 
@@ -385,6 +397,10 @@ ipcMain.on('spawnScript', (event, scriptPath) => {
 let isShuttingDown = false; 
 
 ipcMain.on('installAndRestart', (event, what) => {
+    if (disableAutoUpdate) {
+        event.returnValue = false;
+        return;
+    }
     if (isShuttingDown) {
         event.returnValue = true;
         return; // Ignore duplicate clicks
@@ -420,7 +436,8 @@ ipcMain.on('restartGridTracker2', (event, resetWindowPositions = false) => {
   
     event.returnValue = true; 
   
-    timers.setTimeout(() => {
+    timers.setTimeout(async () => {
+        await pokeft8Manager?.stop();
         app.relaunch();
         app.exit();
     }, 100);
@@ -506,6 +523,7 @@ let autoUpdateInitialized = false;
 let autoUpdateTimer = null;
 
 function checkForUpdates() {
+  if (disableAutoUpdate) return;
   if (!autoUpdateInitialized) {
       if (process.env.DEBUG_AUTO_UPDATING === 'true') {
       const log = require('electron-log');
@@ -545,6 +563,7 @@ function checkForUpdates() {
 }
 
 function downloadUpdate() {
+  if (disableAutoUpdate) return;
   autoUpdater.autoDownload = true;
   autoUpdater.checkForUpdatesAndNotify();
 }
@@ -567,8 +586,15 @@ function updateDownloaded(info) {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('org.gridtracker.GridTracker2');
-  app.setAppUserModelId('org.gridtracker.GridTracker2');
+  electronApp.setAppUserModelId('ca.ft8.gridtracker2.pokeft8');
+  app.setAppUserModelId('ca.ft8.gridtracker2.pokeft8');
+
+  pokeft8Manager = new PokeFT8Manager({
+    app,
+    ipcMain,
+    dialog,
+    getWindow: () => allowedWindows.GridTracker2.window,
+  }).register();
 
   dialog.showErrorBox = (title, content) => {
     log.error(`${title}\n${content}`);
@@ -583,6 +609,12 @@ app.whenReady().then(() => {
       // save the window handle (not the dom handle);
       allowedWindows[title].window = window;
       windowIdToAllowedWindows[window.id] = title;
+
+      if (title === 'GridTracker2') {
+        // A reloaded renderer cannot retain a stale emulator or UDP subscription.
+        window.webContents.on('did-start-loading', () => { void pokeft8Manager.stop(); });
+        window.webContents.on('destroyed', () => { void pokeft8Manager.stop(); });
+      }
 
       // set up events here...
       window.on('ready-to-show', () => {
@@ -711,6 +743,15 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   saveWindowPositions();
   app.quit();
+});
+
+app.on('before-quit', (event) => {
+  if (pokeft8QuitComplete || !pokeft8Manager) return;
+  event.preventDefault();
+  pokeft8Manager.stop().finally(() => {
+    pokeft8QuitComplete = true;
+    app.quit();
+  });
 });
 
 function onChildWindowCloseTimeout(windowName) {

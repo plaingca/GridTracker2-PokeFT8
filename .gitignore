@@ -12,3 +12,21 @@ mac-signing-certificate.p12
 .claude/
 resources/media/desktop.ini
 src/main/map_keys.json
+
+# PokeFT8 user game files, runtime state, development environments and bundles.
+**/__pycache__/
+**/.venv/
+**/.ruff_cache/
+**/*.gb
+**/*.gbc
+**/*.sav
+**/*.ram
+**/*.state
+**/*.sqlite
+**/*.sqlite3
+pokeft8/reference/
+pokeft8/build/
+pokeft8/dist/
+artifacts/
+test-results/
+playwright-report/
