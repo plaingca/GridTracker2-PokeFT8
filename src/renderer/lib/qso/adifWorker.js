@@ -2,7 +2,7 @@ const GT = {};
 const myTextEncoder = new TextEncoder();
 const myTextDecoder = new TextDecoder();
 
-importScripts("../protos.js");
+importScripts("../ui/formatters.js");
 importScripts("../gtCommon.js");
 
 GT.workerFunctions = {
