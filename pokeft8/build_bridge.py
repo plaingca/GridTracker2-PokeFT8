@@ -25,7 +25,12 @@ def notices(folder):
             if any(word in file.name.lower() for word in ("license", "copying", "notice")):
                 source = Path(dist.locate_file(file))
                 if source.is_file() and source.suffix.lower() not in (".py", ".pyc", ".pyd"):
-                    target = target_root / name / str(file)
+                    # License-only copies are not native frameworks. Keeping that
+                    # suffix makes Electron's macOS signer try to sign fake bundles.
+                    notice_path = Path(
+                        *(part.replace(".framework", ".framework-notices") for part in file.parts)
+                    )
+                    target = target_root / name / notice_path
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(source.read_bytes())
     (folder / "THIRD-PARTY-PokeFT8.md").write_bytes(
