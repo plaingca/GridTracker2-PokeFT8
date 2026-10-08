@@ -13,240 +13,7 @@ const kIsEven = {
 
 const REGEX_GRID_4 = /^[A-R]{2}[0-9]{2}$/; 
 
-function haltAllTx(allTx = false)
-{
-  for (let instance in GT.instances)
-  {
-    if ((instance != GT.activeInstance || allTx == true) && GT.instances[instance].remote)
-    {
-      let responseArray = Buffer.alloc(1024);
-      let length = 0;
-
-      let port = GT.instances[instance].remote.port;
-      let address = GT.instances[instance].remote.address;
-
-      length = encodeQUINT32(responseArray, length, 0xadbccbda);
-      length = encodeQUINT32(responseArray, length, 2);
-      length = encodeQUINT32(responseArray, length, 8);
-      length = encodeQUTF8(responseArray, length, instance);
-      length = encodeQBOOL(responseArray, length, 0);
-
-      responseArray = responseArray.slice(0, length);
-      wsjtUdpMessage(responseArray, responseArray.length, port, address);
-    }
-  }
-}
-
-function initiateQso(thisCall)
-{
-  if (thisCall in GT.callRoster && GT.callRoster[thisCall].message.instance in GT.instances)
-  {
-    if (GT.settings.map.focusRig && GT.activeInstance != GT.callRoster[thisCall].message.instance)
-    {
-      setRig(GT.callRoster[thisCall].message.instance);
-    }
-    if (GT.settings.map.haltAllOnTx)
-    {
-      haltAllTx();
-    }
-
-    let newMessage = GT.callRoster[thisCall].message;
-    let responseArray = Buffer.alloc(1024);
-    let length = 0;
-    let instance = GT.callRoster[thisCall].message.instance;
-    let port = GT.instances[instance].remote.port;
-    let address = GT.instances[instance].remote.address;
-    length = encodeQUINT32(responseArray, length, newMessage.magic_key);
-    length = encodeQUINT32(responseArray, length, newMessage.schema_number);
-    length = encodeQUINT32(responseArray, length, 4);
-    length = encodeQUTF8(responseArray, length, newMessage.Id);
-    length = encodeQUINT32(responseArray, length, newMessage.TM);
-    length = encodeQINT32(responseArray, length, newMessage.SR);
-    length = encodeQDOUBLE(responseArray, length, newMessage.DT);
-    length = encodeQUINT32(responseArray, length, newMessage.DF);
-    length = encodeQUTF8(responseArray, length, newMessage.MO);
-    length = encodeQUTF8(responseArray, length, newMessage.Msg);
-    length = encodeQBOOL(responseArray, length, newMessage.LC);
-    length = encodeQBOOL(responseArray, length, 0);
-
-    responseArray = responseArray.slice(0, length);
-    wsjtUdpMessage(responseArray, responseArray.length, port, address);
-  }
-}
-
-function spotLookupAndSetCall(spot)
-{
-  let call = GT.receptionReports.spots[spot].call;
-  let grid = GT.receptionReports.spots[spot].grid;
-  let band = GT.receptionReports.spots[spot].band;
-  let mode = GT.receptionReports.spots[spot].mode;
-  for (let instance in GT.instances)
-  {
-    if (GT.instances[instance].valid && GT.instances[instance].status.Band == band && GT.instances[instance].status.MO == mode)
-    {
-      setCallAndGrid(call, grid, instance);
-      return;
-    }
-  }
-  setCallAndGrid(call, grid, null);
-}
-
-function setCallAndGrid(callsign, grid, instance = null, genMessages = true)
-{
-  let thisInstance = null;
-  let port = null;
-  let address = null;
-  if (instance != null)
-  {
-    if (instance in GT.instances && GT.instances[instance].remote)
-    {
-      thisInstance = GT.instances[instance].status;
-      port = GT.instances[instance].remote.port;
-      address = GT.instances[instance].remote.address;
-    }
-  }
-  else
-  {
-    if (GT.activeInstance && GT.instances[GT.activeInstance].valid && GT.instances[GT.activeInstance].remote)
-    {
-      thisInstance = GT.instances[GT.activeInstance].status;
-      port = GT.instances[GT.activeInstance].remote.port;
-      address = GT.instances[GT.activeInstance].remote.address;
-    }
-  }
-
-  if (thisInstance && (thisInstance.TxEnabled == 0 || genMessages == false))
-  {
-    let responseArray = Buffer.alloc(1024);
-    let length = 0;
-    length = encodeQUINT32(responseArray, length, thisInstance.magic_key);
-    length = encodeQUINT32(responseArray, length, thisInstance.schema_number);
-    length = encodeQUINT32(responseArray, length, 15);
-    length = encodeQUTF8(responseArray, length, thisInstance.Id);
-    length = encodeQUTF8(responseArray, length, thisInstance.MO);
-    length = encodeQUINT32(responseArray, length, thisInstance.FreqTol);
-    length = encodeQUTF8(responseArray, length, thisInstance.Submode);
-    length = encodeQBOOL(responseArray, length, thisInstance.Fastmode);
-    length = encodeQUINT32(responseArray, length, thisInstance.TRP);
-    length = encodeQUINT32(responseArray, length, thisInstance.RxDF);
-
-    if (genMessages == true)
-    {
-      length = encodeQUTF8(responseArray, length, callsign);
-
-      let hash = liveHash(callsign, thisInstance.Band, thisInstance.MO);
-      if (hash in GT.liveCallsigns && GT.liveCallsigns[hash].grid.length > 1) { grid = GT.liveCallsigns[hash].grid; }
-
-      if (grid.length == 0) grid = " ";
-
-      length = encodeQUTF8(responseArray, length, grid);
-      length = encodeQBOOL(responseArray, length, 1);
-
-      responseArray = responseArray.slice(0, length);
-      wsjtUdpMessage(responseArray, responseArray.length, port, address);
-      addLastTraffic("<font color='lightgreen'>Generated Msgs</font>");
-    }
-    else
-    {
-      // Callsign
-      length = encodeQUTF8(responseArray, length, " ");
-      // Grid
-      length = encodeQUTF8(responseArray, length, " ");
-      length = encodeQBOOL(responseArray, length, 1);
-
-      responseArray = responseArray.slice(0, length);
-      wsjtUdpMessage(responseArray, responseArray.length, port, address);
-
-      responseArray = Buffer.alloc(1024);
-      length = 0;
-      length = encodeQUINT32(responseArray, length, thisInstance.magic_key);
-      length = encodeQUINT32(responseArray, length, thisInstance.schema_number);
-      length = encodeQUINT32(responseArray, length, 9);
-      length = encodeQUTF8(responseArray, length, thisInstance.Id);
-      length = encodeQUTF8(responseArray, length, "");
-      length = encodeQBOOL(responseArray, length, 0);
-
-      responseArray = responseArray.slice(0, length);
-      wsjtUdpMessage(responseArray, responseArray.length, port, address);
-    }
-  }
-  if (thisInstance && thisInstance.TxEnabled == 1 && genMessages == true)
-  {
-    addLastTraffic("<font color='yellow'>Transmit Enabled!</font><br><font color='yellow'>Generate Msgs Aborted</font>");
-  }
-}
-
-function handleWsjtxADIF(newMessage)
-{
-  if (GT.oldQSOTimer)
-  {
-    nodeTimers.clearTimeout(GT.oldQSOTimer);
-    GT.oldQSOTimer = null;
-  }
-
-  sendToLogger(newMessage.ADIF);
-}
-
-function handleWsjtxQSO(newMessage)
-{
-  if (GT.oldQSOTimer)
-  {
-    nodeTimers.clearTimeout(GT.oldQSOTimer);
-    GT.oldQSOTimer = null;
-  }
-
-  GT.oldStyleLogMessage = Object.assign({}, newMessage);
-
-  GT.oldQSOTimer = nodeTimers.setTimeout(oldSendToLogger, 3000);
-}
-
-function handleWsjtxNotSupported(newMessage) { }
-
-function rigChange(up)
-{
-  if (GT.activeInstance == "") return;
-
-  let targetIndex;
-  let indexInstances = [];
-
-  for (let instance in GT.instances)
-  {
-    indexInstances.push(instance);
-  }
-
-  targetIndex = indexInstances.indexOf(GT.activeInstance);
-  if (up == true)
-  {
-    targetIndex = targetIndex + 1;
-    if (targetIndex > indexInstances.length - 1) targetIndex = 0;
-  }
-  else
-  {
-    targetIndex = targetIndex - 1;
-    if (targetIndex < 0) targetIndex = indexInstances.length - 1;
-  }
-
-  setRig(indexInstances[targetIndex]);
-}
-
-function setRig(instanceId)
-{
-  if (GT.instances[instanceId].valid)
-  {
-    if (GT.lastMapView != null)
-    {
-      GT.mapView.animate({ zoom: GT.lastMapView.zoom, duration: 100 });
-      GT.mapView.animate({ center: GT.lastMapView.LoLa, duration: 100 });
-      GT.lastMapView = null;
-    }
-
-    GT.activeInstance = instanceId;
-
-    handleInstanceStatus(GT.instances[GT.activeInstance].status);
-    handleClosed(GT.instances[GT.activeInstance].status);
-  }
-}
-
+// ---- Status and rig selection ----
 
 function handleInstanceStatus(newMessage)
 {
@@ -644,16 +411,101 @@ function handleInstanceStatus(newMessage)
   }
 }
 
-function reportDecodes()
+function updateLastMsgTimeDiv(id)
 {
-  if (hasAnyKeys(GT.decodeCollector))
+  lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + id;
+  GT.lastTimeSinceMessageInSeconds = GT.timeNow;
+  GT.updateLastMsgTimer = null;
+}
+
+function rigChange(up)
+{
+  if (GT.activeInstance == "") return;
+
+  let targetIndex;
+  let indexInstances = [];
+
+  for (let instance in GT.instances)
   {
-    if (GT.settings.app.spottingEnable) {
-       gtChatSendDecodes(GT.decodeCollector);
+    indexInstances.push(instance);
+  }
+
+  targetIndex = indexInstances.indexOf(GT.activeInstance);
+  if (up == true)
+  {
+    targetIndex = targetIndex + 1;
+    if (targetIndex > indexInstances.length - 1) targetIndex = 0;
+  }
+  else
+  {
+    targetIndex = targetIndex - 1;
+    if (targetIndex < 0) targetIndex = indexInstances.length - 1;
+  }
+
+  setRig(indexInstances[targetIndex]);
+}
+
+function setRig(instanceId)
+{
+  if (GT.instances[instanceId].valid)
+  {
+    if (GT.lastMapView != null)
+    {
+      GT.mapView.animate({ zoom: GT.lastMapView.zoom, duration: 100 });
+      GT.mapView.animate({ center: GT.lastMapView.LoLa, duration: 100 });
+      GT.lastMapView = null;
     }
-    GT.decodeCollector = {};
+
+    GT.activeInstance = instanceId;
+
+    handleInstanceStatus(GT.instances[GT.activeInstance].status);
+    handleClosed(GT.instances[GT.activeInstance].status);
   }
 }
+
+function handleWsjtxClose(newMessage)
+{
+  updateCountStats();
+  GT.instances[newMessage.Id].open = false;
+  handleClosed(newMessage);
+}
+
+function handleClosed(newMessage)
+{
+  if (GT.activeInstance == newMessage.Id && GT.instances[newMessage.Id].open == false)
+  {
+    txrxdec.style.backgroundColor = "Purple";
+    txrxdec.style.borderColor = "Purple";
+    let name = newMessage.Id.toUpperCase().split(" - ");
+    txrxdec.innerHTML = name[name.length - 1] + " Closed";
+  }
+
+  if (GT.instances[newMessage.Id].open == false)
+  {
+    if (GT.instances[newMessage.Id].canRoster == true) GT.instanceCount--;
+    delete GT.instances[newMessage.Id];
+    GT.gtLiveStatusUpdate = true;
+  }
+
+  if (!(GT.activeInstance in GT.instances))
+  {
+    GT.activeInstance = "";
+  }
+
+  if (Object.keys(GT.instances).length > 1)
+  {
+    rigWrap.style.display = "";
+  }
+  else
+  {
+    rigWrap.style.display = "none";
+  }
+
+  updateRosterInstances();
+  goProcessRoster();
+}
+
+// ---- Decodes ----
 
 function handleWsjtxDecode(newMessage)
 {
@@ -1297,7 +1149,6 @@ function finalWsjtxDecode(newMessage, useReformedMessage = false, reformedMessag
   while (GT.lastMessages.length > 100) GT.lastMessages.pop();
 }
 
-
 /**
  * Parse JS8Call message format: "CALLSIGN: CONTENT"
  *
@@ -1359,71 +1210,6 @@ function parseJS8Message(message)
   }
 }
 
-function handleWsjtxClear(newMessage)
-{
-  for (let hash in GT.liveCallsigns)
-  {
-    if (GT.liveCallsigns[hash].instance == newMessage.instance || GT.liveCallsigns[hash].mode == GT.instances[newMessage.instance].status.MO)
-    {
-      delete GT.liveCallsigns[hash];
-    }
-  }
-  for (let call in GT.callRoster)
-  {
-    if (GT.callRoster[call].callObj.instance == newMessage.instance) { delete GT.callRoster[call]; }
-  }
-
-  removePaths();
-  clearTempGrids();
-  redrawGrids();
-  redrawPins();
-
-  updateCountStats();
-  goProcessRoster();
-}
-
-function handleClosed(newMessage)
-{
-  if (GT.activeInstance == newMessage.Id && GT.instances[newMessage.Id].open == false)
-  {
-    txrxdec.style.backgroundColor = "Purple";
-    txrxdec.style.borderColor = "Purple";
-    let name = newMessage.Id.toUpperCase().split(" - ");
-    txrxdec.innerHTML = name[name.length - 1] + " Closed";
-  }
-
-  if (GT.instances[newMessage.Id].open == false)
-  {
-    if (GT.instances[newMessage.Id].canRoster == true) GT.instanceCount--;
-    delete GT.instances[newMessage.Id];
-    GT.gtLiveStatusUpdate = true;
-  }
-
-  if (!(GT.activeInstance in GT.instances))
-  {
-    GT.activeInstance = "";
-  }
-
-  if (Object.keys(GT.instances).length > 1)
-  {
-    rigWrap.style.display = "";
-  }
-  else
-  {
-    rigWrap.style.display = "none";
-  }
-
-  updateRosterInstances();
-  goProcessRoster();
-}
-
-function handleWsjtxClose(newMessage)
-{
-  updateCountStats();
-  GT.instances[newMessage.Id].open = false;
-  handleClosed(newMessage);
-}
-
 function handleWsjtxWSPR(newMessage)
 {
   if (GT.ignoreMessages == 1) return;
@@ -1457,171 +1243,129 @@ function handleWsjtxWSPR(newMessage)
   updateCountStats();
 }
 
-function getIniFromApp(appName, iniName)
+function handleWsjtxClear(newMessage)
 {
-  let result = {};
-  result.port = -1;
-  result.ip = "";
-  result.MyCall = "NOCALL";
-  result.MyGrid = "";
-  result.MyBand = "";
-  result.MyMode = "";
-
-  result.N1MMServer = "";
-  result.N1MMServerPort = 0;
-  result.BroadcastToN1MM = false;
-  result.appName = appName;
-  let wsjtxCfgPath = "";
-
-  let appData = electron.ipcRenderer.sendSync("getPath", "appData");
-
-  if (GT.platform == "windows")
+  for (let hash in GT.liveCallsigns)
   {
-    let basename = path.basename(appData);
-    if (basename != "Local")
+    if (GT.liveCallsigns[hash].instance == newMessage.instance || GT.liveCallsigns[hash].mode == GT.instances[newMessage.instance].status.MO)
     {
-      appData = appData.replace(basename, "Local");
-    }
-
-    wsjtxCfgPath = path.join(appData, appName, iniName + ".ini");
-  }
-  else if (GT.platform == "mac")
-  {
-    wsjtxCfgPath =  path.join(process.env.HOME, "Library/Preferences/WSJT-X.ini");
-  }
-  else
-  {
-    wsjtxCfgPath = path.join(process.env.HOME, ".config/" + iniName + ".ini");
-  }
-  if (fs.existsSync(wsjtxCfgPath))
-  {
-    let fileBuf = fs.readFileSync(wsjtxCfgPath, "ascii");
-    let fileArray = fileBuf.split("\n");
-    for (const key in fileArray) fileArray[key] = fileArray[key].trim();
-
-    for (let x = 0; x < fileArray.length; x++)
-    {
-      let indexOfSearch = fileArray[x].indexOf("UDPServerPort=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.port = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("UDPServer=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.ip = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("MyCall=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.MyCall = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("MyGrid=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.MyGrid = valSplit[1].substr(0, 6);
-      }
-      indexOfSearch = fileArray[x].indexOf("Mode=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.MyMode = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("DialFreq=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.MyBand = formatBand(Number(valSplit[1] / 1000000));
-      }
-      indexOfSearch = fileArray[x].indexOf("N1MMServerPort=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.N1MMServerPort = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("N1MMServer=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.N1MMServer = valSplit[1];
-      }
-      indexOfSearch = fileArray[x].indexOf("BroadcastToN1MM=");
-      if (indexOfSearch == 0)
-      {
-        let valSplit = fileArray[x].split("=");
-        result.BroadcastToN1MM = valSplit[1] == "true";
-      }
+      delete GT.liveCallsigns[hash];
     }
   }
+  for (let call in GT.callRoster)
+  {
+    if (GT.callRoster[call].callObj.instance == newMessage.instance) { delete GT.callRoster[call]; }
+  }
 
-  return result;
+  removePaths();
+  clearTempGrids();
+  redrawGrids();
+  redrawPins();
+
+  updateCountStats();
+  goProcessRoster();
 }
 
-function updateBasedOnIni()
+function reportDecodes()
 {
-  scanForAppLogs();
-  
-  let which =  getIniFromApp("WSJT-X", "WSJT-X");
-  if (which.port == -1) which = getIniFromApp("WS", "WSJT-X");
-  if (which.port == -1) which = getIniFromApp("WS", "WS");
-  if (which.port == -1) which = getIniFromApp("JTDX", "JTDX");
-
-  // UdpPortNotSet
-  if (GT.settings.app.wsjtUdpPort == 0 && which.port > -1)
+  if (hasAnyKeys(GT.decodeCollector))
   {
-    GT.settings.app.wsjtUdpPort = which.port;
-    GT.settings.app.wsjtIP = which.ip;
-
-    if (ipToInt(GT.settings.app.wsjtIP) >= ipToInt("224.0.0.0") && ipToInt(GT.settings.app.wsjtIP) < ipToInt("240.0.0.0"))
-    {
-      GT.settings.app.multicast = true;
+    if (GT.settings.app.spottingEnable) {
+       gtChatSendDecodes(GT.decodeCollector);
     }
-    else
-    {
-      GT.settings.app.multicast = false;
-    }
-
-  }
-
-  if (GT.settings.app.wsjtUdpPort == 0)
-  {
-    GT.settings.app.wsjtUdpPort = 2237;
-    GT.settings.app.wsjtIP = "";
-    GT.settings.app.multicast = false;
-  }
-  // Which INI do we load?
-  if (GT.settings.app.wsjtUdpPort > 0 && which.MyCall != "NOCALL")
-  {
-    GT.settings.app.myCall = which.MyCall;
-    GT.settings.app.myGrid = GT.settings.app.myRawGrid = which.MyGrid;
-    GT.lastBand = GT.settings.app.myBand;
-    GT.lastMode = GT.settings.app.myMode;
-
-    if (which.BroadcastToN1MM == true && GT.settings.N1MM.enable == true)
-    {
-      if (which.N1MMServer == GT.settings.N1MM.ip && which.N1MMServerPort == GT.settings.N1MM.port)
-      {
-        buttonN1MMCheckBox.checked = GT.settings.N1MM.enable = false;
-        alert(which.appName + " N1MM Logger+ is enabled in WSJT-X with same settings, disabled GridTracker N1MM logger");
-      }
-    }
-
-    if (GT.settings.app.wsjtIP == "")
-    {
-      GT.settings.app.wsjtIP = which.ip;
-    }
+    GT.decodeCollector = {};
   }
 }
 
-function updateLastMsgTimeDiv(id)
+// ---- QSO logging ----
+
+function handleWsjtxQSO(newMessage)
 {
-  lastMsgTimeDiv.innerHTML = I18N("gt.newMesg.Recvd") + " " + id;
-  GT.lastTimeSinceMessageInSeconds = GT.timeNow;
-  GT.updateLastMsgTimer = null;
+  if (GT.oldQSOTimer)
+  {
+    nodeTimers.clearTimeout(GT.oldQSOTimer);
+    GT.oldQSOTimer = null;
+  }
+
+  GT.oldStyleLogMessage = Object.assign({}, newMessage);
+
+  GT.oldQSOTimer = nodeTimers.setTimeout(oldSendToLogger, 3000);
+}
+
+function handleWsjtxADIF(newMessage)
+{
+  if (GT.oldQSOTimer)
+  {
+    nodeTimers.clearTimeout(GT.oldQSOTimer);
+    GT.oldQSOTimer = null;
+  }
+
+  sendToLogger(newMessage.ADIF);
+}
+
+function handleWsjtxNotSupported(newMessage) { }
+
+// ---- Commands sent to WSJT-X ----
+
+function initiateQso(thisCall)
+{
+  if (thisCall in GT.callRoster && GT.callRoster[thisCall].message.instance in GT.instances)
+  {
+    if (GT.settings.map.focusRig && GT.activeInstance != GT.callRoster[thisCall].message.instance)
+    {
+      setRig(GT.callRoster[thisCall].message.instance);
+    }
+    if (GT.settings.map.haltAllOnTx)
+    {
+      haltAllTx();
+    }
+
+    let newMessage = GT.callRoster[thisCall].message;
+    let responseArray = Buffer.alloc(1024);
+    let length = 0;
+    let instance = GT.callRoster[thisCall].message.instance;
+    let port = GT.instances[instance].remote.port;
+    let address = GT.instances[instance].remote.address;
+    length = encodeQUINT32(responseArray, length, newMessage.magic_key);
+    length = encodeQUINT32(responseArray, length, newMessage.schema_number);
+    length = encodeQUINT32(responseArray, length, 4);
+    length = encodeQUTF8(responseArray, length, newMessage.Id);
+    length = encodeQUINT32(responseArray, length, newMessage.TM);
+    length = encodeQINT32(responseArray, length, newMessage.SR);
+    length = encodeQDOUBLE(responseArray, length, newMessage.DT);
+    length = encodeQUINT32(responseArray, length, newMessage.DF);
+    length = encodeQUTF8(responseArray, length, newMessage.MO);
+    length = encodeQUTF8(responseArray, length, newMessage.Msg);
+    length = encodeQBOOL(responseArray, length, newMessage.LC);
+    length = encodeQBOOL(responseArray, length, 0);
+
+    responseArray = responseArray.slice(0, length);
+    wsjtUdpMessage(responseArray, responseArray.length, port, address);
+  }
+}
+
+function haltAllTx(allTx = false)
+{
+  for (let instance in GT.instances)
+  {
+    if ((instance != GT.activeInstance || allTx == true) && GT.instances[instance].remote)
+    {
+      let responseArray = Buffer.alloc(1024);
+      let length = 0;
+
+      let port = GT.instances[instance].remote.port;
+      let address = GT.instances[instance].remote.address;
+
+      length = encodeQUINT32(responseArray, length, 0xadbccbda);
+      length = encodeQUINT32(responseArray, length, 2);
+      length = encodeQUINT32(responseArray, length, 8);
+      length = encodeQUTF8(responseArray, length, instance);
+      length = encodeQBOOL(responseArray, length, 0);
+
+      responseArray = responseArray.slice(0, length);
+      wsjtUdpMessage(responseArray, responseArray.length, port, address);
+    }
+  }
 }
 
 function startGenMessages(call, grid, instance = null)
@@ -1632,7 +1376,109 @@ function startGenMessages(call, grid, instance = null)
   setCallAndGrid(call, grid, instance);
 }
 
-// Live callsigns heard from WSJT-X/JTDX and the session callsign list (moved from GridTracker2.js)
+function setCallAndGrid(callsign, grid, instance = null, genMessages = true)
+{
+  let thisInstance = null;
+  let port = null;
+  let address = null;
+  if (instance != null)
+  {
+    if (instance in GT.instances && GT.instances[instance].remote)
+    {
+      thisInstance = GT.instances[instance].status;
+      port = GT.instances[instance].remote.port;
+      address = GT.instances[instance].remote.address;
+    }
+  }
+  else
+  {
+    if (GT.activeInstance && GT.instances[GT.activeInstance].valid && GT.instances[GT.activeInstance].remote)
+    {
+      thisInstance = GT.instances[GT.activeInstance].status;
+      port = GT.instances[GT.activeInstance].remote.port;
+      address = GT.instances[GT.activeInstance].remote.address;
+    }
+  }
+
+  if (thisInstance && (thisInstance.TxEnabled == 0 || genMessages == false))
+  {
+    let responseArray = Buffer.alloc(1024);
+    let length = 0;
+    length = encodeQUINT32(responseArray, length, thisInstance.magic_key);
+    length = encodeQUINT32(responseArray, length, thisInstance.schema_number);
+    length = encodeQUINT32(responseArray, length, 15);
+    length = encodeQUTF8(responseArray, length, thisInstance.Id);
+    length = encodeQUTF8(responseArray, length, thisInstance.MO);
+    length = encodeQUINT32(responseArray, length, thisInstance.FreqTol);
+    length = encodeQUTF8(responseArray, length, thisInstance.Submode);
+    length = encodeQBOOL(responseArray, length, thisInstance.Fastmode);
+    length = encodeQUINT32(responseArray, length, thisInstance.TRP);
+    length = encodeQUINT32(responseArray, length, thisInstance.RxDF);
+
+    if (genMessages == true)
+    {
+      length = encodeQUTF8(responseArray, length, callsign);
+
+      let hash = liveHash(callsign, thisInstance.Band, thisInstance.MO);
+      if (hash in GT.liveCallsigns && GT.liveCallsigns[hash].grid.length > 1) { grid = GT.liveCallsigns[hash].grid; }
+
+      if (grid.length == 0) grid = " ";
+
+      length = encodeQUTF8(responseArray, length, grid);
+      length = encodeQBOOL(responseArray, length, 1);
+
+      responseArray = responseArray.slice(0, length);
+      wsjtUdpMessage(responseArray, responseArray.length, port, address);
+      addLastTraffic("<font color='lightgreen'>Generated Msgs</font>");
+    }
+    else
+    {
+      // Callsign
+      length = encodeQUTF8(responseArray, length, " ");
+      // Grid
+      length = encodeQUTF8(responseArray, length, " ");
+      length = encodeQBOOL(responseArray, length, 1);
+
+      responseArray = responseArray.slice(0, length);
+      wsjtUdpMessage(responseArray, responseArray.length, port, address);
+
+      responseArray = Buffer.alloc(1024);
+      length = 0;
+      length = encodeQUINT32(responseArray, length, thisInstance.magic_key);
+      length = encodeQUINT32(responseArray, length, thisInstance.schema_number);
+      length = encodeQUINT32(responseArray, length, 9);
+      length = encodeQUTF8(responseArray, length, thisInstance.Id);
+      length = encodeQUTF8(responseArray, length, "");
+      length = encodeQBOOL(responseArray, length, 0);
+
+      responseArray = responseArray.slice(0, length);
+      wsjtUdpMessage(responseArray, responseArray.length, port, address);
+    }
+  }
+  if (thisInstance && thisInstance.TxEnabled == 1 && genMessages == true)
+  {
+    addLastTraffic("<font color='yellow'>Transmit Enabled!</font><br><font color='yellow'>Generate Msgs Aborted</font>");
+  }
+}
+
+function spotLookupAndSetCall(spot)
+{
+  let call = GT.receptionReports.spots[spot].call;
+  let grid = GT.receptionReports.spots[spot].grid;
+  let band = GT.receptionReports.spots[spot].band;
+  let mode = GT.receptionReports.spots[spot].mode;
+  for (let instance in GT.instances)
+  {
+    if (GT.instances[instance].valid && GT.instances[instance].status.Band == band && GT.instances[instance].status.MO == mode)
+    {
+      setCallAndGrid(call, grid, instance);
+      return;
+    }
+  }
+  setCallAndGrid(call, grid, null);
+}
+
+// ---- Live callsigns heard from WSJT-X/JTDX and the session callsign list ----
 
 class CallsignSession {
     constructor(callObj) {
@@ -1868,6 +1714,168 @@ function updateSessionCallsigns(callObj)
         GT.sessionDXCCs.set(callObj.dxcc, currentCount + 1);
     } else {
         GT.sessionDXCCs.set(callObj.dxcc, 1);
+    }
+  }
+}
+
+// ---- WSJT-X / JTDX ini settings ----
+
+function getIniFromApp(appName, iniName)
+{
+  let result = {};
+  result.port = -1;
+  result.ip = "";
+  result.MyCall = "NOCALL";
+  result.MyGrid = "";
+  result.MyBand = "";
+  result.MyMode = "";
+
+  result.N1MMServer = "";
+  result.N1MMServerPort = 0;
+  result.BroadcastToN1MM = false;
+  result.appName = appName;
+  let wsjtxCfgPath = "";
+
+  let appData = electron.ipcRenderer.sendSync("getPath", "appData");
+
+  if (GT.platform == "windows")
+  {
+    let basename = path.basename(appData);
+    if (basename != "Local")
+    {
+      appData = appData.replace(basename, "Local");
+    }
+
+    wsjtxCfgPath = path.join(appData, appName, iniName + ".ini");
+  }
+  else if (GT.platform == "mac")
+  {
+    wsjtxCfgPath =  path.join(process.env.HOME, "Library/Preferences/WSJT-X.ini");
+  }
+  else
+  {
+    wsjtxCfgPath = path.join(process.env.HOME, ".config/" + iniName + ".ini");
+  }
+  if (fs.existsSync(wsjtxCfgPath))
+  {
+    let fileBuf = fs.readFileSync(wsjtxCfgPath, "ascii");
+    let fileArray = fileBuf.split("\n");
+    for (const key in fileArray) fileArray[key] = fileArray[key].trim();
+
+    for (let x = 0; x < fileArray.length; x++)
+    {
+      let indexOfSearch = fileArray[x].indexOf("UDPServerPort=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.port = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("UDPServer=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.ip = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("MyCall=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyCall = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("MyGrid=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyGrid = valSplit[1].substr(0, 6);
+      }
+      indexOfSearch = fileArray[x].indexOf("Mode=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyMode = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("DialFreq=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.MyBand = formatBand(Number(valSplit[1] / 1000000));
+      }
+      indexOfSearch = fileArray[x].indexOf("N1MMServerPort=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.N1MMServerPort = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("N1MMServer=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.N1MMServer = valSplit[1];
+      }
+      indexOfSearch = fileArray[x].indexOf("BroadcastToN1MM=");
+      if (indexOfSearch == 0)
+      {
+        let valSplit = fileArray[x].split("=");
+        result.BroadcastToN1MM = valSplit[1] == "true";
+      }
+    }
+  }
+
+  return result;
+}
+
+function updateBasedOnIni()
+{
+  scanForAppLogs();
+  
+  let which =  getIniFromApp("WSJT-X", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WSJT-X");
+  if (which.port == -1) which = getIniFromApp("WS", "WS");
+  if (which.port == -1) which = getIniFromApp("JTDX", "JTDX");
+
+  // UdpPortNotSet
+  if (GT.settings.app.wsjtUdpPort == 0 && which.port > -1)
+  {
+    GT.settings.app.wsjtUdpPort = which.port;
+    GT.settings.app.wsjtIP = which.ip;
+
+    if (ipToInt(GT.settings.app.wsjtIP) >= ipToInt("224.0.0.0") && ipToInt(GT.settings.app.wsjtIP) < ipToInt("240.0.0.0"))
+    {
+      GT.settings.app.multicast = true;
+    }
+    else
+    {
+      GT.settings.app.multicast = false;
+    }
+
+  }
+
+  if (GT.settings.app.wsjtUdpPort == 0)
+  {
+    GT.settings.app.wsjtUdpPort = 2237;
+    GT.settings.app.wsjtIP = "";
+    GT.settings.app.multicast = false;
+  }
+  // Which INI do we load?
+  if (GT.settings.app.wsjtUdpPort > 0 && which.MyCall != "NOCALL")
+  {
+    GT.settings.app.myCall = which.MyCall;
+    GT.settings.app.myGrid = GT.settings.app.myRawGrid = which.MyGrid;
+    GT.lastBand = GT.settings.app.myBand;
+    GT.lastMode = GT.settings.app.myMode;
+
+    if (which.BroadcastToN1MM == true && GT.settings.N1MM.enable == true)
+    {
+      if (which.N1MMServer == GT.settings.N1MM.ip && which.N1MMServerPort == GT.settings.N1MM.port)
+      {
+        buttonN1MMCheckBox.checked = GT.settings.N1MM.enable = false;
+        alert(which.appName + " N1MM Logger+ is enabled in WSJT-X with same settings, disabled GridTracker N1MM logger");
+      }
+    }
+
+    if (GT.settings.app.wsjtIP == "")
+    {
+      GT.settings.app.wsjtIP = which.ip;
     }
   }
 }

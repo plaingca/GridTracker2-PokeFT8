@@ -4,6 +4,8 @@
 
 // WSJT-X / JTDX UDP handling (moved verbatim from GridTracker2.js)
 
+// ---- Qt wire format: encoding ----
+
 function encodeQBOOL(byteArray, offset, value)
 {
   return byteArray.writeUInt8(value ? 1 : 0, offset);
@@ -32,86 +34,7 @@ function encodeQDOUBLE(byteArray, offset, value)
   return byteArray.writeDoubleBE(value, offset);
 }
 
-function startForwardListener()
-{
-  if (GT.forwardUdpServer != null)
-  {
-    GT.forwardUdpServer.close();
-  }
-  if (GT.closing == true) return;
-
-  const dgram = window.require("dgram");
-  GT.forwardUdpServer = dgram.createSocket({
-    type: "udp4",
-    reuseAddr: true
-  });
-
-  GT.forwardUdpServer.on("listening", function () { });
-  GT.forwardUdpServer.on("error", function ()
-  {
-    GT.forwardUdpServer.close();
-    GT.forwardUdpServer = null;
-  });
-  GT.forwardUdpServer.on("message", function (originalMessage, remote)
-  {
-    let offset = 0;
-    const magicKey = originalMessage.readUInt32BE(offset);
-    offset += 4;
-
-    if (magicKey != 0xadbccbda) {
-      return;
-    }
-
-    offset += 4; // schema_number
-    offset += 4; // type
-
-    const idLen = originalMessage.readUInt32BE(offset);
-    offset += 4;
-
-    const id = idLen === 0xffffffff ? "" : originalMessage.toString("utf8", offset, offset + idLen);
-
-    if (id in GT.instances) {
-      wsjtUdpMessage(
-        originalMessage,
-        originalMessage.length,
-        GT.instances[id].remote.port,
-        GT.instances[id].remote.address
-      );
-    }
-  });
-  GT.forwardUdpServer.bind(0);
-}
-
-function sendForwardUdpMessage(msg, length)
-{
-  if (GT.forwardUdpServer)
-  {
-    const port = GT.settings.app.wsjtForwardUdpPort;
-    for (let i = 0; i < GT.forwardIPs.length; i++) 
-    {
-      GT.forwardUdpServer.send(msg, 0, length, port, GT.forwardIPs[i]);
-    }
-  }
-}
-
-function wsjtUdpMessage(msg, length, port, address)
-{
-  if (GT.wsjtUdpServer)
-  {
-    GT.wsjtUdpServer.send(msg, 0, length, port, address);
-  }
-}
-
-function checkWsjtxListener()
-{
-  if (GT.wsjtUdpServer == null || (GT.wsjtUdpSocketReady == false && GT.wsjtUdpSocketError == true))
-  {
-    GT.wsjtCurrentPort = -1;
-    GT.wsjtCurrentIP = "none";
-  }
-  updateWsjtxListener(GT.settings.app.wsjtUdpPort);
-}
-
+// ---- Qt wire format: decoding ----
 
 function createQtReader(buffer) {
   let offset = 0;
@@ -174,6 +97,8 @@ function createQtReader(buffer) {
   };
 }
 
+// ---- Instance tracking ----
+
 /**
  * Fast, Zero-GC string hashing using FNV-1a.
  * Converts "WSJT-X - HF" into a short anonymous hex string like "a8f3b2c1"
@@ -191,7 +116,7 @@ function hashAppString(str) {
 
     // `>>> 0` forces V8 to treat the result as an unsigned 32-bit integer.
     // `.toString(16)` converts it to a clean hexadecimal string.
-    return (hash >>> 0).toString(16); 
+    return (hash >>> 0).toString(16);
 }
 
 function addNewInstance(instanceId)
@@ -213,6 +138,18 @@ function addNewInstance(instanceId)
     multiRigCRDiv.style.display = "inline-block";
     haltTXDiv.style.display = "inline-block";
   }
+}
+
+// ---- Main WSJT-X listener ----
+
+function checkWsjtxListener()
+{
+  if (GT.wsjtUdpServer == null || (GT.wsjtUdpSocketReady == false && GT.wsjtUdpSocketError == true))
+  {
+    GT.wsjtCurrentPort = -1;
+    GT.wsjtCurrentIP = "none";
+  }
+  updateWsjtxListener(GT.settings.app.wsjtUdpPort);
 }
 
 function updateWsjtxListener(port)
@@ -367,7 +304,7 @@ function updateWsjtxListener(port)
 
       case 2: {
         if (!instance.valid) return;
-        
+
         const status = instance.status;
         newMessage.NW = r.u8();
         newMessage.TM = r.u32();
@@ -481,4 +418,78 @@ function updateWsjtxListener(port)
   GT.wsjtUdpServer.bind(port);
   GT.wsjtCurrentPort = port;
   GT.wsjtCurrentIP = GT.settings.app.wsjtIP;
+}
+
+// ---- Sending to WSJT-X ----
+
+function wsjtUdpMessage(msg, length, port, address)
+{
+  if (GT.wsjtUdpServer)
+  {
+    GT.wsjtUdpServer.send(msg, 0, length, port, address);
+  }
+}
+
+// ---- UDP forwarding ----
+
+function startForwardListener()
+{
+  if (GT.forwardUdpServer != null)
+  {
+    GT.forwardUdpServer.close();
+  }
+  if (GT.closing == true) return;
+
+  const dgram = window.require("dgram");
+  GT.forwardUdpServer = dgram.createSocket({
+    type: "udp4",
+    reuseAddr: true
+  });
+
+  GT.forwardUdpServer.on("listening", function () { });
+  GT.forwardUdpServer.on("error", function ()
+  {
+    GT.forwardUdpServer.close();
+    GT.forwardUdpServer = null;
+  });
+  GT.forwardUdpServer.on("message", function (originalMessage, remote)
+  {
+    let offset = 0;
+    const magicKey = originalMessage.readUInt32BE(offset);
+    offset += 4;
+
+    if (magicKey != 0xadbccbda) {
+      return;
+    }
+
+    offset += 4; // schema_number
+    offset += 4; // type
+
+    const idLen = originalMessage.readUInt32BE(offset);
+    offset += 4;
+
+    const id = idLen === 0xffffffff ? "" : originalMessage.toString("utf8", offset, offset + idLen);
+
+    if (id in GT.instances) {
+      wsjtUdpMessage(
+        originalMessage,
+        originalMessage.length,
+        GT.instances[id].remote.port,
+        GT.instances[id].remote.address
+      );
+    }
+  });
+  GT.forwardUdpServer.bind(0);
+}
+
+function sendForwardUdpMessage(msg, length)
+{
+  if (GT.forwardUdpServer)
+  {
+    const port = GT.settings.app.wsjtForwardUdpPort;
+    for (let i = 0; i < GT.forwardIPs.length; i++)
+    {
+      GT.forwardUdpServer.send(msg, 0, length, port, GT.forwardIPs[i]);
+    }
+  }
 }
