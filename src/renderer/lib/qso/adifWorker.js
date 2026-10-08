@@ -2,8 +2,8 @@ const GT = {};
 const myTextEncoder = new TextEncoder();
 const myTextDecoder = new TextDecoder();
 
-importScripts("protos.js");
-importScripts("gtCommon.js");
+importScripts("../protos.js");
+importScripts("../gtCommon.js");
 
 GT.workerFunctions = {
   init: initGlobals,

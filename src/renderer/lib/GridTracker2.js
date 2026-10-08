@@ -10,7 +10,6 @@ GT.firstRun = false;
 
 const p = os.platform().toLowerCase();
 GT.platform = p.startsWith("win") ? "windows" : p.includes("darwin") ? "mac" : p.includes("linux") ? "linux" : p;
-GT.Platform = p.startsWith("win") ? "Windows" : p.includes("darwin") ? "Mac" : p.includes("linux") ? "Linux" : p;
 
 const distanceUnitConfig = {
     KM: { step: 100, max: 19500, min: 100, default: 1000 },
@@ -67,7 +66,6 @@ function loadAllSettings()
       }
     }
   }
-
 
   // Test for valid projections
   if (k_valid_projections.indexOf(GT.settings.map.projection) == -1)
@@ -594,7 +592,7 @@ GT.trackerWorkerCallbacks = {
   processed: applyQSOs
 };
 
-GT.trackerWorker = new Worker("./lib/trackerWorker.js");
+GT.trackerWorker = new Worker("./lib/qso/trackerWorker.js");
 
 GT.trackerWorker.onmessage = function(event)
 {
@@ -709,7 +707,7 @@ function startupApplication()
   initQSOdata();
 
   aboutVersionText.innerHTML = gtShortVersion;
-  supportVersionsText.innerHTML = `<span style="font-size:smaller;color:#999;">Electron v${process.versions.electron} OpenLayers: v${ol.util.VERSION}<br>(${GT.Platform} ${os.arch()})</span>`;
+  supportVersionsText.innerHTML = `<span style="font-size:smaller;color:#999;">Electron v${process.versions.electron} OpenLayers: v${ol.util.VERSION}<br>(${GT.platform} ${os.arch()})</span>`;
 
   GT.currentDay = parseInt(timeNowSec() / 86400);
 

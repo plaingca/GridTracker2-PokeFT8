@@ -24,7 +24,7 @@ GT.adifWorkerCallbacks = {
   cleared: clearComplete
 };
 
-GT.adifWorker = new Worker("./lib/adifWorker.js");
+GT.adifWorker = new Worker("./lib/qso/adifWorker.js");
 
 GT.adifWorker.onmessage = function(event)
 {

@@ -1,7 +1,7 @@
 var GT = {};
 
-importScripts("protos.js");
-importScripts("gtCommon.js");
+importScripts("../protos.js");
+importScripts("../gtCommon.js");
 
 GT.workerFunctions =
 {
