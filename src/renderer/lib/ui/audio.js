@@ -213,13 +213,6 @@ function mediaCheck()
 
   GT.modes_phone = requireJson("data/modes-phone.json");
 
-  initQSOdata();
-
-  GT.QSOhash = {};
-  GT.QSLcount = 0;
-  GT.QSOcount = 0;
-  GT.rowsFiltered = 0;
-
   let appName = I18N("settings.about.AppName");
   let gtName = electron.ipcRenderer.sendSync("getAppName");
   if (gtName.length > 0)
