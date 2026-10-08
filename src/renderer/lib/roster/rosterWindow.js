@@ -2,7 +2,7 @@
 // All rights reserved.
 // See LICENSE for more information.
 
-// var CR is in screen.js
+// var CR is in first.js
 Object.assign(CR,
 {
   developerMode: false,

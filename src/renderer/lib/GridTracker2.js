@@ -4,7 +4,7 @@
 const gtVersionStr = electron.ipcRenderer.sendSync("appVersion");
 const gtVersion = parseInt(gtVersionStr.replace(/\./g, ""));
 
-// let GT is in screen.js
+// let GT is in first.js
 GT.startingUp = true;
 GT.firstRun = false;
 
