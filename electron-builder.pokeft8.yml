@@ -1,6 +1,12 @@
-extends: ./electron-builder.yml
+# Standalone fork configuration: electron-builder concatenates inherited target
+# arrays, which would otherwise restore upstream's ia32/universal targets.
+extends: null
 appId: ca.ft8.gridtracker2.pokeft8
 productName: GridTracker2 PokeFT8
+directories:
+  buildResources: build
+asar: true
+npmRebuild: false
 afterPack: null
 beforePack: ./scripts/verify-pokeft8-package.cjs
 publish: null
@@ -27,11 +33,30 @@ nsis:
   shortcutName: GridTracker2 PokeFT8
   uninstallDisplayName: GridTracker2 PokeFT8
   menuCategory: GridTracker2 PokeFT8
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  selectPerMachineByDefault: false
+  packElevateHelper: true
+  allowElevation: true
+  license: LICENSE
+  deleteAppDataOnUninstall: false
+  warningsAsErrors: false
+  preCompressedFileExtensions: ['.png', '.mp3']
 mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSDocumentsFolderUsageDescription: GridTracker requests access to the user's Documents folder.
+    NSDownloadsFolderUsageDescription: GridTracker requests access to the user's Downloads folder.
+    NSLocalNetworkUsageDescription: GridTracker needs access to the local network to talk to WSJT-X.
   notarize: false
   target:
     - zip
 linux:
+  maintainer: gridtracker.org
+  category: Utility;HamRadio
   executableName: gridtracker2-pokeft8
   target:
     - tar.gz
