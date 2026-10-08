@@ -169,7 +169,7 @@ class ControllerTests(unittest.TestCase):
         self.assertTrue(old.closed)
         self.assertEqual(self.events[-1]["type"], "ready")
         self.assertEqual(self.events[-1]["protocol"], 1)
-        self.assertEqual(self.controller.red.data_dir, self.root / "user")
+        self.assertEqual(self.controller.red.data_dir, (self.root / "user").resolve())
         self.assertEqual(
             self.rom.read_bytes(),
             b"Fake for controller tests; never passed to an emulator",
