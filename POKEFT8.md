@@ -14,7 +14,9 @@ Configure WSJT-X to send to GridTracker2 as usual. PokeFT8 receives a copy from
 GridTracker's existing UDP receiver, including its configured port and multicast
 settings. There is no second listener or additional WSJT-X forwarding setup.
 
-The first standard FT8 instance sending Status is selected. CQ explores Route 1;
+The first WSJT-X instance sending Status to the running game is selected; it must
+use standard FT8. When several instances share the receiver, the game follows only
+that first instance until Live is restarted. CQ explores Route 1;
 directed calls and replies start battles; exchanges become attacks; completed
 acknowledgements trigger a Poke Ball capture. Captures are separate from official
 QSO logging. GridTracker's existing radio controls retain their usual behavior;
